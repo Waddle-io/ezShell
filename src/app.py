@@ -155,7 +155,7 @@ class EzShellApp:
         """Triggers AI diagnosis and presents fix options to the user."""
         if not self.config.get_effective_api_key():
             console.print(
-                "\n[dim #3b4261]─[/] [#e0af68]⚡ Command failed[/] "
+                "\n[dim #3b4261]─[/] [#e0af68] Command failed[/] "
                 "[dim #565f89]• Set GROQ_API_KEY in .env.local to enable instant AI fixes[/]\n"
             )
             return
