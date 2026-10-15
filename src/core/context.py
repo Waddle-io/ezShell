@@ -1,0 +1,119 @@
+from __future__ import annotations
+
+import getpass
+import os
+import platform
+import shutil
+import subprocess
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import List, Optional
+
+
+@dataclass
+class CommandHistoryEntry:
+    command: str
+    exit_code: int
+    timestamp: float
+
+
+@dataclass
+class SystemContext:
+    os_name: str
+    os_version: str
+    architecture: str
+    current_user: str
+    current_directory: str
+    shell_name: str
+    git_branch: Optional[str] = None
+    git_is_dirty: Optional[bool] = None
+    recent_history: List[CommandHistoryEntry] = field(default_factory=list)
+
+    @classmethod
+    def collect(cls, history: Optional[List[CommandHistoryEntry]] = None) -> SystemContext:
+        """Collects current runtime environment and system context."""
+        os_name = platform.system()
+        os_version = platform.release()
+
+        # Extract Linux distro name if available
+        if os_name == "Linux":
+            try:
+                import distro  # type: ignore
+                distro_name = distro.name(pretty=True)
+                if distro_name:
+                    os_name = distro_name
+            except Exception:
+                if Path("/etc/os-release").is_file():
+                    try:
+                        with open("/etc/os-release", "r") as f:
+                            for line in f:
+                                if line.startswith("PRETTY_NAME="):
+                                    os_name = line.split("=", 1)[1].strip().strip('"')
+                                    break
+                    except Exception:
+                        pass
+        elif os_name == "Darwin":
+            os_name = f"macOS {platform.mac_ver()[0]}"
+
+        # Git context
+        git_branch = None
+        git_is_dirty = None
+        if shutil.which("git"):
+            try:
+                # Check branch
+                branch_proc = subprocess.run(
+                    ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                    capture_output=True,
+                    text=True,
+                    timeout=1.0,
+                )
+                if branch_proc.returncode == 0:
+                    git_branch = branch_proc.stdout.strip()
+
+                    # Check dirty status
+                    status_proc = subprocess.run(
+                        ["git", "status", "--porcelain"],
+                        capture_output=True,
+                        text=True,
+                        timeout=1.0,
+                    )
+                    git_is_dirty = bool(status_proc.stdout.strip())
+            except Exception:
+                pass
+
+        shell_path = os.environ.get("SHELL", "/bin/bash")
+        shell_name = Path(shell_path).name
+
+        return cls(
+            os_name=os_name,
+            os_version=os_version,
+            architecture=platform.machine(),
+            current_user=getpass.getuser(),
+            current_directory=str(Path.cwd()),
+            shell_name=shell_name,
+            git_branch=git_branch,
+            git_is_dirty=git_is_dirty,
+            recent_history=history or [],
+        )
+
+    def to_prompt_context(self) -> str:
+        """Formats the system context as a concise string for LLM prompts."""
+        lines = [
+            f"OS: {self.os_name} ({self.architecture})",
+            f"Shell: {self.shell_name}",
+            f"Current Directory: {self.current_directory}",
+            f"User: {self.current_user}",
+        ]
+        if self.git_branch:
+            dirty_str = " (uncommitted changes)" if self.git_is_dirty else " (clean)"
+            lines.append(f"Git Branch: {self.git_branch}{dirty_str}")
+
+        if self.recent_history:
+            recent_str = " -> ".join(
+                f"`{entry.command}` (exit: {entry.exit_code})"
+                for entry in self.recent_history[-3:]
+            )
+            lines.append(f"Recent Commands: {recent_str}")
+
+        return "\n".join(lines)
+

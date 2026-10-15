@@ -1,1 +1,13 @@
 .env.local
+.env
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+.ezshell_history

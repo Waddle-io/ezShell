@@ -1,157 +1,166 @@
 <div align="center">
 
-# ezShell
+# ezShell 
 
-**Dis ce que tu veux faire. ezShell trouve la commande, l'explique et te dit si elle est risquée.**
+**Un terminal intelligent propulsé par Groq LLM (`llama-3.1-8b-instant`).**  
+*Intercepte les erreurs en temps réel, explique la cause racine et propose des corrections prêtes à exécuter.*
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![Licence](https://img.shields.io/badge/licence-MIT-green)
 ![Version](https://img.shields.io/badge/version-0.1.0-orange)
 ![Statut](https://img.shields.io/badge/statut-MVP-yellow)
 
-[Installation](#installation) · [Démarrage rapide](#démarrage-rapide) · [Documentation](docs/guide-utilisateur.md) · [Contribuer](CONTRIBUTING.md) · [Sécurité](SECURITY.md)
+[Fonctionnalités](#-fonctionnalités) · [Installation](#-installation) · [Configuration](#-configuration) · [Utilisation](#-utilisation) · [Tests](#-tests)
 
 </div>
 
 ---
 
-## À propos
+##  Présentation
 
-ezShell est un assistant IA pour le terminal, propulsé par l'API de [Groq](https://groq.com) et doté d'une interface [Rich](https://github.com/Textualize/rich). Tu décris ce que tu veux faire en langage naturel, il propose la commande, l'explique et indique son niveau de risque.
+`ezShell` enveloppe votre terminal interactif (Bash, Zsh) pour fournir une assistance IA immédiate à chaque erreur de commande. Inspiré d'outils comme *oh-my-zsh* et *Starship*, il associe un prompt moderne à la vitesse d'inférence fulgurante de Groq pour diagnostiquer vos pannes et proposer des commandes de résolution exécutables en une touche.
 
-```text
-$ ezsh "supprime les .log de plus de 7 jours"
+###  Fonctionnalités
+-  **Diagnostic d'erreur instantané** : Analyse la cause racine de l'échec en français clair et concis.
+-  **Suggestion de correction exécutable** : Propose la commande exacte pour réparer l'erreur. Appuyez sur `y` pour l'exécuter directement.
+-  **Garde-fou de sécurité** : Détecte les commandes potentiellement destructrices (`rm -rf /`, `mkfs`, fork bombs) et avertit avant toute exécution.
+-  **Questions en langage naturel (`!ask`)** : Posez vos questions système ou DevOps directement sans quitter le terminal.
+-  **Interface moderne Starship / Tokyo Night** : Prompt 2 lignes, statut Git dynamique (`⎇ branch*`), autocomplétion des chemins et historique persistant.
+-  **Configuration flexible** : Lecture hiérarchique depuis `.env.local`, variable d'environnement `GROQ_API_KEY` ou `~/.ezshell/config.json`.
 
-  Commande   find . -name "*.log" -mtime +7 -delete
-  Explication  Cherche les fichiers .log modifiés il y a plus de 7 jours
-               dans le dossier courant et les supprime.
-  Risque     ÉLEVÉ  (-delete détecté)
+---
 
-  [Entrée] exécuter · [c] copier · [e] éditer · [q] fermer
-```
-
-> L'exemple ci-dessus illustre le fonctionnement ; le rendu exact peut varier.
-
-## Captures d'écran
-
-<div align="center">
-
-![Demande en langage naturel](docs/images/demo.png)
-*Une demande en langage naturel : commande, explication et niveau de risque.*
-
-</div>
-
-<table>
-  <tr>
-    <td align="center">
-      <img src="docs/images/risque-eleve.png" alt="Confirmation pour une commande à risque élevé" width="400"><br>
-      <em>Confirmation « oui » pour une commande à risque élevé</em>
-    </td>
-    <td align="center">
-      <img src="docs/images/erreur.png" alt="Explication d'une erreur" width="400"><br>
-      <em>Explication d'une erreur avec la correction proposée</em>
-    </td>
-  </tr>
-</table>
-
-## Fonctionnalités
-
-- **Langage naturel vers commande** avec explication.
-- **Niveau de risque** : faible, moyen ou élevé. L'avis du modèle est complété par des règles locales (`rm -rf`, `-delete`, `sudo`, `git push --force`, `curl | sh`…). Le niveau le plus prudent est toujours retenu.
-- **Explication d'erreurs** : cause probable et correction proposée, y compris depuis un pipe.
-- **Actions maîtrisées** : exécuter, copier, éditer ou fermer. Une commande à risque élevé exige de taper `oui`.
-- **Contexte automatique** : système, shell, dossier courant et présence d'un dépôt Git sont transmis au modèle.
-
-## Installation
-
-**Prérequis** : Python 3.10 ou plus récent et une clé API Groq.
+##  Installation
 
 ```bash
-git clone https://github.com/<votre-utilisateur>/ezshell.git
-cd ezshell
-python -m venv .venv
-source .venv/bin/activate        # Windows : .venv\Scripts\activate
+# Cloner le dépôt
+git clone https://github.com/Waddle-io/ezShell.git
+cd ezShell
+
+# Créer et activer l'environnement virtuel
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Installer les dépendances et la CLI en mode éditable
+pip install -r requirements.txt
 pip install -e .
 ```
 
-## Configuration
+---
 
+##  Configuration
+
+Obtenez une clé API gratuite sur la [Console Groq](https://console.groq.com/keys).
+
+Trois options pour configurer votre clé :
+
+1. **Via la commande dédiée ezShell :**
+   ```bash
+   ezshell --set-key gsk_votre_cle_ici
+   ```
+2. **Via le fichier `.env.local` à la racine :**
+   ```bash
+   echo "GROQ_API_KEY=gsk_votre_cle_ici" >> .env.local
+   ```
+3. **Via variable d'environnement globale :**
+   ```bash
+   export GROQ_API_KEY="gsk_votre_cle_ici"
+   ```
+
+Vérifier la connectivité :
 ```bash
-cp .env.example .env             # puis renseigne ta clé API Groq
+ezshell --check-key
 ```
 
-Pour utiliser ezShell depuis n'importe quel dossier, place le fichier `.env` dans `~/.config/aiterm/.env`.
+---
 
-| Variable | Description | Défaut |
-|---|---|---|
-| Clé API Groq | Voir `.env.example` pour le nom exact | — |
-| `GROQ_MODEL` | Modèle utilisé | `llama-3.3-70b-versatile` |
+##  Utilisation
 
-## Démarrage rapide
-
+### 1. Session interactive (Recommandé)
+Lancez simplement `ezshell` :
 ```bash
-ezsh                                 # fenêtre interactive
-ezsh "supprime les .log de plus de 7 jours"
-ezsh erreur "fatal: not a git repository"
-git push 2>&1 | ezsh erreur          # lit l'erreur depuis un pipe (affichage seul)
+ezshell
 ```
 
-Dans la fenêtre interactive, `/erreur <texte>` analyse une erreur.
+Travaillez normalement dans votre shell :
+```text
+╭─ ⚡ nuelo in ~/waddle/ezShell on ⎇ main*
+╰─❯ git comit -m "add feature"
+git: 'comit' is not a git command. See 'git --help'.
 
-## Documentation
+╭────────────────────── ✘ Command Failed (Exit Code 1) ──────────────────────╮
+│                                                                              │
+│  ✦ Cause: Faute de frappe dans la sous-commande git 'comit'                  │
+│                                                                              │
+│  La commande a échoué car 'comit' n'est pas reconnu par Git.                 │
+│                                                                              │
+│  ⚡ Suggested Fix  (Corrige l'orthographe en 'commit')                        │
+│                                                                              │
+│    git commit -m "add feature"                                               │
+│                                                                              │
+╰─────────────────────  `git comit -m "add feature"`  ────────────────────────╯
 
-| Document | Contenu |
+ Execute fix? [yes / No / edit]: y
+```
+
+### 2. Commandes intégrées (Méta-commandes)
+À l'intérieur d'ezShell :
+
+| Commande | Description |
 |---|---|
-| [Guide utilisateur](docs/guide-utilisateur.md) | Installation, usage, risques, dépannage, FAQ |
-| [Description du projet](DESCRIPTION.md) | Slogan, description courte et longue, topics |
-| [Contribuer](CONTRIBUTING.md) | Environnement de développement, conventions, pull requests |
-| [Sécurité](SECURITY.md) | Signaler une vulnérabilité |
-| [Changelog](CHANGELOG.md) | Historique des versions |
+| `!ask <question>` | Interroge l'IA sur une commande ou un problème DevOps (`Ctrl+Space`) |
+| `!fix` | Ré-affiche ou relance le dernier fix proposé |
+| `!config` | Affiche la configuration active et le modèle Groq |
+| `!help` | Affiche l'aide intégrée |
+| `clear` | Efface l'écran |
+| `exit` / `quit` | Quitte ezShell |
 
-## Architecture
+### 3. Diagnostic direct en une ligne
+```bash
+ezshell --explain "docker: Error response from daemon: port is already allocated"
+```
+
+### 4. Exécution directe d'une commande
+```bash
+ezshell -c "pytest tests/"
+```
+
+---
+
+##  Tests
+
+Exécuter la suite de tests avec `pytest` :
+```bash
+.venv/bin/pytest tests/ -v
+```
+
+---
+
+##  Architecture & Sécurité
 
 ```text
-ezshell/
-├── pyproject.toml        # installation et commande `ezsh`
-├── requirements.txt
-├── .env.example
-├── docs/                 # documentation utilisateur
-├── .github/              # modèles d'issues et de pull requests
-└── aiterm/
-    ├── cli.py            # point d'entrée, boucle interactive, actions
-    ├── llm.py            # appel à Groq, format de réponse JSON
-    ├── risk.py           # règles locales de niveau de risque
-    ├── context.py        # infos système envoyées au modèle
-    └── ui.py             # fenêtre Rich centrée
+ezShell/
+├── setup.py              # Packaging et point d'entrée CLI `ezshell`
+├── requirements.txt      # Dépendances de production
+├── tests/                # Tests unitaires (config, safety, context, pty, assistant)
+└── src/
+    ├── main.py           # Point d'entrée CLI avec options
+    ├── app.py            # Boucle REPL interactive et gestion des builtins
+    ├── core/
+    │   ├── pty_shell.py  # Moteur pseudo-terminal (PTY) & nettoyage ANSI
+    │   ├── groq_client.py# Client Groq avec retries et gestion d'erreurs
+    │   ├── assistant.py  # Logique de diagnostic et extraction JSON
+    │   ├── safety.py     # Détection des commandes dangereuses
+    │   ├── context.py    # Détection OS, shell, git et télémétrie locale
+    │   ├── prompts.py    # System prompts spécialisés DevOps
+    │   └── config.py     # Gestionnaire de configuration hiérarchique
+    └── ui/
+        ├── prompt.py     # Prompt prompt_toolkit 2 lignes style Starship
+        └── render.py     # Moteur de rendu Rich avec palette Tokyo Night
 ```
 
-## Sécurité et confidentialité
+---
 
-- Rien n'est exécuté sans ton action ; `q` ferme sans rien faire.
-- Les commandes à risque élevé demandent une confirmation explicite.
-- Les règles locales ne remplacent pas ta relecture : lis toujours la commande avant de l'exécuter.
-- Ton texte, le dossier courant et les infos système sont envoyés à Groq. **N'y colle jamais de secrets** (mots de passe, clés, tokens).
+##  Licence
 
-Pour signaler une vulnérabilité, consulte [SECURITY.md](SECURITY.md).
-
-## Limites connues
-
-- Le terminal n'est pas lu automatiquement : l'erreur doit être collée ou passée par un pipe.
-- Une seule commande est proposée à la fois, sans historique de conversation.
-- Les règles de risque sont une liste de motifs, donc incomplète.
-
-## Feuille de route
-
-- [ ] Historique des questions (flèches haut et bas)
-- [ ] Capture automatique de la dernière erreur via une fonction du shell (bash, zsh, PowerShell)
-- [ ] Mode apprentissage : explication détaillée de chaque morceau d'une commande
-- [ ] Fenêtre flottante plus avancée avec Textual
-- [ ] Tests automatiques pour `risk.py`
-
-## Contribuer
-
-Les contributions sont les bienvenues. Lis [CONTRIBUTING.md](CONTRIBUTING.md) avant d'ouvrir une pull request, et respecte le [code de conduite](CODE_OF_CONDUCT.md).
-
-## Licence
-
-Distribué sous licence MIT. Voir [LICENSE](LICENSE).
+Distribué sous licence MIT.
