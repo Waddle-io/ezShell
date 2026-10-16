@@ -134,9 +134,19 @@ def show_welcome_banner(force: bool = False) -> None:
 
     Shows a side-by-side layout: the hand-crafted ASCII art logo on the left
     and a rich info card with usage instructions on the right.
+
+    The card content is automatically rendered in the user's detected language
+    (French or English) via the ``src.i18n`` module.
+
+    Args:
+        force: If ``True``, display the banner regardless of whether it has been
+               shown before (useful for ``ezsh --logo``). Defaults to ``False``.
     """
     if not force and not is_first_install():
         return
+
+    # Lazy import to avoid circular imports at module load time
+    from src.i18n import t  # noqa: PLC0415
 
     console = Console()
     console.print()
@@ -150,23 +160,20 @@ def show_welcome_banner(force: bool = False) -> None:
 
     logo_block = "\n".join(logo_lines)
 
-    info_card = """[bold #00E5FF]ezShell v0.1.0[/bold #00E5FF]
-[dim #94A3B8]Intelligent Terminal Assistant[/dim #94A3B8]
-[dim #94A3B8]Powered by Groq AI[/dim #94A3B8]
+    # Build bilingual info card using i18n strings
+    info_card = f"""[bold #00E5FF]{t("welcome_title")}[/bold #00E5FF]
+[dim #94A3B8]{t("welcome_subtitle")}[/dim #94A3B8]
 
-[bold #FFFFFF]Welcome to your new terminal superpower![/bold #FFFFFF]
-ezShell gives you instant AI diagnostics, command
-generation, and an interactive desktop assistant
-window right from your CLI.
+[bold #FFFFFF]{t("welcome_body")}[/bold #FFFFFF]
 
-[bold #00FF88]› How to use:[/bold #00FF88]
-  [bold #00E5FF]ezsh[/bold #00E5FF]               Desktop Assistant window
-  [bold #00E5FF]ezsh --tui[/bold #00E5FF]         In-terminal TUI popup
-  [bold #00E5FF]ezsh --set-key[/bold #00E5FF]     Configure your Groq API key
-  [bold #00E5FF]ezsh -c <cmd>[/bold #00E5FF]      Single command with AI assist
-  [bold #00E5FF]ezsh --help[/bold #00E5FF]        List all options
+[bold #00FF88]{t("welcome_how_to_use")}[/bold #00FF88]
+  [bold #00E5FF]ezsh[/bold #00E5FF]               {t("welcome_cmd_desktop")}
+  [bold #00E5FF]ezsh --tui[/bold #00E5FF]         {t("welcome_cmd_tui")}
+  [bold #00E5FF]ezsh --set-key[/bold #00E5FF]     {t("welcome_cmd_setkey")}
+  [bold #00E5FF]ezsh -c <cmd>[/bold #00E5FF]      {t("welcome_cmd_single")}
+  [bold #00E5FF]ezsh --help[/bold #00E5FF]        {t("welcome_cmd_help")}
 
-[italic #94A3B8]Press Esc or Ctrl+C to close popup windows.[/italic #94A3B8]
+[italic #94A3B8]{t("welcome_footer")}[/italic #94A3B8]
 """
 
     grid = Table.grid(padding=(0, 3))
@@ -185,3 +192,4 @@ window right from your CLI.
     console.print(grid)
     console.print()
     mark_as_installed()
+
