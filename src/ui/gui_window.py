@@ -29,6 +29,11 @@ class EzShellDesktopApp(ctk.CTk):
     - Action pills: [Enter  run]  [c  copy]  [e  edit]  [q  close]
     """
 
+    # Premium developer typography constants
+    FONT_UI = "Inter"
+    FONT_UI_DISPLAY = "Inter Display"
+    FONT_CODE = "JetBrains Mono"
+
     def __init__(
         self,
         config: Optional[EzShellConfig] = None,
@@ -128,7 +133,7 @@ class EzShellDesktopApp(ctk.CTk):
                 header_left,
                 text=">_",
                 text_color="#00E5FF",
-                font=ctk.CTkFont(family="DejaVu Sans Mono", size=16, weight="bold"),
+                font=ctk.CTkFont(family="JetBrains Mono", size=16, weight="bold"),
             )
             prompt_mark.pack(side="left", padx=(0, 8))
 
@@ -136,7 +141,7 @@ class EzShellDesktopApp(ctk.CTk):
             header_left,
             text="ezShell",
             text_color="#FFFFFF",
-            font=ctk.CTkFont(family="Inter", size=18, weight="bold"),
+            font=ctk.CTkFont(family="Inter Display", size=18, weight="bold"),
         )
         app_title.pack(side="left")
         app_title.bind("<ButtonPress-1>", self._start_drag)
@@ -193,7 +198,7 @@ class EzShellDesktopApp(ctk.CTk):
             self.query_row,
             text=">",
             text_color="#00E5FF",
-            font=ctk.CTkFont(family="DejaVu Sans Mono", size=15, weight="bold"),
+            font=ctk.CTkFont(family="JetBrains Mono", size=15, weight="bold"),
         )
         self.query_chevron.pack(side="left", padx=(0, 8))
 
@@ -201,7 +206,7 @@ class EzShellDesktopApp(ctk.CTk):
             self.query_row,
             text=self.current_query,
             text_color="#F1F5F9",
-            font=ctk.CTkFont(family="DejaVu Sans Mono", size=14),
+            font=ctk.CTkFont(family="JetBrains Mono", size=14),
             anchor="w",
         )
         self.query_label.pack(side="left", fill="x", expand=True)
@@ -256,7 +261,7 @@ class EzShellDesktopApp(ctk.CTk):
             cmd_inner,
             text="$",
             text_color="#64748B",
-            font=ctk.CTkFont(family="DejaVu Sans Mono", size=13),
+            font=ctk.CTkFont(family="JetBrains Mono", size=13),
         )
         self.prompt_dollar.pack(side="left", padx=(0, 10))
 
@@ -264,7 +269,7 @@ class EzShellDesktopApp(ctk.CTk):
             cmd_inner,
             text=self.current_cmd,
             text_color="#00E5FF",
-            font=ctk.CTkFont(family="DejaVu Sans Mono", size=13, weight="bold"),
+            font=ctk.CTkFont(family="JetBrains Mono", size=13, weight="bold"),
             anchor="w",
         )
         self.cmd_text_lbl.pack(side="left", fill="x", expand=True)
@@ -303,7 +308,7 @@ class EzShellDesktopApp(ctk.CTk):
         self.exec_label = ctk.CTkLabel(
             self.exec_box,
             text="",
-            font=ctk.CTkFont(family="DejaVu Sans Mono", size=11),
+            font=ctk.CTkFont(family="JetBrains Mono", size=11),
             justify="left",
             anchor="w",
         )
@@ -330,7 +335,7 @@ class EzShellDesktopApp(ctk.CTk):
             border_color="#1B2B3F",
             border_width=1,
             text_color="#FFFFFF",
-            font=ctk.CTkFont(family="DejaVu Sans Mono", size=12),
+            font=ctk.CTkFont(family="JetBrains Mono", size=12),
             height=38,
             corner_radius=6,
         )
