@@ -5,7 +5,7 @@
 )
 
 #set text(
-  font: ("Inter", "Liberation Sans"),
+  font: ("Space Grotesk", "JetBrains Mono NL"),
   size: 10pt,
   fill: black,
   lang: "fr"
@@ -16,16 +16,13 @@
 
 // --- Titre Simple ---
 #align(center)[
-  #text(size: 20pt, weight: "bold")[ezShell — Roadmap] \
-  #v(4pt)
-  #text(size: 10pt)[Emmanuel Bayaro • 16 - 17 Octobre 2026]
-]
+  #text(size: 20pt, weight: "regular", font: "Space Grotesk")[#text(weight: "bold")[ezShell] Roadmap] ]
 
 #v(8pt)
 #line(length: 100%, stroke: 0.5pt + black)
 #v(8pt)
 
-= Ce qui est fait (Aujourd'hui)
+= Partie I 
 
 - *Launcher dynamique* : Recherche immédiate, suppression des textes statiques git.
 - *Historique shell* : Lecture automatique de la dernière commande (.bash_history, .zsh_history).
@@ -34,18 +31,16 @@
 - *Internationalisation* : Interface bilingue Français / Anglais (`i18n.py`).
 - *Affichage* : Commande en haut et nettoyage du formatage de l'IA.
 
-= Ce que je fais aujourd'hui (Validation)
 
-- [ ] Tester le hook en local (`ezsh init --install` puis `source ~/.bashrc` ou `~/.zshrc`).
-- [ ] Tester le raccourci `Alt+E` après une commande en erreur (ex: `git pushh`).
-- [ ] Vérifier que le fichier `.env.local` est bien ignoré par git.
-- [ ] Mettre à jour les instructions de démarrage dans le README.
+- [] * Test 1* : Tester le hook en local (`ezsh init --install` puis `source ~/.bashrc` ou `~/.zshrc`).
+- [] *Test 2* : Tester le raccourci `Alt+E` après une commande en erreur (ex: `git pushh`).
+- [] *Vérification* : Vérifier que le fichier `.env.local` est bien ignoré par git.
+- [] *Mise à jour* : Mettre à jour les instructions de démarrage dans le README.
+- [] *Script d'installation* : Créer `install.sh` exécutable via curl en une ligne.
 
-= Ce que le collègue fait demain (Distribution)
-
-- [ ] *Script d'installation* : Créer `install.sh` exécutable via curl en une ligne.
-- [ ] *Packaging PyPI* : Configurer la publication pip (`pyproject.toml`).
-- [ ] *Multi-plateformes* : Vérifier le comportement sur d'autres distributions Linux et macOS.
+= Partie II (Distribution)
+- *Packaging PyPI* : Configurer la publication pip (`pyproject.toml`).
+- *Multi-plateformes* : Vérifier le comportement sur d'autres distributions Linux et macOS.
 
 = Commandes principales
 
