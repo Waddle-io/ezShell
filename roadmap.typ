@@ -3,10 +3,10 @@
   paper: "a4",
   margin: (x: 2cm, top: 2.2cm, bottom: 2.2cm),
   header: align(right)[
-    #text(size: 8.5pt, fill: rgb("#64748b"))[*ezShell* — Roadmap & Passation Technique]
+    #text(size: 8.5pt, fill: luma(110))[*ezShell* — Roadmap & Passation Technique]
   ],
   footer: align(center)[
-    #context text(size: 8.5pt, fill: rgb("#94a3b8"))[
+    #context text(size: 8.5pt, fill: luma(120))[
       Page #counter(page).display("1 sur 1", both: true)
     ]
   ]
@@ -15,46 +15,43 @@
 #set text(
   font: ("Inter", "Liberation Sans"),
   size: 10.5pt,
-  fill: rgb("#1e293b"),
+  fill: black,
   lang: "fr"
 )
 
 #set par(justify: true, leading: 0.72em)
 #set heading(numbering: "1.1")
 
-// --- Couleurs thématiques ezShell ---
-#let brand-dark = rgb("#0b121b")
-#let brand-cyan = rgb("#00e5ff")
-#let brand-neon-green = rgb("#00ff88")
-#let brand-purple = rgb("#a855f7")
-#let brand-blue = rgb("#2563eb")
-#let surface-card = rgb("#f8fafc")
-#let border-card = rgb("#e2e8f0")
+// --- Style des titres en noir & blanc ---
+#show heading: it => [
+  #v(10pt)
+  #text(fill: black, weight: "bold")[#it]
+  #v(4pt)
+]
 
-// --- Header Principal ---
+// --- Header Principal (Noir & Blanc) ---
 #block(
-  fill: brand-dark,
-  inset: 18pt,
-  radius: 8pt,
+  fill: white,
+  stroke: 1.5pt + black,
+  inset: 16pt,
+  radius: 4pt,
   width: 100%,
-  stroke: 1pt + rgb("#1e293b"),
   [
     #grid(
       columns: (1fr, auto),
       align: (left + horizon, right + horizon),
       [
-        #text(fill: brand-cyan, size: 20pt, weight: "bold")[ezShell] \
+        #text(size: 22pt, weight: "bold")[ezShell] \
         #v(2pt)
-        #text(fill: rgb("#ffffff"), size: 13pt, weight: "medium")[Feuille de Route & Plan de Développement (2 Jours)] \
-        #text(fill: rgb("#94a3b8"), size: 9pt)[Assistant Terminal & Bureau Intelligent propulsé par Groq LLM]
+        #text(size: 13pt, weight: "bold")[Feuille de Route & Plan de Développement (2 Jours)] \
+        #text(fill: luma(90), size: 9.5pt)[Assistant Terminal & Bureau Intelligent propulsé par Groq LLM]
       ],
       [
         #box(
-          fill: rgb("#132338"),
-          radius: 5pt,
+          stroke: 1pt + black,
+          radius: 3pt,
           inset: (x: 10pt, y: 6pt),
-          stroke: 1pt + brand-cyan,
-          [#text(fill: brand-cyan, size: 8.5pt, weight: "bold")[VERSION 0.1.0 • MVP]]
+          [#text(size: 8.5pt, weight: "bold")[VERSION 0.1.0 • MVP]]
         )
       ]
     )
@@ -66,49 +63,49 @@
 // --- Métadonnées ---
 #grid(
   columns: (1fr, 1fr, 1fr),
-  gutter: 12pt,
+  gutter: 10pt,
   [
-    #block(fill: surface-card, inset: 10pt, radius: 5pt, stroke: 1pt + border-card)[
-      #text(size: 8pt, fill: rgb("#64748b"), weight: "bold")[DATE] \
+    #block(fill: luma(250), stroke: 1pt + luma(180), inset: 9pt, radius: 4pt)[
+      #text(size: 8pt, fill: luma(90), weight: "bold")[DATE] \
       #text(weight: "medium")[16 - 17 Octobre 2026]
     ]
   ],
   [
-    #block(fill: surface-card, inset: 10pt, radius: 5pt, stroke: 1pt + border-card)[
-      #text(size: 8pt, fill: rgb("#64748b"), weight: "bold")[RÉPOSITATION] \
+    #block(fill: luma(250), stroke: 1pt + luma(180), inset: 9pt, radius: 4pt)[
+      #text(size: 8pt, fill: luma(90), weight: "bold")[PROJET] \
       #text(weight: "medium")[Waddle-io / ezShell]
     ]
   ],
   [
-    #block(fill: surface-card, inset: 10pt, radius: 5pt, stroke: 1pt + border-card)[
-      #text(size: 8pt, fill: rgb("#64748b"), weight: "bold")[STATUT TESTS] \
-      #text(fill: rgb("#16a34a"), weight: "bold")[● 30/30 Tests Passants]
+    #block(fill: luma(250), stroke: 1pt + luma(180), inset: 9pt, radius: 4pt)[
+      #text(size: 8pt, fill: luma(90), weight: "bold")[TESTS UNITAIRES] \
+      #text(weight: "bold")[● 30/30 Tests Passants]
     ]
   ]
 )
 
-#v(12pt)
+#v(8pt)
 
 == Synthèse des Travaux Réalisés
 
 Toutes les fondations critiques du système ont été finalisées, testées et déployées sur la branche principale (`main`) :
 
 #block(
-  fill: surface-card,
+  fill: luma(252),
+  stroke: 1pt + luma(180),
   inset: 12pt,
-  radius: 6pt,
-  stroke: 1pt + border-card,
+  radius: 4pt,
   [
-    - *Suppression du texte statique bidon* : Le faux exemple `git pull --rebase` a été éliminé au profit d'un vrai *Launcher dynamique*.
+    - *Suppression du texte statique bidon* : Remplacement par un vrai *Launcher dynamique*.
     - *Historique Shell Réel* : Détection automatique de la dernière commande exécutée (`.bash_history`, `.zsh_history`, `$HISTFILE` et `.last_command`).
     - *Hooks Shell & Raccourci Global* : Intégration transparente pour Zsh et Bash avec injection de la combinaison *`Alt+E`*.
     - *Sécurité & Masquage des Secrets* : Implémentation de `src/core/redact.py` pour caviarder les clés API (`gsk_`, `sk-`), tokens et mots de passe.
     - *Internationalisation Bilingue* : Système `src/i18n.py` complet (Français / Anglais) avec auto-détection de locale.
-    - *Design & Typographie* : Éléments typographiques agrandis (titres 20px, code 15px) avec polices _Inter Display_ et _JetBrains Mono_.
+    - *Refonte de l'Affichage* : Formatage épuré des réponses de l'IA (puces nettoyées, commande prioritaire tout en haut, pas de parasites markdown).
   ]
 )
 
-#v(12pt)
+#v(8pt)
 
 == Ce Que Je Fais Aujourd'hui (Jour 1 — Finalisation Développeur)
 
@@ -130,7 +127,7 @@ Objectif du jour : consolider l'expérience locale, valider les flux en conditio
 - [ ] Vérifier que le `README.md` est clair et permet un onboarding immédiat en moins de 2 minutes.
 - [ ] Laisser des notes précises sur les modules clés (`src/core/shell_hook.py`, `src/ui/gui_window.py`).
 
-#v(12pt)
+#v(8pt)
 
 == Ce Que Mon Collègue Fait Demain (Jour 2 — Déploiement & Packaging)
 
@@ -156,26 +153,25 @@ Objectif du jour 2 : automatiser la distribution, faciliter l'installation pour 
 - [ ] *Support Fish Shell* : Valider les hooks Fish dans des environnements réels.
 - [ ] *Mode Notification Système* : Proposer une bulle de notification bureau lorsqu'une commande longue en arrière-plan se termine avec une erreur.
 
-#v(14pt)
+#v(10pt)
 
 == Résumé des Commandes Indispensables
 
 #table(
   columns: (auto, 1fr),
-  fill: (col, row) => if row == 0 { rgb("#1e293b") } else if calc.even(row) { rgb("#f8fafc") } else { rgb("#ffffff") },
-  stroke: 0.5pt + rgb("#cbd5e1"),
+  fill: (col, row) => if row == 0 { black } else if calc.even(row) { luma(248) } else { white },
+  stroke: 0.5pt + luma(180),
   inset: 7pt,
-  [*Commande*], [*Description*],
-  [#text(fill: brand-blue, font: "JetBrains Mono")[ezsh]], [Ouvre la fenêtre d'assistance en mode Launcher dynamique],
-  [#text(fill: brand-blue, font: "JetBrains Mono")[ezsh init --install]], [Injecte automatiquement le hook dans le shell actif (~/.zshrc ou ~/.bashrc)],
-  [#text(fill: brand-blue, font: "JetBrains Mono")[Alt + E]], [Raccourci clavier universel pour appeler ezShell depuis le terminal],
-  [#text(fill: brand-blue, font: "JetBrains Mono")[ezsh --check-key]], [Vérifie la validité et la connectivité de la clé API Groq],
-  [#text(fill: brand-blue, font: "JetBrains Mono")[ezsh --tui]], [Mode terminal pur (Textual) pour les sessions distantes ou SSH],
-  [#text(fill: brand-blue, font: "JetBrains Mono")[pytest tests/ -v]], [Lance les 30 tests unitaires du projet],
+  [#text(fill: white, weight: "bold")[Commande]], [#text(fill: white, weight: "bold")[Description]],
+  [`ezsh`], [Ouvre la fenêtre d'assistance en mode Launcher dynamique],
+  [`ezsh init --install`], [Injecte automatiquement le hook dans le shell actif (~/.zshrc ou ~/.bashrc)],
+  [`Alt + E`], [Raccourci clavier universel pour appeler ezShell depuis le terminal],
+  [`ezsh --check-key`], [Vérifie la validité et la connectivité de la clé API Groq],
+  [`ezsh --tui`], [Mode terminal pur (Textual) pour les sessions distantes ou SSH],
+  [`pytest tests/ -v`], [Lance les 30 tests unitaires du projet],
 )
 
-#v(16pt)
+#v(14pt)
 #align(center)[
-  #text(size: 8.5pt, fill: rgb("#94a3b8"))[Document généré pour le projet ezShell • Tous droits réservés]
+  #text(size: 8.5pt, fill: luma(110))[ezShell • Document interne d'équipe • Version Noir & Blanc]
 ]
-
