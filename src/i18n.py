@@ -290,8 +290,48 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fr": "Expliquer la commande",
     },
     "quick_suggestions": {
-        "en": "QUICK SUGGESTIONS",
-        "fr": "SUGGESTIONS RAPIDES",
+        "en": "QUICK ACTIONS",
+        "fr": "ACTIONS RAPIDES",
+    },
+    "action_ports_title": {
+        "en": "Ports & Processes",
+        "fr": "Ports & Processus",
+    },
+    "action_ports_desc": {
+        "en": "Find listening ports & active PIDs",
+        "fr": "Trouver les ports en écoute et PIDs",
+    },
+    "action_disk_title": {
+        "en": "Disk Usage",
+        "fr": "Espace Disque",
+    },
+    "action_disk_desc": {
+        "en": "Analyze current folder space usage",
+        "fr": "Analyser la taille du dossier courant",
+    },
+    "action_docker_title": {
+        "en": "Docker Cleanup",
+        "fr": "Nettoyage Docker",
+    },
+    "action_docker_desc": {
+        "en": "Prune unused containers & images",
+        "fr": "Purger conteneurs et images orphelines",
+    },
+    "action_git_title": {
+        "en": "Undo Git Commit",
+        "fr": "Annuler Commit Git",
+    },
+    "action_git_desc": {
+        "en": "Rollback commit without losing code",
+        "fr": "Rollback commit sans perdre de code",
+    },
+    "status_ready": {
+        "en": "Ready for commands and diagnostics",
+        "fr": "Prêt pour vos commandes et diagnostics",
+    },
+    "status_footer_hint": {
+        "en": "[↵ Enter] Ask / Run   [Esc] Close   [Alt+E] Shortcut",
+        "fr": "[↵ Entrée] Poser / Exécuter   [Echap] Fermer   [Alt+E] Raccourci",
     },
 }
 

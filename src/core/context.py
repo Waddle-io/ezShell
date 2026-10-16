@@ -170,9 +170,18 @@ def get_last_shell_command() -> Optional[str]:
                         continue
 
                     parts = line.split()
-                    cmd_name = parts[0] if parts else ""
-                    if cmd_name not in ignored_prefixes:
-                        return line
+                    if not parts:
+                        continue
+                    cmd_name = parts[0]
+                    base_cmd = Path(cmd_name).name
+
+                    # Ignore ezshell aliases and system navigation commands
+                    if base_cmd in ignored_prefixes or cmd_name in ignored_prefixes:
+                        continue
+                    if any(x in line for x in ("ezshell", "ezsh", "eszh")):
+                        continue
+
+                    return line
         except Exception:
             continue
 

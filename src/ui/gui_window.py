@@ -9,9 +9,9 @@ from typing import List, Optional
 import customtkinter as ctk
 from PIL import Image
 
-from src.core.assistant import ChatMessageResult, ChatSession, extract_bash_commands
+from src.core.assistant import ChatMessageResult, ChatSession
 from src.core.config import EzShellConfig
-from src.core.context import SystemContext, get_last_shell_command
+from src.core.context import SystemContext, get_last_exit_code, get_last_shell_command
 from src.core.pty_shell import PTYExecutor
 from src.core.safety import RiskLevel, SafetyGuard, SafetyReport
 from src.i18n import t
@@ -57,26 +57,28 @@ class EzShellDesktopApp(ctk.CTk):
     FONT_FAMILY_TITLE = "Inter Display"
     FONT_FAMILY_CODE = "JetBrains Mono"
 
-    FONT_SIZE_APP_TITLE = 20
-    FONT_SIZE_QUERY_CHEVRON = 18
-    FONT_SIZE_QUERY_TEXT = 16
-    FONT_SIZE_SECTION_HEADER = 12
-    FONT_SIZE_CAUSE_BODY = 15
-    FONT_SIZE_FIX_COMMAND = 15
-    FONT_SIZE_RISK_BADGE = 13
-    FONT_SIZE_INPUT_ENTRY = 14
-    FONT_SIZE_PILL_KEY = 12
-    FONT_SIZE_PILL_LABEL = 12
-    FONT_SIZE_EXEC_OUTPUT = 13
+    FONT_SIZE_APP_TITLE = 18
+    FONT_SIZE_QUERY_CHEVRON = 16
+    FONT_SIZE_QUERY_TEXT = 14
+    FONT_SIZE_SECTION_HEADER = 11
+    FONT_SIZE_CAUSE_BODY = 14
+    FONT_SIZE_FIX_COMMAND = 14
+    FONT_SIZE_RISK_BADGE = 12
+    FONT_SIZE_INPUT_ENTRY = 13
+    FONT_SIZE_PILL_KEY = 11
+    FONT_SIZE_PILL_LABEL = 11
+    FONT_SIZE_EXEC_OUTPUT = 12
 
     # Modern refined developer color palette
     COLOR_PRIMARY_BLUE = "#3B82F6"      # Refined royal blue accent
     COLOR_BLUE_HOVER = "#2563EB"        # Active button blue
     COLOR_LIGHT_BLUE = "#60A5FA"        # Light blue highlights
     COLOR_BG_WINDOW = "#0B0F17"         # Clean deep slate window background
-    COLOR_BG_CARD = "#111827"           # Dark card background
-    COLOR_BG_INPUT = "#0F172A"          # Input entry background
-    COLOR_BORDER = "#1F2937"            # Subtle card border
+    COLOR_BG_CARD = "#121826"           # Dark card background
+    COLOR_BG_CARD_HOVER = "#182235"     # Interactive hover card
+    COLOR_BG_CODE = "#090D14"           # Terminal dark code background
+    COLOR_BG_INPUT = "#111827"          # Input entry background
+    COLOR_BORDER = "#1E293B"            # Subtle card border
     COLOR_BORDER_FOCUS = "#3B82F6"      # Focused input border
     COLOR_TEXT_PRIMARY = "#F8FAFC"      # White primary text
     COLOR_TEXT_MUTED = "#94A3B8"        # Slate muted text
@@ -107,8 +109,8 @@ class EzShellDesktopApp(ctk.CTk):
         self.title("ezShell")
         self.configure(fg_color=self.COLOR_BG_WINDOW)
 
-        # Dimensions & screen centering
-        win_w, win_h = 820, 580
+        # Dimensions & screen centering: Sleek compact launcher proportions
+        win_w, win_h = 760, 500
         try:
             sw = self.winfo_screenwidth()
             sh = self.winfo_screenheight()
@@ -118,7 +120,7 @@ class EzShellDesktopApp(ctk.CTk):
         except Exception:
             self.geometry(f"{win_w}x{win_h}")
 
-        self.minsize(700, 480)
+        self.minsize(700, 460)
 
         # Keyboard shortcuts
         self.bind("<Escape>", lambda e: self.destroy())
@@ -135,12 +137,12 @@ class EzShellDesktopApp(ctk.CTk):
         self.current_risk_level = RiskLevel.SAFE
         self.current_risk_reason = ""
         self.last_detected_cmd = get_last_shell_command()
+        self.last_exit_code = get_last_exit_code()
 
         # Load logo image (supports 28x28 pre-rendered PNG via Tk PhotoImage)
         self.logo_image = None
         logo_28_path = Path(__file__).resolve().parent.parent.parent / "assets" / "logo_28.png"
         if not logo_28_path.is_file():
-            # Auto-generate 28x28 if only original exists
             logo_orig = Path(__file__).resolve().parent.parent.parent / "assets" / "logo.png"
             if logo_orig.is_file():
                 try:
@@ -164,11 +166,11 @@ class EzShellDesktopApp(ctk.CTk):
     def _build_ui(self) -> None:
         """Constructs the application layout."""
         self.main_container = ctk.CTkFrame(self, fg_color="transparent")
-        self.main_container.pack(fill="both", expand=True, padx=24, pady=20)
+        self.main_container.pack(fill="both", expand=True, padx=20, pady=(16, 12))
 
         # 1. Header Bar: [Icon] ez (blue) Shell (white) ............ [Esc] to close
-        self.header_frame = ctk.CTkFrame(self.main_container, fg_color="transparent", height=36)
-        self.header_frame.pack(fill="x", pady=(0, 14))
+        self.header_frame = ctk.CTkFrame(self.main_container, fg_color="transparent", height=32)
+        self.header_frame.pack(fill="x", pady=(0, 10))
 
         # Drag support on header
         self.header_frame.bind("<ButtonPress-1>", self._start_drag)
@@ -182,7 +184,7 @@ class EzShellDesktopApp(ctk.CTk):
 
         if self.logo_image:
             logo_lbl = ctk.CTkLabel(header_left, text="", image=self.logo_image)
-            logo_lbl.pack(side="left", padx=(0, 10))
+            logo_lbl.pack(side="left", padx=(0, 8))
             logo_lbl.bind("<ButtonPress-1>", self._start_drag)
             logo_lbl.bind("<B1-Motion>", self._on_drag)
 
@@ -213,7 +215,7 @@ class EzShellDesktopApp(ctk.CTk):
             border_color=self.COLOR_BORDER,
             border_width=1,
             corner_radius=6,
-            height=30,
+            height=26,
         )
         close_pill.pack(side="right")
 
@@ -221,62 +223,106 @@ class EzShellDesktopApp(ctk.CTk):
             close_pill,
             text="Esc",
             text_color="#CBD5E1",
-            font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=self.FONT_SIZE_PILL_KEY, weight="bold"),
+            font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=11, weight="bold"),
             fg_color="#1E293B",
             corner_radius=4,
-            width=34,
-            height=22,
+            width=32,
+            height=20,
         )
-        esc_badge.pack(side="left", padx=(4, 6), pady=4)
+        esc_badge.pack(side="left", padx=(3, 5), pady=3)
 
         close_text = ctk.CTkLabel(
             close_pill,
             text=t("esc_to_close"),
             text_color=self.COLOR_TEXT_SUBTLE,
-            font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=self.FONT_SIZE_PILL_LABEL),
+            font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=11),
         )
-        close_text.pack(side="left", padx=(0, 8), pady=4)
+        close_text.pack(side="left", padx=(0, 7), pady=3)
 
         close_pill.bind("<Button-1>", lambda e: self.destroy())
         esc_badge.bind("<Button-1>", lambda e: self.destroy())
         close_text.bind("<Button-1>", lambda e: self.destroy())
 
         # Top divider line
-        ctk.CTkFrame(self.main_container, fg_color=self.COLOR_BORDER, height=1).pack(fill="x", pady=(0, 16))
+        ctk.CTkFrame(self.main_container, fg_color=self.COLOR_BORDER, height=1).pack(fill="x", pady=(0, 12))
 
         # Dynamic body container
         self.body_container = ctk.CTkFrame(self.main_container, fg_color="transparent")
         self.body_container.pack(fill="both", expand=True)
+
+        # Bottom divider + persistent footer status bar
+        ctk.CTkFrame(self.main_container, fg_color=self.COLOR_BORDER, height=1).pack(fill="x", pady=(10, 8))
+
+        self.footer_bar = ctk.CTkFrame(self.main_container, fg_color="transparent", height=24)
+        self.footer_bar.pack(fill="x")
+        self._build_footer_status()
 
         if self.current_query:
             self._render_result_view()
         else:
             self._render_launcher_view()
 
+    def _build_footer_status(self) -> None:
+        """Renders the refined bottom status bar with shortcuts and model info."""
+        for w in self.footer_bar.winfo_children():
+            w.destroy()
+
+        # Left: Keyboard shortcuts hint
+        ctk.CTkLabel(
+            self.footer_bar,
+            text=t("status_footer_hint"),
+            text_color=self.COLOR_TEXT_SUBTLE,
+            font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=10),
+            anchor="w",
+        ).pack(side="left")
+
+        # Right: Active Provider & Model pill
+        provider_name = getattr(self.config, "provider", "groq").capitalize()
+        model_name = getattr(self.config, "get_effective_model", lambda: self.config.model)()
+
+        provider_frame = ctk.CTkFrame(self.footer_bar, fg_color="transparent")
+        provider_frame.pack(side="right")
+
+        # Green online dot
+        ctk.CTkLabel(
+            provider_frame,
+            text="●",
+            text_color=self.COLOR_SUCCESS,
+            font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=9),
+        ).pack(side="left", padx=(0, 4))
+
+        ctk.CTkLabel(
+            provider_frame,
+            text=f"{provider_name} · {model_name}  (ezShell v0.1.0)",
+            text_color=self.COLOR_TEXT_SUBTLE,
+            font=ctk.CTkFont(family=self.FONT_FAMILY_CODE, size=10),
+            anchor="e",
+        ).pack(side="left")
+
     def _render_launcher_view(self) -> None:
-        """Renders clean, focused launcher mode when no query has been asked yet."""
+        """Renders clean, focused launcher mode with high-end developer dashboard layout."""
         for w in self.body_container.winfo_children():
             w.destroy()
 
-        # 1. Primary Search / Query Entry
+        # 1. Primary Search / Query Entry Card
         search_card = ctk.CTkFrame(
             self.body_container,
             fg_color=self.COLOR_BG_INPUT,
-            border_color=self.COLOR_PRIMARY_BLUE,
-            border_width=1.5,
+            border_color=self.COLOR_BORDER,
+            border_width=1,
             corner_radius=10,
-            height=54,
+            height=48,
         )
-        search_card.pack(fill="x", pady=(8, 20))
+        search_card.pack(fill="x", pady=(2, 14))
         search_card.pack_propagate(False)
 
         prompt_icon = ctk.CTkLabel(
             search_card,
             text="›",
             text_color=self.COLOR_PRIMARY_BLUE,
-            font=ctk.CTkFont(family=self.FONT_FAMILY_CODE, size=20, weight="bold"),
+            font=ctk.CTkFont(family=self.FONT_FAMILY_CODE, size=18, weight="bold"),
         )
-        prompt_icon.pack(side="left", padx=(14, 8))
+        prompt_icon.pack(side="left", padx=(12, 6))
 
         self.input_entry = ctk.CTkEntry(
             search_card,
@@ -287,25 +333,36 @@ class EzShellDesktopApp(ctk.CTk):
             text_color=self.COLOR_TEXT_PRIMARY,
             font=ctk.CTkFont(family=self.FONT_FAMILY_CODE, size=self.FONT_SIZE_INPUT_ENTRY),
         )
-        self.input_entry.pack(side="left", fill="both", expand=True, padx=(0, 10))
+        self.input_entry.pack(side="left", fill="both", expand=True, padx=(0, 8))
         self.input_entry.bind("<Return>", lambda e: self._on_submit_input())
         self.input_entry.focus()
 
+        # Focus ring animation
+        def _on_entry_focus(e):
+            search_card.configure(border_color=self.COLOR_PRIMARY_BLUE)
+
+        def _on_entry_blur(e):
+            search_card.configure(border_color=self.COLOR_BORDER)
+
+        self.input_entry.bind("<FocusIn>", _on_entry_focus)
+        self.input_entry.bind("<FocusOut>", _on_entry_blur)
+
+        # Sleek Send / Enter badge button
         ask_btn = ctk.CTkButton(
             search_card,
-            text=t("btn_send"),
-            fg_color=self.COLOR_PRIMARY_BLUE,
-            hover_color=self.COLOR_BLUE_HOVER,
-            text_color="#FFFFFF",
-            font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=13, weight="bold"),
-            width=80,
-            height=36,
+            text=f"↵ {t('btn_send')}",
+            fg_color="#1E293B",
+            hover_color=self.COLOR_PRIMARY_BLUE,
+            text_color="#CBD5E1",
+            font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=11, weight="bold"),
+            width=84,
+            height=30,
             corner_radius=6,
             command=self._on_submit_input,
         )
         ask_btn.pack(side="right", padx=(0, 8), pady=8)
 
-        # 2. Context Card: Detected Last Shell Command (if available)
+        # 2. Context Card: Detected Last Shell Command OR Clean System Status
         if self.last_detected_cmd:
             last_cmd_card = ctk.CTkFrame(
                 self.body_container,
@@ -314,93 +371,255 @@ class EzShellDesktopApp(ctk.CTk):
                 border_width=1,
                 corner_radius=8,
             )
-            last_cmd_card.pack(fill="x", pady=(0, 18))
+            last_cmd_card.pack(fill="x", pady=(0, 14))
 
+            # Header row inside card
             row_top = ctk.CTkFrame(last_cmd_card, fg_color="transparent")
-            row_top.pack(fill="x", padx=14, pady=(10, 6))
+            row_top.pack(fill="x", padx=12, pady=(10, 6))
 
             ctk.CTkLabel(
                 row_top,
                 text=f"› {t('last_cmd_detected')}",
                 text_color=self.COLOR_TEXT_MUTED,
-                font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=12, weight="bold"),
+                font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=11, weight="bold"),
                 anchor="w",
             ).pack(side="left")
 
-            cmd_mono = ctk.CTkLabel(
+            # Exit code pill
+            if self.last_exit_code is not None:
+                is_err = self.last_exit_code != 0
+                badge_bg = "#2B1216" if is_err else "#0F291E"
+                badge_fg = self.COLOR_DANGER if is_err else self.COLOR_SUCCESS
+                badge_text = f"✘ Code {self.last_exit_code}" if is_err else "✓ Code 0"
+
+                ctk.CTkLabel(
+                    row_top,
+                    text=badge_text,
+                    text_color=badge_fg,
+                    fg_color=badge_bg,
+                    corner_radius=4,
+                    font=ctk.CTkFont(family=self.FONT_FAMILY_CODE, size=10, weight="bold"),
+                    padx=6,
+                    pady=2,
+                ).pack(side="right")
+
+            # Monospace command container
+            cmd_box = ctk.CTkFrame(
                 last_cmd_card,
+                fg_color=self.COLOR_BG_CODE,
+                border_color=self.COLOR_BORDER,
+                border_width=1,
+                corner_radius=6,
+                height=34,
+            )
+            cmd_box.pack(fill="x", padx=12, pady=(0, 10))
+            cmd_box.pack_propagate(False)
+
+            cmd_mono = ctk.CTkLabel(
+                cmd_box,
                 text=f"  $ {self.last_detected_cmd}",
                 text_color=self.COLOR_LIGHT_BLUE,
-                font=ctk.CTkFont(family=self.FONT_FAMILY_CODE, size=13, weight="bold"),
+                font=ctk.CTkFont(family=self.FONT_FAMILY_CODE, size=12, weight="bold"),
                 anchor="w",
             )
-            cmd_mono.pack(fill="x", padx=14, pady=(0, 10))
+            cmd_mono.pack(fill="both", expand=True, padx=6)
 
+            # Action buttons row
             btn_row = ctk.CTkFrame(last_cmd_card, fg_color="transparent")
-            btn_row.pack(fill="x", padx=14, pady=(0, 12))
+            btn_row.pack(fill="x", padx=12, pady=(0, 10))
 
             diag_btn = ctk.CTkButton(
                 btn_row,
-                text=f"› {t('btn_diagnose_error')}",
-                fg_color="#1E293B",
-                hover_color="#334155",
-                border_color=self.COLOR_PRIMARY_BLUE,
-                border_width=1,
-                text_color=self.COLOR_LIGHT_BLUE,
-                font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=12, weight="bold"),
-                height=30,
-                corner_radius=6,
+                text=f"⚡ {t('btn_diagnose_error')}",
+                fg_color=self.COLOR_PRIMARY_BLUE,
+                hover_color=self.COLOR_BLUE_HOVER,
+                text_color="#FFFFFF",
+                font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=11, weight="bold"),
+                height=28,
+                corner_radius=5,
                 command=lambda: self._query_groq(f"diagnose failed command: {self.last_detected_cmd}"),
             )
-            diag_btn.pack(side="left", padx=(0, 10))
+            diag_btn.pack(side="left", padx=(0, 8))
 
             explain_btn = ctk.CTkButton(
                 btn_row,
-                text=t("btn_explain_command"),
+                text=f"ℹ {t('btn_explain_command')}",
                 fg_color="#1E293B",
                 hover_color="#334155",
+                border_color="#334155",
+                border_width=1,
                 text_color=self.COLOR_TEXT_MUTED,
-                font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=12),
-                height=30,
-                corner_radius=6,
+                font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=11),
+                height=28,
+                corner_radius=5,
                 command=lambda: self._query_groq(f"explain what this command does: {self.last_detected_cmd}"),
             )
             explain_btn.pack(side="left")
-
-        # 3. Quick Suggestions Section
-        ctk.CTkLabel(
-            self.body_container,
-            text=t("quick_suggestions"),
-            text_color=self.COLOR_TEXT_SUBTLE,
-            font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=11, weight="bold"),
-            anchor="w",
-        ).pack(fill="x", pady=(0, 8))
-
-        suggestions_grid = ctk.CTkFrame(self.body_container, fg_color="transparent")
-        suggestions_grid.pack(fill="x")
-
-        quick_actions = [
-            ("Ports", "List open listening ports and their processes"),
-            ("Disk", "Show disk space usage of current folder"),
-            ("Docker", "Clean up stopped docker containers and unused images"),
-            ("Git Undo", "Undo last git commit while keeping local changes"),
-        ]
-
-        for label, query in quick_actions:
-            btn = ctk.CTkButton(
-                suggestions_grid,
-                text=f"› {label}",
+        else:
+            # Clean System Context Card when no prior failure is in history
+            status_card = ctk.CTkFrame(
+                self.body_container,
                 fg_color=self.COLOR_BG_CARD,
-                hover_color="#1E293B",
                 border_color=self.COLOR_BORDER,
                 border_width=1,
-                text_color=self.COLOR_TEXT_PRIMARY,
-                font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=12),
-                height=32,
-                corner_radius=6,
-                command=lambda q=query: self._query_groq(q),
+                corner_radius=8,
             )
-            btn.pack(side="left", padx=(0, 8), pady=2)
+            status_card.pack(fill="x", pady=(0, 14))
+
+            top_row = ctk.CTkFrame(status_card, fg_color="transparent")
+            top_row.pack(fill="x", padx=12, pady=(8, 4))
+
+            ctk.CTkLabel(
+                top_row,
+                text=f"› {t('status_ready')}",
+                text_color=self.COLOR_TEXT_PRIMARY,
+                font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=11, weight="bold"),
+                anchor="w",
+            ).pack(side="left")
+
+            ctk.CTkLabel(
+                top_row,
+                text="● Online",
+                text_color=self.COLOR_SUCCESS,
+                font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=10, weight="bold"),
+            ).pack(side="right")
+
+            # System info pills row
+            chips_row = ctk.CTkFrame(status_card, fg_color="transparent")
+            chips_row.pack(fill="x", padx=12, pady=(0, 8))
+
+            cur_dir_name = Path(self.context.current_directory).name or "/"
+            chips = [
+                f"OS: {self.context.os_name} ({self.context.architecture})",
+                f"Shell: {self.context.shell_name}",
+                f"Cwd: {cur_dir_name}",
+            ]
+            if self.context.git_branch:
+                chips.append(f"Git: {self.context.git_branch}")
+
+            for c in chips:
+                chip_lbl = ctk.CTkLabel(
+                    chips_row,
+                    text=c,
+                    text_color=self.COLOR_TEXT_MUTED,
+                    fg_color="#0F172A",
+                    corner_radius=4,
+                    font=ctk.CTkFont(family=self.FONT_FAMILY_CODE, size=10),
+                    padx=6,
+                    pady=2,
+                )
+                chip_lbl.pack(side="left", padx=(0, 6))
+
+        # 3. Quick Actions — Refined 2x2 Interactive Grid
+        ctk.CTkLabel(
+            self.body_container,
+            text=f"› {t('quick_suggestions')}",
+            text_color=self.COLOR_TEXT_SUBTLE,
+            font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=10, weight="bold"),
+            anchor="w",
+        ).pack(fill="x", pady=(0, 6))
+
+        grid_frame = ctk.CTkFrame(self.body_container, fg_color="transparent")
+        grid_frame.pack(fill="x", expand=True)
+        grid_frame.columnconfigure(0, weight=1)
+        grid_frame.columnconfigure(1, weight=1)
+
+        actions = [
+            (
+                "⚡",
+                t("action_ports_title"),
+                t("action_ports_desc"),
+                "List all open listening ports and their associated process PIDs",
+                0,
+                0,
+            ),
+            (
+                "💾",
+                t("action_disk_title"),
+                t("action_disk_desc"),
+                "Show disk space usage of files and folders in current directory",
+                0,
+                1,
+            ),
+            (
+                "🐳",
+                t("action_docker_title"),
+                t("action_docker_desc"),
+                "Clean up stopped docker containers, unused volumes, and dangling images",
+                1,
+                0,
+            ),
+            (
+                "↩",
+                t("action_git_title"),
+                t("action_git_desc"),
+                "Safely undo the last git commit while keeping local changes unstaged",
+                1,
+                1,
+            ),
+        ]
+
+        for icon, title, desc, query, r, c in actions:
+            card = ctk.CTkFrame(
+                grid_frame,
+                fg_color=self.COLOR_BG_CARD,
+                border_color=self.COLOR_BORDER,
+                border_width=1,
+                corner_radius=8,
+                height=52,
+            )
+            card.grid(row=r, column=c, padx=4, pady=4, sticky="nsew")
+            card.pack_propagate(False)
+
+            # Inner content
+            card_inner = ctk.CTkFrame(card, fg_color="transparent")
+            card_inner.pack(fill="both", expand=True, padx=10, pady=6)
+
+            # Left icon
+            icon_lbl = ctk.CTkLabel(
+                card_inner,
+                text=icon,
+                text_color=self.COLOR_LIGHT_BLUE,
+                font=ctk.CTkFont(family=self.FONT_FAMILY_CODE, size=14, weight="bold"),
+            )
+            icon_lbl.pack(side="left", padx=(0, 8))
+
+            text_col = ctk.CTkFrame(card_inner, fg_color="transparent")
+            text_col.pack(side="left", fill="both", expand=True)
+
+            title_lbl = ctk.CTkLabel(
+                text_col,
+                text=title,
+                text_color=self.COLOR_TEXT_PRIMARY,
+                font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=11, weight="bold"),
+                anchor="w",
+            )
+            title_lbl.pack(fill="x")
+
+            desc_lbl = ctk.CTkLabel(
+                text_col,
+                text=desc,
+                text_color=self.COLOR_TEXT_MUTED,
+                font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=10),
+                anchor="w",
+            )
+            desc_lbl.pack(fill="x")
+
+            # Hover & Click events for entire tile
+            def _make_hover(target_card):
+                def _enter(e):
+                    target_card.configure(fg_color=self.COLOR_BG_CARD_HOVER, border_color=self.COLOR_PRIMARY_BLUE)
+
+                def _leave(e):
+                    target_card.configure(fg_color=self.COLOR_BG_CARD, border_color=self.COLOR_BORDER)
+
+                return _enter, _leave
+
+            enter_fn, leave_fn = _make_hover(card)
+            for w in (card, card_inner, icon_lbl, text_col, title_lbl, desc_lbl):
+                w.bind("<Enter>", enter_fn)
+                w.bind("<Leave>", leave_fn)
+                w.bind("<Button-1>", lambda e, q=query: self._query_groq(q))
 
     def _render_result_view(self) -> None:
         """Renders the clean diagnostic and result view with command prioritized at the top."""
@@ -413,21 +632,32 @@ class EzShellDesktopApp(ctk.CTk):
             scrollbar_button_color="#1E293B",
             scrollbar_button_hover_color=self.COLOR_PRIMARY_BLUE,
         )
-        content_scroll.pack(fill="both", expand=True, pady=(0, 10))
+        content_scroll.pack(fill="both", expand=True, pady=(0, 8))
 
-        # 1. User Query Row: > {query}
-        query_row = ctk.CTkFrame(content_scroll, fg_color="transparent")
-        query_row.pack(fill="x", pady=(0, 14))
+        # 1. User Query Pill Banner: > {query}
+        query_card = ctk.CTkFrame(
+            content_scroll,
+            fg_color=self.COLOR_BG_CARD,
+            border_color=self.COLOR_BORDER,
+            border_width=1,
+            corner_radius=8,
+            height=38,
+        )
+        query_card.pack(fill="x", pady=(0, 12))
+        query_card.pack_propagate(False)
+
+        q_inner = ctk.CTkFrame(query_card, fg_color="transparent")
+        q_inner.pack(fill="both", expand=True, padx=12, pady=6)
 
         ctk.CTkLabel(
-            query_row,
-            text=">",
+            q_inner,
+            text="›",
             text_color=self.COLOR_PRIMARY_BLUE,
             font=ctk.CTkFont(family=self.FONT_FAMILY_CODE, size=self.FONT_SIZE_QUERY_CHEVRON, weight="bold"),
         ).pack(side="left", padx=(0, 8))
 
         self.query_label = ctk.CTkLabel(
-            query_row,
+            q_inner,
             text=self.current_query,
             text_color=self.COLOR_TEXT_PRIMARY,
             font=ctk.CTkFont(family=self.FONT_FAMILY_CODE, size=self.FONT_SIZE_QUERY_TEXT),
@@ -443,41 +673,85 @@ class EzShellDesktopApp(ctk.CTk):
                 text_color=self.COLOR_TEXT_MUTED,
                 font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=self.FONT_SIZE_SECTION_HEADER, weight="bold"),
                 anchor="w",
-            ).pack(fill="x", pady=(0, 6))
+            ).pack(fill="x", pady=(0, 4))
 
             self.cmd_box = ctk.CTkFrame(
                 content_scroll,
-                fg_color=self.COLOR_BG_CARD,
+                fg_color=self.COLOR_BG_CODE,
                 border_color=self.COLOR_BORDER,
                 border_width=1,
                 corner_radius=8,
-                height=48,
+                height=46,
             )
-            self.cmd_box.pack(fill="x", pady=(0, 10))
+            self.cmd_box.pack(fill="x", pady=(0, 8))
             self.cmd_box.pack_propagate(False)
 
             cmd_inner = ctk.CTkFrame(self.cmd_box, fg_color="transparent")
-            cmd_inner.pack(fill="both", expand=True, padx=14, pady=8)
+            cmd_inner.pack(fill="both", expand=True, padx=12, pady=6)
 
             ctk.CTkLabel(
                 cmd_inner,
                 text="$",
                 text_color=self.COLOR_TEXT_SUBTLE,
                 font=ctk.CTkFont(family=self.FONT_FAMILY_CODE, size=self.FONT_SIZE_FIX_COMMAND),
-            ).pack(side="left", padx=(0, 10))
+            ).pack(side="left", padx=(0, 8))
 
             self.cmd_text_lbl = ctk.CTkLabel(
                 cmd_inner,
                 text=self.current_cmd,
-                text_color=self.COLOR_TEXT_PRIMARY,
+                text_color="#60A5FA",
                 font=ctk.CTkFont(family=self.FONT_FAMILY_CODE, size=self.FONT_SIZE_FIX_COMMAND, weight="bold"),
                 anchor="w",
             )
             self.cmd_text_lbl.pack(side="left", fill="x", expand=True)
 
-            # Section: RISK BADGE
+            # Quick Copy Button inside the code box
+            self.quick_copy_btn = ctk.CTkButton(
+                cmd_inner,
+                text="Copier",
+                fg_color="#1E293B",
+                hover_color=self.COLOR_PRIMARY_BLUE,
+                text_color="#CBD5E1",
+                font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=11),
+                width=60,
+                height=26,
+                corner_radius=4,
+                command=self.copy_current_command,
+            )
+            self.quick_copy_btn.pack(side="right")
+
+            # Action Pills Bar: [Enter run] [c copy] [e edit]
+            actions_bar = ctk.CTkFrame(content_scroll, fg_color="transparent")
+            actions_bar.pack(fill="x", pady=(0, 10))
+
+            self.btn_run = self._create_action_pill(
+                actions_bar,
+                key_text="Enter",
+                label_text=t("action_run"),
+                command=self.run_current_command,
+                accent=True,
+            )
+            self.btn_run.pack(side="left", padx=(0, 8))
+
+            self.btn_copy = self._create_action_pill(
+                actions_bar,
+                key_text="c",
+                label_text=t("action_copy"),
+                command=self.copy_current_command,
+            )
+            self.btn_copy.pack(side="left", padx=(0, 8))
+
+            self.btn_edit = self._create_action_pill(
+                actions_bar,
+                key_text="e",
+                label_text=t("action_edit"),
+                command=self.edit_current_command,
+            )
+            self.btn_edit.pack(side="left", padx=(0, 8))
+
+            # Risk Badge Row
             risk_row = ctk.CTkFrame(content_scroll, fg_color="transparent")
-            risk_row.pack(fill="x", pady=(0, 14))
+            risk_row.pack(fill="x", pady=(0, 12))
 
             risk_color = (
                 self.COLOR_DANGER
@@ -494,15 +768,15 @@ class EzShellDesktopApp(ctk.CTk):
                 risk_row,
                 text="●",
                 text_color=risk_color,
-                font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=self.FONT_SIZE_RISK_BADGE),
-            ).pack(side="left", padx=(0, 6))
+                font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=10),
+            ).pack(side="left", padx=(0, 4))
 
             ctk.CTkLabel(
                 risk_row,
                 text=risk_label,
                 text_color=risk_color,
                 font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=self.FONT_SIZE_RISK_BADGE, weight="bold"),
-            ).pack(side="left", padx=(0, 12))
+            ).pack(side="left", padx=(0, 8))
 
             ctk.CTkLabel(
                 risk_row,
@@ -522,23 +796,32 @@ class EzShellDesktopApp(ctk.CTk):
             text_color=self.COLOR_TEXT_MUTED,
             font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=self.FONT_SIZE_SECTION_HEADER, weight="bold"),
             anchor="w",
-        ).pack(fill="x", pady=(0, 6))
+        ).pack(fill="x", pady=(0, 4))
 
         cleaned_body = clean_markdown_explanation(self.current_cause)
 
-        self.cause_body = ctk.CTkLabel(
+        expl_card = ctk.CTkFrame(
             content_scroll,
+            fg_color=self.COLOR_BG_CARD,
+            border_color=self.COLOR_BORDER,
+            border_width=1,
+            corner_radius=8,
+        )
+        expl_card.pack(fill="x", pady=(0, 12))
+
+        self.cause_body = ctk.CTkLabel(
+            expl_card,
             text=cleaned_body or t("thinking"),
             text_color=self.COLOR_TEXT_PRIMARY if self.current_cause else self.COLOR_PRIMARY_BLUE,
             font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=self.FONT_SIZE_CAUSE_BODY),
             anchor="w",
             justify="left",
-            wraplength=760,
+            wraplength=680,
         )
-        self.cause_body.pack(fill="x", pady=(0, 16))
+        self.cause_body.pack(fill="x", padx=12, pady=10)
 
         # Execution Result Box (appears when Enter/run is clicked)
-        self.exec_box = ctk.CTkFrame(content_scroll, fg_color=self.COLOR_BG_CARD, corner_radius=6)
+        self.exec_box = ctk.CTkFrame(content_scroll, fg_color=self.COLOR_BG_CODE, border_color=self.COLOR_BORDER, border_width=1, corner_radius=6)
         self.exec_label = ctk.CTkLabel(
             self.exec_box,
             text="",
@@ -548,61 +831,70 @@ class EzShellDesktopApp(ctk.CTk):
         )
         self.exec_label.pack(fill="both", expand=True, padx=10, pady=8)
 
-        # 4. Bottom Controls: Divider + Input + Action Pills
-        ctk.CTkFrame(self.body_container, fg_color=self.COLOR_BORDER, height=1).pack(fill="x", pady=(0, 10))
+        # 4. Bottom Controls: Follow-up Input Entry
+        ctk.CTkFrame(self.body_container, fg_color=self.COLOR_BORDER, height=1).pack(fill="x", pady=(0, 8))
 
-        # Bottom follow-up input
-        self.input_entry = ctk.CTkEntry(
+        bottom_input_box = ctk.CTkFrame(
             self.body_container,
-            placeholder_text=t("input_placeholder"),
-            placeholder_text_color="#475569",
             fg_color=self.COLOR_BG_INPUT,
             border_color=self.COLOR_BORDER,
             border_width=1,
+            corner_radius=8,
+            height=40,
+        )
+        bottom_input_box.pack(fill="x")
+        bottom_input_box.pack_propagate(False)
+
+        ctk.CTkLabel(
+            bottom_input_box,
+            text="›",
+            text_color=self.COLOR_PRIMARY_BLUE,
+            font=ctk.CTkFont(family=self.FONT_FAMILY_CODE, size=16, weight="bold"),
+        ).pack(side="left", padx=(10, 6))
+
+        self.input_entry = ctk.CTkEntry(
+            bottom_input_box,
+            placeholder_text=t("input_placeholder"),
+            placeholder_text_color="#475569",
+            fg_color="transparent",
+            border_width=0,
             text_color=self.COLOR_TEXT_PRIMARY,
             font=ctk.CTkFont(family=self.FONT_FAMILY_CODE, size=self.FONT_SIZE_INPUT_ENTRY),
-            height=40,
-            corner_radius=6,
         )
-        self.input_entry.pack(fill="x", pady=(0, 10))
+        self.input_entry.pack(side="left", fill="both", expand=True, padx=(0, 6))
         self.input_entry.bind("<Return>", lambda e: self._on_submit_input())
 
-        # Action Pills
-        actions_row = ctk.CTkFrame(self.body_container, fg_color="transparent", height=32)
-        actions_row.pack(fill="x")
+        # Focus ring animation on bottom input
+        def _on_bottom_focus(e):
+            bottom_input_box.configure(border_color=self.COLOR_PRIMARY_BLUE)
 
-        if self.current_cmd:
-            self.btn_run = self._create_action_pill(
-                actions_row,
-                key_text="Enter",
-                label_text=t("action_run"),
-                command=self.run_current_command,
-            )
-            self.btn_run.pack(side="left", padx=(0, 8))
+        def _on_bottom_blur(e):
+            bottom_input_box.configure(border_color=self.COLOR_BORDER)
 
-            self.btn_copy = self._create_action_pill(
-                actions_row,
-                key_text="c",
-                label_text=t("action_copy"),
-                command=self.copy_current_command,
-            )
-            self.btn_copy.pack(side="left", padx=(0, 8))
+        self.input_entry.bind("<FocusIn>", _on_bottom_focus)
+        self.input_entry.bind("<FocusOut>", _on_bottom_blur)
 
-            self.btn_edit = self._create_action_pill(
-                actions_row,
-                key_text="e",
-                label_text=t("action_edit"),
-                command=self.edit_current_command,
-            )
-            self.btn_edit.pack(side="left", padx=(0, 8))
-
-        self.btn_close = self._create_action_pill(
-            actions_row,
-            key_text="q",
-            label_text=t("action_close"),
-            command=self.destroy,
+        # Back to launcher button
+        back_btn = ctk.CTkButton(
+            bottom_input_box,
+            text="← Retour",
+            fg_color="#1E293B",
+            hover_color=self.COLOR_PRIMARY_BLUE,
+            text_color="#94A3B8",
+            font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=11),
+            width=70,
+            height=28,
+            corner_radius=5,
+            command=self._reset_to_launcher,
         )
-        self.btn_close.pack(side="left")
+        back_btn.pack(side="right", padx=(0, 6), pady=6)
+
+    def _reset_to_launcher(self) -> None:
+        """Returns from result view back to launcher view."""
+        self.current_query = ""
+        self.current_cause = ""
+        self.current_cmd = ""
+        self._render_launcher_view()
 
     def _create_action_pill(
         self,
@@ -610,39 +902,49 @@ class EzShellDesktopApp(ctk.CTk):
         key_text: str,
         label_text: str,
         command,
+        accent: bool = False,
     ) -> ctk.CTkFrame:
         """Creates a sleek key action pill."""
+        bg_col = self.COLOR_PRIMARY_BLUE if accent else self.COLOR_BG_CARD
+        border_col = self.COLOR_BLUE_HOVER if accent else self.COLOR_BORDER
+
         pill = ctk.CTkFrame(
             parent,
-            fg_color=self.COLOR_BG_CARD,
-            border_color=self.COLOR_BORDER,
+            fg_color=bg_col,
+            border_color=border_col,
             border_width=1,
             corner_radius=6,
-            height=30,
+            height=28,
         )
         pill.pack_propagate(False)
 
         key_lbl = ctk.CTkLabel(
             pill,
             text=key_text,
-            text_color="#FFFFFF",
+            text_color="#FFFFFF" if accent else "#CBD5E1",
             font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=self.FONT_SIZE_PILL_KEY, weight="bold"),
+            fg_color=self.COLOR_BLUE_HOVER if accent else "#1E293B",
+            corner_radius=4,
+            width=28 if len(key_text) <= 2 else 42,
+            height=20,
         )
-        key_lbl.pack(side="left", padx=(10, 6), pady=4)
+        key_lbl.pack(side="left", padx=(3, 5), pady=3)
 
         lbl = ctk.CTkLabel(
             pill,
             text=label_text,
-            text_color=self.COLOR_TEXT_SUBTLE,
-            font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=self.FONT_SIZE_PILL_LABEL),
+            text_color="#FFFFFF" if accent else self.COLOR_TEXT_MUTED,
+            font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=self.FONT_SIZE_PILL_LABEL, weight="bold" if accent else "normal"),
         )
-        lbl.pack(side="left", padx=(0, 10), pady=4)
+        lbl.pack(side="left", padx=(0, 8), pady=3)
 
         def _on_enter(e):
-            pill.configure(fg_color="#1E293B", border_color=self.COLOR_PRIMARY_BLUE)
+            if not accent:
+                pill.configure(fg_color="#1E293B", border_color=self.COLOR_PRIMARY_BLUE)
 
         def _on_leave(e):
-            pill.configure(fg_color=self.COLOR_BG_CARD, border_color=self.COLOR_BORDER)
+            if not accent:
+                pill.configure(fg_color=self.COLOR_BG_CARD, border_color=self.COLOR_BORDER)
 
         for w in (pill, key_lbl, lbl):
             w.bind("<Button-1>", lambda e: command())
@@ -693,6 +995,10 @@ class EzShellDesktopApp(ctk.CTk):
         except Exception:
             pass
 
+        if hasattr(self, "quick_copy_btn"):
+            self.quick_copy_btn.configure(text="✓ Copié !", fg_color=self.COLOR_SUCCESS)
+            self.after(1200, lambda: self.quick_copy_btn.configure(text="Copier", fg_color="#1E293B"))
+
         if hasattr(self, "cmd_box"):
             self.cmd_box.configure(border_color=self.COLOR_PRIMARY_BLUE)
             self.after(500, lambda: self.cmd_box.configure(border_color=self.COLOR_BORDER))
@@ -704,7 +1010,7 @@ class EzShellDesktopApp(ctk.CTk):
         self.input_entry.focus()
 
     def _on_submit_input(self) -> None:
-        """Queries Groq AI with the text from input_entry."""
+        """Queries AI with the text from input_entry."""
         query = self.input_entry.get().strip()
         if not query:
             return
@@ -713,7 +1019,7 @@ class EzShellDesktopApp(ctk.CTk):
         self._query_groq(query)
 
     def _query_groq(self, query: str) -> None:
-        """Sends query to Groq in a background thread and updates the UI."""
+        """Sends query to active LLM in a background thread and updates the UI."""
         self.current_query = query
         self.current_cause = ""
         self.current_cmd = ""
@@ -737,7 +1043,7 @@ class EzShellDesktopApp(ctk.CTk):
         threading.Thread(target=_worker, daemon=True).start()
 
     def _apply_result(self, result: ChatMessageResult) -> None:
-        """Parses and renders Groq's diagnosis and suggested command."""
+        """Parses and renders AI diagnosis and suggested command."""
         self.current_cause = result.content.strip()
 
         if result.suggested_commands:
@@ -750,7 +1056,6 @@ class EzShellDesktopApp(ctk.CTk):
             self.current_cmd = ""
             self.current_risk_reason = ""
 
-        # Re-render the view with the fresh AI content
         self._render_result_view()
 
     def _apply_error(self, err_msg: str) -> None:

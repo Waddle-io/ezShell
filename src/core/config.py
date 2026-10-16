@@ -53,6 +53,17 @@ DEFAULT_CONFIG_PATH = DEFAULT_CONFIG_DIR / "config.json"
 #: Groq model identifier used when no model is specified by the user.
 DEFAULT_MODEL = "llama-3.1-8b-instant"
 
+#: Supported provider identifiers.
+SUPPORTED_PROVIDERS: list[str] = ["groq", "openai", "anthropic", "ollama"]
+
+#: Default model per provider.
+PROVIDER_DEFAULT_MODELS: dict[str, str] = {
+    "groq": "llama-3.1-8b-instant",
+    "openai": "gpt-4o-mini",
+    "anthropic": "claude-3-5-haiku-20241022",
+    "ollama": "llama3",
+}
+
 
 @dataclass
 class EzShellConfig:
@@ -91,6 +102,11 @@ class EzShellConfig:
     auto_suggest_fix: bool = True
     stream_explanation: bool = True
     max_history_items: int = 100
+    # --- multi-provider ---
+    provider: str = "groq"
+    openai_api_key: Optional[str] = None
+    anthropic_api_key: Optional[str] = None
+    ollama_base_url: str = "http://localhost:11434"
 
     @classmethod
     def load(cls, cwd: Optional[Path] = None, config_path: Optional[Path] = None) -> EzShellConfig:
@@ -141,17 +157,24 @@ class EzShellConfig:
                 pass
 
         # 3. Environment variables take precedence over config file
-        env_key = os.environ.get("GROQ_API_KEY")
-        if env_key:
-            data["groq_api_key"] = env_key
+        env_map = {
+            "GROQ_API_KEY": "groq_api_key",
+            "OPENAI_API_KEY": "openai_api_key",
+            "ANTHROPIC_API_KEY": "anthropic_api_key",
+            "EZSHELL_MODEL": "model",
+            "EZSHELL_PROVIDER": "provider",
+            "OLLAMA_BASE_URL": "ollama_base_url",
+        }
+        for env_var, field_name in env_map.items():
+            val = os.environ.get(env_var)
+            if val:
+                data[field_name] = val
 
-        env_model = os.environ.get("EZSHELL_MODEL")
-        if env_model:
-            data["model"] = env_model
-
-        # Discard any unknown keys that may exist in the JSON file to avoid
-        # passing unexpected keyword arguments to the dataclass constructor.
-        valid_keys = {"groq_api_key", "model", "temperature", "max_tokens", "auto_suggest_fix", "stream_explanation", "max_history_items"}
+        valid_keys = {
+            "groq_api_key", "model", "temperature", "max_tokens",
+            "auto_suggest_fix", "stream_explanation", "max_history_items",
+            "provider", "openai_api_key", "anthropic_api_key", "ollama_base_url",
+        }
         filtered_data = {k: v for k, v in data.items() if k in valid_keys}
 
         return cls(**filtered_data)
@@ -159,39 +182,46 @@ class EzShellConfig:
     def save(self, path: Optional[Path] = None) -> None:
         """Persist the current configuration to a JSON file on disk.
 
-        The target directory is created automatically if it does not exist.
-        All dataclass fields are serialised via :func:`dataclasses.asdict`,
-        which means ``None`` values are written explicitly as JSON ``null``.
-
         Args:
-            path (Optional[Path]): Destination file path.  When ``None``,
-                the configuration is written to :data:`DEFAULT_CONFIG_PATH`
-                (``~/.ezshell/config.json``).
+            path (Optional[Path]): Destination. Defaults to ``~/.ezshell/config.json``.
 
         Raises:
-            OSError: If the file cannot be created or written, for example
-                due to insufficient filesystem permissions.
+            OSError: If the file cannot be created or written.
         """
         target_path = path or DEFAULT_CONFIG_PATH
-        # Ensure the parent directory exists before opening the file for writing
         target_path.parent.mkdir(parents=True, exist_ok=True)
         with open(target_path, "w", encoding="utf-8") as f:
             json.dump(asdict(self), f, indent=2)
 
     def get_effective_api_key(self) -> Optional[str]:
-        """Return the Groq API key that should be used for the current session.
+        """Return the API key for the currently active provider.
 
-        The method first checks the :attr:`groq_api_key` field (which may
-        have been loaded from the config file or set programmatically).  If
-        that field is ``None`` or an empty string, it falls back to reading
-        the ``GROQ_API_KEY`` environment variable directly so that the key
-        does not have to be stored on disk.
+        Ollama is local — it requires no key and returns ``None``.
 
         Returns:
-            Optional[str]: The active API key string, or ``None`` if no key
-            is available from either source.
+            Optional[str]: Active API key, or ``None``.
         """
+        if self.provider == "openai":
+            return self.openai_api_key or os.environ.get("OPENAI_API_KEY")
+        if self.provider == "anthropic":
+            return self.anthropic_api_key or os.environ.get("ANTHROPIC_API_KEY")
+        if self.provider == "ollama":
+            return None
+        # Default: groq
         return self.groq_api_key or os.environ.get("GROQ_API_KEY")
+
+    def get_effective_model(self) -> str:
+        """Return the model name to use for the active provider.
+
+        If :attr:`model` is still the Groq default and the provider has
+        changed, returns the canonical default for that provider.
+
+        Returns:
+            str: Model identifier for the active provider.
+        """
+        if self.model == DEFAULT_MODEL and self.provider in PROVIDER_DEFAULT_MODELS:
+            return PROVIDER_DEFAULT_MODELS[self.provider]
+        return self.model
 
 
 # ---------------------------------------------------------------------------
@@ -202,5 +232,7 @@ __all__ = [
     "DEFAULT_CONFIG_DIR",
     "DEFAULT_CONFIG_PATH",
     "DEFAULT_MODEL",
+    "SUPPORTED_PROVIDERS",
+    "PROVIDER_DEFAULT_MODELS",
     "EzShellConfig",
 ]
