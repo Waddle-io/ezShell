@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from textual import work
+from textual import events, work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Container, Horizontal, Vertical, VerticalScroll
@@ -228,6 +228,57 @@ Screen {
 """
 
 
+class DraggableDialog(Container):
+    """Draggable modal dialog container supporting smooth mouse dragging and keyboard nudging."""
+
+    def __init__(self, *children, **kwargs):
+        super().__init__(*children, **kwargs)
+        self._dragging = False
+        self._start_x: float = 0.0
+        self._start_y: float = 0.0
+        self._offset_x: int = 0
+        self._offset_y: int = 0
+
+    def on_mouse_down(self, event: events.MouseDown) -> None:
+        # Drag initiated from the top 2 rows (header border and context bar)
+        if event.y <= 2:
+            self._dragging = True
+            self._start_x = event.screen_x
+            self._start_y = event.screen_y
+            self.capture_mouse()
+            event.stop()
+
+    def on_mouse_move(self, event: events.MouseMove) -> None:
+        if self._dragging:
+            dx = int(event.screen_x - self._start_x)
+            dy = int(event.screen_y - self._start_y)
+            self.styles.offset = (self._offset_x + dx, self._offset_y + dy)
+            event.stop()
+
+    def on_mouse_up(self, event: events.MouseUp) -> None:
+        if self._dragging:
+            dx = int(event.screen_x - self._start_x)
+            dy = int(event.screen_y - self._start_y)
+            self._offset_x += dx
+            self._offset_y += dy
+            self.styles.offset = (self._offset_x, self._offset_y)
+            self._dragging = False
+            self.release_mouse()
+            event.stop()
+
+    def move_by(self, dx: int, dy: int) -> None:
+        """Moves the dialog relative to its current position."""
+        self._offset_x += dx
+        self._offset_y += dy
+        self.styles.offset = (self._offset_x, self._offset_y)
+
+    def reset_position(self) -> None:
+        """Centers the dialog back to its original location."""
+        self._offset_x = 0
+        self._offset_y = 0
+        self.styles.offset = (0, 0)
+
+
 class CommandBox(Static):
     """Interactive command snippet box with rounded corners and Run & Copy actions."""
 
@@ -336,7 +387,7 @@ class ErrorBubble(Static):
 
 
 class EzShellChatApp(App):
-    """Floating modal TUI chat popup with rounded borders powered by Groq LLM and Textual."""
+    """Floating draggable modal TUI chat popup powered by Groq LLM and Textual."""
 
     CSS = CHAT_CSS
     TITLE = "ezShell Popup"
@@ -346,6 +397,11 @@ class EzShellChatApp(App):
         Binding("ctrl+c", "quit_app", "Quit", show=False),
         Binding("ctrl+l", "clear_chat", "Clear", show=True),
         Binding("ctrl+r", "run_latest_command", "Run Latest", show=True),
+        Binding("alt+left", "move_left", "Move Left", show=False),
+        Binding("alt+right", "move_right", "Move Right", show=False),
+        Binding("alt+up", "move_up", "Move Up", show=False),
+        Binding("alt+down", "move_down", "Move Down", show=False),
+        Binding("alt+home", "reset_position", "Center", show=False),
     ]
 
     def __init__(self, config: Optional[EzShellConfig] = None):
@@ -359,10 +415,10 @@ class EzShellChatApp(App):
             self.chat_session = ChatSession(config=self.config, context=self.context)
 
     def compose(self) -> ComposeResult:
-        with Container(id="dialog-container") as dlg:
-            # 1. Embedded rounded border title and subtitle
+        with DraggableDialog(id="dialog-container") as dlg:
+            # 1. Embedded rounded border title and movable hints
             dlg.border_title = f" ezShell • {self.config.model} "
-            dlg.border_subtitle = " [Esc] Close "
+            dlg.border_subtitle = " [Drag / Alt+Arrows] Move  •  [Esc] Close "
 
             # 2. Context line
             cwd = self.context.current_directory
@@ -419,7 +475,7 @@ class EzShellChatApp(App):
             # 5. Shortcuts footer
             with Horizontal(id="shortcuts-bar"):
                 yield Static(
-                    " [Enter] Send   [Ctrl+R] Run Latest   [Ctrl+L] Clear Chat   [Esc] Close ",
+                    " [Enter] Send   [Ctrl+R] Run Latest   [Alt+Arrows / Drag] Move   [Ctrl+L] Clear   [Esc] Close ",
                 )
 
     def on_mount(self) -> None:
@@ -446,6 +502,21 @@ class EzShellChatApp(App):
         """Runs the most recent command suggested by AI."""
         if self.latest_command:
             self.run_suggested_command(self.latest_command)
+
+    def action_move_left(self) -> None:
+        self.query_one(DraggableDialog).move_by(-3, 0)
+
+    def action_move_right(self) -> None:
+        self.query_one(DraggableDialog).move_by(3, 0)
+
+    def action_move_up(self) -> None:
+        self.query_one(DraggableDialog).move_by(0, -2)
+
+    def action_move_down(self) -> None:
+        self.query_one(DraggableDialog).move_by(0, 2)
+
+    def action_reset_position(self) -> None:
+        self.query_one(DraggableDialog).reset_position()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle send button or save key button."""
