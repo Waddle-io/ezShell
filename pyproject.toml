@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "ezshell"
+version = "0.1.0"
+description = "Intelligent terminal and desktop AI assistant powered by Groq LLMs"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "ezShell Team" }]
+
+dependencies = [
+    "groq>=0.11.0",
+    "prompt_toolkit>=3.0.40",
+    "rich>=13.7.0",
+    "pyte>=0.8.2",
+    "python-dotenv>=1.0.0",
+    "textual>=8.0.0",
+    "customtkinter>=6.0.0",
+    "pillow>=10.0.0",
+]
+
+[project.scripts]
+ezsh    = "src.main:main"
+ezshell = "src.main:main"
+eszh    = "src.main:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]

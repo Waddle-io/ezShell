@@ -22,7 +22,7 @@
 #line(length: 100%, stroke: 0.5pt + black)
 #v(8pt)
 
-= Partie I 
+= Partie I (Ce que j'ai déjà fait)
 
 - *Launcher dynamique* : Recherche immédiate, suppression des textes statiques git.
 - *Historique shell* : Lecture automatique de la dernière commande (.bash_history, .zsh_history).
@@ -30,13 +30,11 @@
 - *Sécurité* : Masquage automatique des clés d'API et tokens (`redact.py`).
 - *Internationalisation* : Interface bilingue Français / Anglais (`i18n.py`).
 - *Affichage* : Commande en haut et nettoyage du formatage de l'IA.
-
-
-- [] * Test 1* : Tester le hook en local (`ezsh init --install` puis `source ~/.bashrc` ou `~/.zshrc`).
-- [] *Test 2* : Tester le raccourci `Alt+E` après une commande en erreur (ex: `git pushh`).
-- [] *Vérification* : Vérifier que le fichier `.env.local` est bien ignoré par git.
-- [] *Mise à jour* : Mettre à jour les instructions de démarrage dans le README.
-- [] *Script d'installation* : Créer `install.sh` exécutable via curl en une ligne.
+- *Test 1* : Tester le hook en local (`ezsh init --install` puis `source ~/.bashrc` ou `~/.zshrc`).
+- *Test 2* : Tester le raccourci `Alt+E` après une commande en erreur (ex: `git pushh`).
+- *Vérification* : Vérifier que le fichier `.env.local` est bien ignoré par git.
+- *Mise à jour* : Mettre à jour les instructions de démarrage dans le README.
+- *Script d'installation* : Créer `install.sh` exécutable via curl en une ligne.
 
 = Partie II (Distribution)
 - *Packaging PyPI* : Configurer la publication pip (`pyproject.toml`).

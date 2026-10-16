@@ -117,3 +117,4 @@ ezShell/
 ├── .env.example          # Gabarit de configuration
 └── README.md             # Documentation publique
 ```
+
