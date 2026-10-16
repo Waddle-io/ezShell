@@ -5,17 +5,15 @@
   header: align(right)[
     #text(size: 8.5pt, fill: rgb("#64748b"))[*ezShell* — Roadmap & Passation Technique]
   ],
-  footer: context {
-    let page_number = counter(page).get().first()
-    let total_pages = counter(page).final().first()
-    align(center)[
-      #text(size: 8.5pt, fill: rgb("#94a3b8"))[Page #page_number sur #total_pages]
+  footer: align(center)[
+    #context text(size: 8.5pt, fill: rgb("#94a3b8"))[
+      Page #counter(page).display("1 sur 1", both: true)
     ]
-  }
+  ]
 )
 
 #set text(
-  font: ("Inter", "DejaVu Sans", "Liberation Sans", "Arial"),
+  font: ("Inter", "Liberation Sans"),
   size: 10.5pt,
   fill: rgb("#1e293b"),
   lang: "fr"
