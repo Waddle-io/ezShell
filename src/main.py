@@ -7,6 +7,7 @@ from src.core.assistant import ShellAssistant
 from src.core.config import DEFAULT_MODEL, EzShellConfig
 from src.core.context import SystemContext
 from src.core.groq_client import GroqClient
+from src.ui.chat_tui import EzShellChatApp
 from src.ui.render import (
     console,
     render_banner,
@@ -51,6 +52,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
         type=str,
         metavar="CMD",
         help="Execute a single command through ezShell and exit.",
+    )
+    parser.add_argument(
+        "--wrapper",
+        action="store_true",
+        help="Run ezShell in classic shell wrapper REPL mode instead of the popup modal chat.",
     )
     return parser
 
@@ -115,9 +121,13 @@ def main() -> int:
         app = EzShellApp(config=config)
         return app.execute_single_command(args.command)
 
-    # Interactive session (default)
-    app = EzShellApp(config=config)
-    app.run()
+    # Interactive session (default: popup modal chat)
+    if args.wrapper:
+        app = EzShellApp(config=config)
+        app.run()
+    else:
+        chat_app = EzShellChatApp(config=config)
+        chat_app.run()
     return 0
 
 

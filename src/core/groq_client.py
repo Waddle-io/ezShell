@@ -60,22 +60,18 @@ class GroqClient:
         except Exception:
             return False
 
-    def complete(
+    def chat(
         self,
-        prompt: str,
-        system_prompt: str,
+        messages: list[dict[str, str]],
         model: str = "llama-3.1-8b-instant",
         temperature: float = 0.2,
         max_tokens: int = 1024,
     ) -> str:
-        """Executes a chat completion call and returns the text content."""
+        """Executes a multi-turn chat completion and returns the response string."""
         try:
             response = self.client.chat.completions.create(
                 model=model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt},
-                ],
+                messages=messages,
                 temperature=temperature,
                 max_tokens=max_tokens,
             )
@@ -90,6 +86,21 @@ class GroqClient:
             raise GroqClientError(f"Groq API error (status {e.status_code}): {e}") from e
         except Exception as e:
             raise GroqClientError(f"Unexpected Groq error: {e}") from e
+
+    def complete(
+        self,
+        prompt: str,
+        system_prompt: str,
+        model: str = "llama-3.1-8b-instant",
+        temperature: float = 0.2,
+        max_tokens: int = 1024,
+    ) -> str:
+        """Executes a chat completion call and returns the text content."""
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt},
+        ]
+        return self.chat(messages, model=model, temperature=temperature, max_tokens=max_tokens)
 
     def stream_complete(
         self,

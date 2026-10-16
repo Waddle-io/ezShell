@@ -82,3 +82,42 @@ def test_assistant_diagnose_dangerous_fix(mocker):
     assert diag.safety_report is not None
     assert diag.safety_report.risk_level == RiskLevel.DANGEROUS
 
+
+def test_extract_bash_commands():
+    from src.core.assistant import extract_bash_commands
+
+    sample = """Here are the steps to clean up Docker:
+```bash
+docker system prune -af
+```
+And to verify:
+```sh
+docker ps -a
+```
+"""
+    cmds = extract_bash_commands(sample)
+    assert len(cmds) == 2
+    assert cmds[0] == "docker system prune -af"
+    assert cmds[1] == "docker ps -a"
+
+
+def test_chat_session():
+    from src.core.assistant import ChatSession
+
+    mock_client = MagicMock()
+    mock_client.chat.return_value = """To check open ports on Linux:
+```bash
+ss -tulpn
+```
+This lists listening TCP and UDP ports."""
+
+    config = EzShellConfig(groq_api_key="gsk_mock")
+    session = ChatSession(config=config, client=mock_client)
+    res = session.send_message("How do I list open ports?")
+
+    assert len(res.suggested_commands) == 1
+    assert res.suggested_commands[0] == "ss -tulpn"
+    assert len(res.safety_reports) == 1
+    assert res.safety_reports[0].risk_level == RiskLevel.SAFE
+    assert len(session.messages) == 3  # system, user, assistant
+

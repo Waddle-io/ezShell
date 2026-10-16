@@ -150,8 +150,12 @@ class PTYExecutor:
                     if data:
                         stdout_chunks.append(data)
                         if forward_output:
-                            sys.stdout.buffer.write(data)
-                            sys.stdout.buffer.flush()
+                            if hasattr(sys.stdout, "buffer"):
+                                sys.stdout.buffer.write(data)
+                                sys.stdout.buffer.flush()
+                            else:
+                                sys.stdout.write(data.decode("utf-8", "replace"))
+                                sys.stdout.flush()
                 except OSError:
                     break
 
@@ -163,8 +167,12 @@ class PTYExecutor:
                     break
                 stdout_chunks.append(data)
                 if forward_output:
-                    sys.stdout.buffer.write(data)
-                    sys.stdout.buffer.flush()
+                    if hasattr(sys.stdout, "buffer"):
+                        sys.stdout.buffer.write(data)
+                        sys.stdout.buffer.flush()
+                    else:
+                        sys.stdout.write(data.decode("utf-8", "replace"))
+                        sys.stdout.flush()
             except OSError:
                 break
 

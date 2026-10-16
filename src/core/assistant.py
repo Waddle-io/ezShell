@@ -12,6 +12,7 @@ from src.core.prompts import (
     ASK_SYSTEM_PROMPT,
     SYSTEM_PROMPT,
     build_ask_prompt,
+    build_chat_system_prompt,
     build_error_analysis_prompt,
 )
 from src.core.safety import RiskLevel, SafetyGuard, SafetyReport
@@ -36,6 +37,13 @@ class AskResult:
     suggested_fix: Optional[str]
     fix_description: str
     safety_report: Optional[SafetyReport] = None
+
+
+@dataclass
+class ChatMessageResult:
+    content: str
+    suggested_commands: list[str]
+    safety_reports: list[SafetyReport]
 
 
 def extract_json_payload(raw_response: str) -> dict:
@@ -168,4 +176,71 @@ class ShellAssistant:
             fix_description=fix_description,
             safety_report=safety_report,
         )
+
+
+def extract_bash_commands(text: str) -> list[str]:
+    """Extracts shell/bash commands from markdown code blocks in text."""
+    matches = re.findall(
+        r"```(?:bash|sh|shell|zsh)?\s*\n(.*?)\n```",
+        text,
+        re.DOTALL | re.IGNORECASE,
+    )
+    commands: list[str] = []
+    for m in matches:
+        cmd = m.strip()
+        if cmd and not cmd.startswith("#"):
+            commands.append(cmd)
+    return commands
+
+
+class ChatSession:
+    """Manages an ongoing multi-turn interactive conversation with Groq."""
+
+    def __init__(
+        self,
+        config: Optional[EzShellConfig] = None,
+        client: Optional[GroqClient] = None,
+        context: Optional[SystemContext] = None,
+    ):
+        self.config = config or EzShellConfig.load()
+        self._client = client
+        self.context = context or SystemContext.collect()
+        self.messages: list[dict[str, str]] = []
+        self._init_session()
+
+    @property
+    def client(self) -> GroqClient:
+        if self._client is None:
+            api_key = self.config.get_effective_api_key()
+            self._client = GroqClient(api_key=api_key)
+        return self._client
+
+    def _init_session(self) -> None:
+        sys_prompt = build_chat_system_prompt(self.context.to_prompt_context())
+        self.messages = [{"role": "system", "content": sys_prompt}]
+
+    def send_message(self, user_text: str) -> ChatMessageResult:
+        """Sends a user message, receives the AI response, and extracts any suggested commands."""
+        self.messages.append({"role": "user", "content": user_text})
+
+        response_text = self.client.chat(
+            messages=self.messages,
+            model=self.config.model,
+            temperature=self.config.temperature,
+            max_tokens=self.config.max_tokens,
+        )
+        self.messages.append({"role": "assistant", "content": response_text})
+
+        commands = extract_bash_commands(response_text)
+        safety_reports = [SafetyGuard.inspect(cmd) for cmd in commands]
+
+        return ChatMessageResult(
+            content=response_text,
+            suggested_commands=commands,
+            safety_reports=safety_reports,
+        )
+
+    def clear(self) -> None:
+        """Resets the conversation history while preserving the system environment."""
+        self._init_session()
 
