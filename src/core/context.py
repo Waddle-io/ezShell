@@ -117,3 +117,65 @@ class SystemContext:
 
         return "\n".join(lines)
 
+
+def get_last_shell_command() -> Optional[str]:
+    """Retrieves the last non-ezShell command executed by the user.
+
+    Inspects in priority order:
+    1. ~/.ezshell/.last_command (marker written by shell hook)
+    2. $HISTFILE
+    3. ~/.zsh_history (handles Zsh extended format ': <timestamp>:0;<cmd>')
+    4. ~/.bash_history
+    5. ~/.histfile
+
+    Returns:
+        Optional[str]: The command string, or None if no command history found.
+    """
+    candidates = []
+
+    # 1. ezShell runtime marker
+    ez_marker = Path.home() / ".ezshell" / ".last_command"
+    if ez_marker.is_file():
+        candidates.append(ez_marker)
+
+    # 2. $HISTFILE
+    histfile = os.environ.get("HISTFILE")
+    if histfile and Path(histfile).is_file():
+        candidates.append(Path(histfile))
+
+    # 3. Standard shell history paths
+    home = Path.home()
+    for p in [home / ".zsh_history", home / ".bash_history", home / ".histfile", home / ".zhistory"]:
+        if p.is_file():
+            candidates.append(p)
+
+    ignored_prefixes = ("ezsh", "ezshell", "eszh", "clear", "exit", "history")
+
+    for p in candidates:
+        try:
+            with open(p, "rb") as f:
+                f.seek(0, os.SEEK_END)
+                size = f.tell()
+                f.seek(max(0, size - 8192))
+                content = f.read().decode("utf-8", errors="ignore")
+                lines = content.splitlines()
+
+                for raw_line in reversed(lines):
+                    line = raw_line.strip()
+                    # Zsh extended history format: ': 1712345678:0;command'
+                    if line.startswith(":") and ";" in line:
+                        line = line.split(";", 1)[1].strip()
+
+                    if not line:
+                        continue
+
+                    parts = line.split()
+                    cmd_name = parts[0] if parts else ""
+                    if cmd_name not in ignored_prefixes:
+                        return line
+        except Exception:
+            continue
+
+    return None
+
+

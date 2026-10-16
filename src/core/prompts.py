@@ -61,6 +61,8 @@ du JSON.
 
 from __future__ import annotations
 
+from src.core.redact import redact_secrets
+
 __all__ = [
     "SYSTEM_PROMPT",
     "ASK_SYSTEM_PROMPT",
@@ -171,7 +173,8 @@ def build_chat_system_prompt(system_context: str) -> str:
         The complete system prompt string ready to be sent as the first
         ``{"role": "system", ...}`` message in a chat-completion request.
     """
-    return f"{CHAT_SYSTEM_PROMPT}\n### SYSTEM ENVIRONMENT CONTEXT:\n{system_context}"
+    clean_context = redact_secrets(system_context)
+    return f"{CHAT_SYSTEM_PROMPT}\n### SYSTEM ENVIRONMENT CONTEXT:\n{clean_context}"
 
 
 def build_error_analysis_prompt(
@@ -202,9 +205,12 @@ def build_error_analysis_prompt(
         ``prompt`` argument to ``GroqClient.complete`` alongside
         ``SYSTEM_PROMPT``.
     """
+    clean_command = redact_secrets(command)
+    clean_context = redact_secrets(system_context)
+
     # Truncate error output if excessively long to stay well within token limits
     max_error_chars = 3000
-    cleaned_error = error_output.strip()
+    cleaned_error = redact_secrets(error_output.strip())
     if len(cleaned_error) > max_error_chars:
         cleaned_error = (
             cleaned_error[:1000]
@@ -213,10 +219,10 @@ def build_error_analysis_prompt(
         )
 
     return f"""### SYSTEM CONTEXT:
-{system_context}
+{clean_context}
 
 ### FAILED COMMAND:
-`{command}` (Exit Code: {exit_code})
+`{clean_command}` (Exit Code: {exit_code})
 
 ### COMMAND OUTPUT / STDERR:
 ```
@@ -244,10 +250,13 @@ def build_ask_prompt(question: str, system_context: str) -> str:
         A formatted prompt string ready to be passed as the ``prompt`` argument
         to ``GroqClient.complete`` alongside ``ASK_SYSTEM_PROMPT``.
     """
+    clean_question = redact_secrets(question)
+    clean_context = redact_secrets(system_context)
+
     return f"""### SYSTEM CONTEXT:
-{system_context}
+{clean_context}
 
 ### QUESTION:
-{question}
+{clean_question}
 
 Provide the answer and command in the required JSON format."""

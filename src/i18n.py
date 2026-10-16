@@ -271,6 +271,24 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "Command is considered safe",
         "fr": "La commande est considérée sans danger",
     },
+
+    # --- Launcher & History Detection ---
+    "last_cmd_detected": {
+        "en": "Last command detected in terminal:",
+        "fr": "Dernière commande détectée dans le terminal :",
+    },
+    "btn_diagnose_error": {
+        "en": "Diagnose this error",
+        "fr": "Diagnostiquer cette erreur",
+    },
+    "btn_explain_command": {
+        "en": "Explain command",
+        "fr": "Expliquer la commande",
+    },
+    "quick_suggestions": {
+        "en": "QUICK SUGGESTIONS",
+        "fr": "SUGGESTIONS RAPIDES",
+    },
 }
 
 
