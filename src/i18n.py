@@ -107,9 +107,13 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "CAUSE",
         "fr": "CAUSE",
     },
+    "section_explanation": {
+        "en": "EXPLANATION",
+        "fr": "EXPLICATION",
+    },
     "section_fix": {
-        "en": "FIX",
-        "fr": "SOLUTION",
+        "en": "SUGGESTED COMMAND",
+        "fr": "COMMANDE RECOMMANDEE",
     },
     "section_ask": {
         "en": "ASK ANOTHER QUESTION",
