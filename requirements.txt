@@ -4,3 +4,5 @@ rich>=13.7.0
 pyte>=0.8.2
 python-dotenv>=1.0.0
 textual>=8.0.0
+customtkinter>=6.0.0
+pillow>=10.0.0

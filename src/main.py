@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
+
 from src.app import EzShellApp
 from src.core.assistant import ShellAssistant
 from src.core.config import DEFAULT_MODEL, EzShellConfig
 from src.core.context import SystemContext
 from src.core.groq_client import GroqClient
 from src.ui.chat_tui import EzShellChatApp
+from src.ui.logo import show_welcome_banner
 from src.ui.render import (
     console,
     render_banner,
@@ -21,7 +24,7 @@ from src.ui.render import (
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="ezshell",
-        description="ezShell: An intelligent terminal wrapper with real-time Groq AI diagnostics.",
+        description="ezShell: An intelligent terminal assistant with real-time Groq AI diagnostics and GUI window.",
     )
     parser.add_argument(
         "--check-key",
@@ -54,9 +57,30 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Execute a single command through ezShell and exit.",
     )
     parser.add_argument(
+        "--gui",
+        action="store_true",
+        help="Force open the desktop graphical assistant window.",
+    )
+    parser.add_argument(
+        "--tui",
+        action="store_true",
+        help="Open in terminal TUI popup mode instead of the desktop GUI window.",
+    )
+    parser.add_argument(
         "--wrapper",
         action="store_true",
-        help="Run ezShell in classic shell wrapper REPL mode instead of the popup modal chat.",
+        help="Run ezShell in classic shell wrapper REPL mode.",
+    )
+    parser.add_argument(
+        "--logo",
+        action="store_true",
+        help="Display the official ezShell ASCII art logo and welcome overview.",
+    )
+    parser.add_argument(
+        "query",
+        nargs="?",
+        default=None,
+        help="Optional prompt or error to diagnose immediately upon opening.",
     )
     return parser
 
@@ -69,11 +93,16 @@ def main() -> int:
     if args.model:
         config.model = args.model
 
+    # Flag: --logo
+    if args.logo:
+        show_welcome_banner(force=True)
+        return 0
+
     # Flag: --set-key
     if args.set_key:
         config.groq_api_key = args.set_key.strip()
         config.save()
-        render_success(f"Groq API key saved successfully to ~/.ezshell/config.json")
+        render_success("Groq API key saved successfully to ~/.ezshell/config.json")
         return 0
 
     # Flag: --check-key
@@ -121,16 +150,43 @@ def main() -> int:
         app = EzShellApp(config=config)
         return app.execute_single_command(args.command)
 
-    # Interactive session (default: popup modal chat)
+    # Automatic first-time install greeting banner
+    show_welcome_banner(force=False)
+
+    # Mode: Wrapper REPL
     if args.wrapper:
         app = EzShellApp(config=config)
         app.run()
-    else:
+        return 0
+
+    # Mode: Terminal TUI
+    if args.tui:
         chat_app = EzShellChatApp(config=config)
         chat_app.run()
+        return 0
+
+    # Default Mode: Desktop Graphical Window (with fallback to TUI)
+    has_display = bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
+    if has_display or args.gui:
+        if "DISPLAY" not in os.environ and "WAYLAND_DISPLAY" in os.environ:
+            os.environ["DISPLAY"] = ":0"
+        try:
+            from src.ui.gui_window import EzShellDesktopApp
+
+            gui_app = EzShellDesktopApp(
+                config=config,
+                initial_query=args.query,
+            )
+            gui_app.mainloop()
+            return 0
+        except Exception:
+            # If GUI fails to open (e.g. headless or X connection refused), fallback to TUI
+            pass
+
+    chat_app = EzShellChatApp(config=config)
+    chat_app.run()
     return 0
 
 
 if __name__ == "__main__":
     sys.exit(main())
-

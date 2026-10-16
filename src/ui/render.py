@@ -91,56 +91,87 @@ def render_api_key_missing_card() -> None:
 
 
 def render_error_card(result: DiagnosticResult) -> None:
-    """Renders a beautiful AI diagnostic card for a failed command."""
+    """Renders the AI diagnostic card matching the official ezShell reference design."""
     console.print()
 
     elements = []
 
-    # 1. Summary with icon
-    if result.summary:
-        summary_text = Text()
-        summary_text.append("Cause: ", style="bold #FF2A6D")
-        summary_text.append(f"{result.summary}\n", style="bold #FFFFFF")
-        elements.append(summary_text)
+    # 1. User Query row: > explain this error
+    query_text = Text()
+    query_text.append("> ", style="bold #00E5FF")
+    query_text.append(f"explain this error: {result.command}", style="#F1F5F9")
+    elements.append(query_text)
+    elements.append(Text(""))
 
-    # 2. Markdown explanation
-    if result.explanation:
-        elements.append(Markdown(result.explanation))
+    # 2. Section: CAUSE
+    cause_lbl = Text("CAUSE\n", style="bold #64748B")
+    cause_body = result.summary or result.explanation or "Unknown root cause."
+    elements.append(cause_lbl)
+    elements.append(Text(f"{cause_body}\n", style="#CAD5E2"))
 
-    # 3. Suggested Fix
+    # 3. Section: FIX
     if result.suggested_fix:
-        fix_title = Text()
-        fix_title.append("\n› Suggested Fix", style="bold #00FF88")
-        if result.fix_description:
-            fix_title.append(f"  ({result.fix_description})", style="italic #94A3B8")
-        elements.append(fix_title)
+        fix_lbl = Text("FIX", style="bold #64748B")
+        elements.append(fix_lbl)
 
-        syntax = Syntax(
-            result.suggested_fix.strip(),
-            lexer="bash",
-            theme="monokai",
-            line_numbers=False,
-            padding=(1, 2),
-            background_color="#0F172A",
+        cmd_text = Text()
+        cmd_text.append("$  ", style="#64748B")
+        cmd_text.append(result.suggested_fix.strip(), style="bold #00E5FF")
+
+        fix_panel = Panel(
+            cmd_text,
+            box=ROUNDED,
+            border_style="#182739",
+            style="on #070D16",
+            padding=(0, 1),
         )
-        elements.append(syntax)
+        elements.append(fix_panel)
 
-    # 4. Safety alerts
-    if result.safety_report and result.safety_report.risk_level != RiskLevel.SAFE:
-        level_style = "bold #FF2A6D" if result.safety_report.risk_level == RiskLevel.DANGEROUS else "bold #FFB800"
-        elements.append(
-            f"\n[{level_style}]SAFETY WARNING:[/{level_style}] {result.safety_report.reason}"
-        )
+    # 4. Section: RISK
+    report = result.safety_report
+    if report:
+        if report.risk_level == RiskLevel.DANGEROUS:
+            dot_color = "#FF2A6D"
+            risk_label = "HIGH RISK"
+        elif report.risk_level == RiskLevel.WARNING:
+            dot_color = "#FFB800"
+            risk_label = "MEDIUM RISK"
+        else:
+            dot_color = "#00FF88"
+            risk_label = "LOW RISK"
+        reason = report.reason or "Only changes your local environment."
+    else:
+        dot_color = "#00FF88"
+        risk_label = "LOW RISK"
+        reason = "Only changes your local environment."
 
-    panel = Panel(
+    risk_text = Text()
+    risk_text.append("● ", style=f"bold {dot_color}")
+    risk_text.append(f"{risk_label}  ", style=f"bold {dot_color}")
+    risk_text.append(f"{reason}\n", style="#7B8C9F")
+    elements.append(risk_text)
+
+    # 5. Divider & Footer
+    elements.append(Rule(style="#152232"))
+    elements.append(Text("ASK ANOTHER QUESTION\n", style="bold #64748B"))
+
+    footer = Text()
+    footer.append("[Enter  run]  ", style="bold #FFFFFF on #0E1724")
+    footer.append("[c  copy]  ", style="bold #FFFFFF on #0E1724")
+    footer.append("[e  edit]  ", style="bold #FFFFFF on #0E1724")
+    footer.append("[q  close]", style="bold #FFFFFF on #0E1724")
+    elements.append(footer)
+
+    outer_panel = Panel(
         Group(*elements),
-        title=f"[bold #FF2A6D] ✘ Command Failed (Exit Code {result.exit_code}) [/bold #FF2A6D]",
-        subtitle=f"[dim #94A3B8] `{result.command}` [/dim #94A3B8]",
-        border_style="#FF2A6D",
+        title="[bold #00E5FF]>_[/bold #00E5FF] [bold #FFFFFF]ezShell[/bold #FFFFFF]",
+        subtitle="[dim #64748B][Esc] to close[/dim #64748B]",
+        border_style="#00E5FF",
         box=ROUNDED,
         padding=(1, 2),
     )
-    console.print(panel)
+    console.print(outer_panel)
+    console.print()
 
 
 def render_ask_card(result: AskResult) -> None:

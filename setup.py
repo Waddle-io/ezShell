@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
     name="ezshell",
     version="0.1.0",
-    description="Intelligent terminal popup and assistant powered by Groq LLMs",
+    description="Intelligent terminal and desktop AI assistant powered by Groq LLMs",
     author="ezShell Team",
     packages=find_packages(),
     install_requires=[
@@ -13,6 +13,8 @@ setup(
         "pyte>=0.8.2",
         "python-dotenv>=1.0.0",
         "textual>=8.0.0",
+        "customtkinter>=6.0.0",
+        "pillow>=10.0.0",
     ],
     entry_points={
         "console_scripts": [
