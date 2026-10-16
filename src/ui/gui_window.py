@@ -29,10 +29,25 @@ class EzShellDesktopApp(ctk.CTk):
     - Action pills: [Enter  run]  [c  copy]  [e  edit]  [q  close]
     """
 
-    # Premium developer typography constants
-    FONT_UI = "Inter"
-    FONT_UI_DISPLAY = "Inter Display"
-    FONT_CODE = "JetBrains Mono"
+    # =========================================================================
+    # TYPOGRAPHY & FONT SIZES (Modify here to adjust font appearance globally)
+    # =========================================================================
+    FONT_FAMILY_UI = "Inter"
+    FONT_FAMILY_TITLE = "Inter Display"
+    FONT_FAMILY_CODE = "JetBrains Mono"
+
+    # Scaled font sizes for enhanced readability
+    FONT_SIZE_APP_TITLE = 20       # Header 'ezShell' title (was 18)
+    FONT_SIZE_QUERY_CHEVRON = 18   # Cyan '>' prompt chevron (was 15)
+    FONT_SIZE_QUERY_TEXT = 16      # User query text (was 14)
+    FONT_SIZE_SECTION_HEADER = 12  # Section headers: CAUSE, FIX, ASK (was 11)
+    FONT_SIZE_CAUSE_BODY = 15      # Main explanation/diagnosis (was 13)
+    FONT_SIZE_FIX_COMMAND = 15     # Code block command text (was 13)
+    FONT_SIZE_RISK_BADGE = 13      # Risk level text & reason (was 12)
+    FONT_SIZE_INPUT_ENTRY = 14     # Interactive text input box (was 12)
+    FONT_SIZE_PILL_KEY = 12        # Action buttons key (Enter, c, e, q) (was 11)
+    FONT_SIZE_PILL_LABEL = 12      # Action buttons label (run, copy...) (was 11)
+    FONT_SIZE_EXEC_OUTPUT = 13     # Command execution output text (was 11)
 
     def __init__(
         self,
@@ -56,8 +71,8 @@ class EzShellDesktopApp(ctk.CTk):
         self.title("ezShell")
         self.configure(fg_color="#0B121B")
 
-        # Compact popup dimensions (matching the mockup)
-        win_w, win_h = 760, 560
+        # Scaled popup dimensions for comfortable reading
+        win_w, win_h = 820, 620
         try:
             sw = self.winfo_screenwidth()
             sh = self.winfo_screenheight()
@@ -67,7 +82,7 @@ class EzShellDesktopApp(ctk.CTk):
         except Exception:
             self.geometry(f"{win_w}x{win_h}")
 
-        self.minsize(640, 480)
+        self.minsize(700, 500)
 
         # Keyboard shortcuts
         self.bind("<Escape>", lambda e: self.destroy())
@@ -141,7 +156,7 @@ class EzShellDesktopApp(ctk.CTk):
             header_left,
             text="ezShell",
             text_color="#FFFFFF",
-            font=ctk.CTkFont(family="Inter Display", size=18, weight="bold"),
+            font=ctk.CTkFont(family=self.FONT_FAMILY_TITLE, size=self.FONT_SIZE_APP_TITLE, weight="bold"),
         )
         app_title.pack(side="left")
         app_title.bind("<ButtonPress-1>", self._start_drag)
@@ -154,7 +169,7 @@ class EzShellDesktopApp(ctk.CTk):
             border_color="#1B2B3F",
             border_width=1,
             corner_radius=6,
-            height=28,
+            height=30,
         )
         close_pill.pack(side="right")
 
@@ -162,11 +177,11 @@ class EzShellDesktopApp(ctk.CTk):
             close_pill,
             text="Esc",
             text_color="#CBD5E1",
-            font=ctk.CTkFont(family="Inter", size=11, weight="bold"),
+            font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=self.FONT_SIZE_PILL_KEY, weight="bold"),
             fg_color="#1E2C40",
             corner_radius=4,
-            width=32,
-            height=20,
+            width=34,
+            height=22,
         )
         esc_badge.pack(side="left", padx=(4, 6), pady=4)
 
@@ -174,7 +189,7 @@ class EzShellDesktopApp(ctk.CTk):
             close_pill,
             text="to close",
             text_color="#64748B",
-            font=ctk.CTkFont(family="Inter", size=11),
+            font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=self.FONT_SIZE_PILL_LABEL),
         )
         close_text.pack(side="left", padx=(0, 8), pady=4)
 
@@ -198,7 +213,7 @@ class EzShellDesktopApp(ctk.CTk):
             self.query_row,
             text=">",
             text_color="#00E5FF",
-            font=ctk.CTkFont(family="JetBrains Mono", size=15, weight="bold"),
+            font=ctk.CTkFont(family=self.FONT_FAMILY_CODE, size=self.FONT_SIZE_QUERY_CHEVRON, weight="bold"),
         )
         self.query_chevron.pack(side="left", padx=(0, 8))
 
@@ -206,7 +221,7 @@ class EzShellDesktopApp(ctk.CTk):
             self.query_row,
             text=self.current_query,
             text_color="#F1F5F9",
-            font=ctk.CTkFont(family="JetBrains Mono", size=14),
+            font=ctk.CTkFont(family=self.FONT_FAMILY_CODE, size=self.FONT_SIZE_QUERY_TEXT),
             anchor="w",
         )
         self.query_label.pack(side="left", fill="x", expand=True)
@@ -216,7 +231,7 @@ class EzShellDesktopApp(ctk.CTk):
             self.content_frame,
             text="CAUSE",
             text_color="#64748B",
-            font=ctk.CTkFont(family="Inter", size=11, weight="bold"),
+            font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=self.FONT_SIZE_SECTION_HEADER, weight="bold"),
             anchor="w",
         )
         self.cause_header.pack(fill="x", pady=(0, 4))
@@ -225,10 +240,10 @@ class EzShellDesktopApp(ctk.CTk):
             self.content_frame,
             text=self.current_cause,
             text_color="#E2E8F0",
-            font=ctk.CTkFont(family="Inter", size=13),
+            font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=self.FONT_SIZE_CAUSE_BODY),
             anchor="w",
             justify="left",
-            wraplength=710,
+            wraplength=760,
         )
         self.cause_body.pack(fill="x", pady=(0, 16))
 
@@ -237,7 +252,7 @@ class EzShellDesktopApp(ctk.CTk):
             self.content_frame,
             text="FIX",
             text_color="#64748B",
-            font=ctk.CTkFont(family="Inter", size=11, weight="bold"),
+            font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=self.FONT_SIZE_SECTION_HEADER, weight="bold"),
             anchor="w",
         )
         self.fix_header.pack(fill="x", pady=(0, 6))
@@ -249,7 +264,7 @@ class EzShellDesktopApp(ctk.CTk):
             border_color="#182739",
             border_width=1,
             corner_radius=8,
-            height=44,
+            height=48,
         )
         self.cmd_box.pack(fill="x", pady=(0, 14))
         self.cmd_box.pack_propagate(False)
@@ -261,7 +276,7 @@ class EzShellDesktopApp(ctk.CTk):
             cmd_inner,
             text="$",
             text_color="#64748B",
-            font=ctk.CTkFont(family="JetBrains Mono", size=13),
+            font=ctk.CTkFont(family=self.FONT_FAMILY_CODE, size=self.FONT_SIZE_FIX_COMMAND),
         )
         self.prompt_dollar.pack(side="left", padx=(0, 10))
 
@@ -269,7 +284,7 @@ class EzShellDesktopApp(ctk.CTk):
             cmd_inner,
             text=self.current_cmd,
             text_color="#00E5FF",
-            font=ctk.CTkFont(family="JetBrains Mono", size=13, weight="bold"),
+            font=ctk.CTkFont(family=self.FONT_FAMILY_CODE, size=self.FONT_SIZE_FIX_COMMAND, weight="bold"),
             anchor="w",
         )
         self.cmd_text_lbl.pack(side="left", fill="x", expand=True)
@@ -282,7 +297,7 @@ class EzShellDesktopApp(ctk.CTk):
             self.risk_row,
             text="●",
             text_color="#00FF88",
-            font=ctk.CTkFont(family="Inter", size=12),
+            font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=self.FONT_SIZE_RISK_BADGE),
         )
         self.risk_dot.pack(side="left", padx=(0, 6))
 
@@ -290,7 +305,7 @@ class EzShellDesktopApp(ctk.CTk):
             self.risk_row,
             text="LOW RISK",
             text_color="#00FF88",
-            font=ctk.CTkFont(family="Inter", size=12, weight="bold"),
+            font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=self.FONT_SIZE_RISK_BADGE, weight="bold"),
         )
         self.risk_title.pack(side="left", padx=(0, 12))
 
@@ -298,7 +313,7 @@ class EzShellDesktopApp(ctk.CTk):
             self.risk_row,
             text=self.current_risk_reason,
             text_color="#7B8C9F",
-            font=ctk.CTkFont(family="Inter", size=12),
+            font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=self.FONT_SIZE_RISK_BADGE),
             anchor="w",
         )
         self.risk_reason_lbl.pack(side="left", fill="x", expand=True)
@@ -308,7 +323,7 @@ class EzShellDesktopApp(ctk.CTk):
         self.exec_label = ctk.CTkLabel(
             self.exec_box,
             text="",
-            font=ctk.CTkFont(family="JetBrains Mono", size=11),
+            font=ctk.CTkFont(family=self.FONT_FAMILY_CODE, size=self.FONT_SIZE_EXEC_OUTPUT),
             justify="left",
             anchor="w",
         )
@@ -321,7 +336,7 @@ class EzShellDesktopApp(ctk.CTk):
             self.main_container,
             text="ASK ANOTHER QUESTION",
             text_color="#64748B",
-            font=ctk.CTkFont(family="Inter", size=11, weight="bold"),
+            font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=self.FONT_SIZE_SECTION_HEADER, weight="bold"),
             anchor="w",
         )
         self.ask_header.pack(fill="x", pady=(0, 8))
@@ -335,15 +350,15 @@ class EzShellDesktopApp(ctk.CTk):
             border_color="#1B2B3F",
             border_width=1,
             text_color="#FFFFFF",
-            font=ctk.CTkFont(family="JetBrains Mono", size=12),
-            height=38,
+            font=ctk.CTkFont(family=self.FONT_FAMILY_CODE, size=self.FONT_SIZE_INPUT_ENTRY),
+            height=44,
             corner_radius=6,
         )
         self.input_entry.pack(fill="x", pady=(0, 12))
         self.input_entry.bind("<Return>", lambda e: self._on_submit_input())
 
         # 4. Action Pills Row: [Enter  run]  [c  copy]  [e  edit]  [q  close]
-        self.actions_row = ctk.CTkFrame(self.main_container, fg_color="transparent", height=32)
+        self.actions_row = ctk.CTkFrame(self.main_container, fg_color="transparent", height=34)
         self.actions_row.pack(fill="x")
 
         self.btn_run = self._create_action_pill(
@@ -392,7 +407,7 @@ class EzShellDesktopApp(ctk.CTk):
             border_color="#1C2B3E",
             border_width=1,
             corner_radius=6,
-            height=28,
+            height=32,
         )
         pill.pack_propagate(False)
 
@@ -400,7 +415,7 @@ class EzShellDesktopApp(ctk.CTk):
             pill,
             text=key_text,
             text_color="#FFFFFF",
-            font=ctk.CTkFont(family="Inter", size=11, weight="bold"),
+            font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=self.FONT_SIZE_PILL_KEY, weight="bold"),
         )
         key_lbl.pack(side="left", padx=(10, 6), pady=4)
 
@@ -408,7 +423,7 @@ class EzShellDesktopApp(ctk.CTk):
             pill,
             text=label_text,
             text_color="#64748B",
-            font=ctk.CTkFont(family="Inter", size=11),
+            font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=self.FONT_SIZE_PILL_LABEL),
         )
         lbl.pack(side="left", padx=(0, 10), pady=4)
 
