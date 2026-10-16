@@ -29,37 +29,19 @@
 
 // --- Header Principal ---
 #block(
-  fill: brand-dark,
+  
   inset: 18pt,
-  radius: 8pt,
+  radius: 4pt,
   width: 100%,
   stroke: 1pt + rgb("#1e293b"),
   [
     #align(center)[
-      #text(fill: rgb("#ffffff"), size: 22pt, weight: "bold")[ezShell]
+      #text(size: 22pt, weight: "bold")[ezShell Roadmap]
     ]
   ]
 )
 
 #v(10pt)
-
-// --- Métadonnées ---
-#grid(
-  columns: (1fr, 1fr, 1fr),
-  gutter: 12pt,
-  [
-    #block(fill: surface-card, inset: 10pt, radius: 5pt, stroke: 1pt + border-card)[
-      #text(size: 8pt, fill: rgb("#64748b"), weight: "bold")[DATE] \
-      #text(weight: "medium")[16 - 17 Octobre 2026]
-    ]
-  ],
-  [
-    #block(fill: surface-card, inset: 10pt, radius: 5pt, stroke: 1pt + border-card)[
-      #text(size: 8pt, fill: rgb("#64748b"), weight: "bold")[RÉPOSITATION] \
-      #text(weight: "medium")[Waddle-io / ezShell]
-    ]
-  ]
-)
 
 #v(12pt)
 
@@ -148,7 +130,4 @@ Objectif du jour 2 : automatiser la distribution, faciliter l'installation pour 
   [#text(fill: brand-blue, font: "JetBrains Mono")[pytest tests/ -v]], [Lance les 30 tests unitaires du projet],
 )
 
-#v(16pt)
-#align(center)[
-  #text(size: 8.5pt, fill: rgb("#94a3b8"))[Document généré pour le projet ezShell • Tous droits réservés]
-]
+
