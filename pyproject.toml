@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.backends.legacy:build"
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "ezshell"
@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Intelligent terminal and desktop AI assistant powered by Groq LLMs"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = "MIT"
 authors = [{ name = "ezShell Team" }]
 
 dependencies = [
