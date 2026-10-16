@@ -107,7 +107,7 @@ class EzShellCompleter(Completer):
 
 
 def get_prompt_text(context: SystemContext, last_exit_code: int = 0) -> HTML:
-    """Builds a Starship-inspired 2-line prompt with Tokyo Night palette, git status, and exit badges."""
+    """Builds a high-contrast, vivid 2-line prompt with bright neon accents."""
     user = context.current_user
 
     # Compact home directory representation
@@ -123,35 +123,35 @@ def get_prompt_text(context: SystemContext, last_exit_code: int = 0) -> HTML:
     if len(parts) > 4:
         display_cwd = f".../{parts[-2]}/{parts[-1]}"
 
-    # Git branch segment
+    # Git branch segment in vivid neon green
     git_segment = ""
     if context.git_branch:
-        dirty_indicator = '<style fg="#e0af68">*</style>' if context.git_is_dirty else ""
+        dirty_indicator = '<style fg="#FFB800"><b>*</b></style>' if context.git_is_dirty else ""
         git_segment = (
-            f' <style fg="#565f89">on</style> '
-            f'<style fg="#9ece6a">⎇ {context.git_branch}</style>{dirty_indicator}'
+            f' <style fg="#FFFFFF">on</style> '
+            f'<style fg="#00FF88"><b>⎇ {context.git_branch}</b></style>{dirty_indicator}'
         )
 
-    # Exit code badge (only shown on failure)
+    # Exit code badge (vivid neon red on failure)
     exit_badge = ""
     if last_exit_code != 0:
-        exit_badge = f' <style fg="#f7768e">[✘ {last_exit_code}]</style>'
+        exit_badge = f' <style fg="#FF2A6D"><b>[✘ {last_exit_code}]</b></style>'
 
-    arrow_color = "#7dcfff" if last_exit_code == 0 else "#f7768e"
+    arrow_color = "#00FF88" if last_exit_code == 0 else "#FF2A6D"
 
     return HTML(
-        f'<style fg="#3b4261">╭─</style> '
-        f'<style fg="#bb9af7"><b>{user}</b></style> '
-        f'<style fg="#565f89">in</style> '
-        f'<style fg="#7aa2f7"><b>{display_cwd}</b></style>'
+        f'<style fg="#00E5FF"><b>╭─</b></style> '
+        f'<style fg="#C084FC"><b>{user}</b></style> '
+        f'<style fg="#FFFFFF">in</style> '
+        f'<style fg="#FACC15"><b>{display_cwd}</b></style>'
         f'{git_segment}'
         f'{exit_badge}\n'
-        f'<style fg="#3b4261">╰─</style><style fg="{arrow_color}"><b>❯</b></style> '
+        f'<style fg="#00E5FF"><b>╰─</b></style><style fg="{arrow_color}"><b>❯</b></style> '
     )
 
 
 def create_prompt_session(history_file: Optional[Path] = None) -> PromptSession:
-    """Creates a configured prompt_toolkit PromptSession with Tokyo Night styles."""
+    """Creates a configured prompt_toolkit PromptSession with high-contrast vibrant styles."""
     hist_path = history_file or (Path.home() / ".ezshell_history")
     hist_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -160,13 +160,13 @@ def create_prompt_session(history_file: Optional[Path] = None) -> PromptSession:
 
     style = Style.from_dict(
         {
-            # Autocompletion popup styling
-            "completion-menu": "bg:#1a1b26 #c0caf5",
-            "completion-menu.completion": "bg:#1a1b26 #c0caf5",
-            "completion-menu.completion.current": "bg:#7aa2f7 #1a1b26 bold",
-            "completion-menu.meta": "bg:#24283b #565f89 italic",
+            # Autocompletion popup styling with vibrant accents
+            "completion-menu": "bg:#0F172A #F8FAFC",
+            "completion-menu.completion": "bg:#0F172A #F8FAFC",
+            "completion-menu.completion.current": "bg:#00E5FF #0F172A bold",
+            "completion-menu.meta": "bg:#1E293B #94A3B8 italic",
             # Fish-style auto-suggestions
-            "auto-suggestion": "#565f89 italic",
+            "auto-suggestion": "#64748B italic",
         }
     )
 
