@@ -209,6 +209,9 @@ def main() -> int:
         if "DISPLAY" not in os.environ and "WAYLAND_DISPLAY" in os.environ:
             os.environ["DISPLAY"] = ":0"
         try:
+            import warnings
+            warnings.filterwarnings("ignore", message=".*Given image is not CTkImage.*")
+
             from src.ui.gui_window import EzShellDesktopApp
 
             gui_app = EzShellDesktopApp(

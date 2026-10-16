@@ -5,6 +5,10 @@ from pathlib import Path
 import re
 import threading
 from typing import List, Optional
+import warnings
+
+# Suppress spurious CustomTkinter HighDPI warning when using native tk.PhotoImage
+warnings.filterwarnings("ignore", message=".*Given image is not CTkImage.*")
 
 import customtkinter as ctk
 from PIL import Image
