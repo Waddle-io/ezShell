@@ -187,3 +187,4 @@ def install_hook(shell_name: Optional[str] = None) -> Tuple[bool, str, Path]:
 
 
 __all__ = ["detect_current_shell", "get_hook_script", "install_hook"]
+

@@ -1,55 +1,43 @@
-#set document(title: "ezShell - Feuille de Route & Plan de Travail", author: "Équipe ezShell")
+#set document(title: "Roadmap", author: "Emmanuel Bayaro")
 #set page(
   paper: "a4",
   margin: (x: 2cm, top: 2.2cm, bottom: 2.2cm),
-  header: align(right)[
-    #text(size: 8.5pt, fill: luma(110))[*ezShell* — Roadmap & Passation Technique]
-  ]
+  footer: context {
+    let page_number = counter(page).get().first()
+    let total_pages = counter(page).final().first()
+    align(center)[
+      #text(size: 8.5pt, fill: rgb("#94a3b8"))[Page #page_number sur #total_pages]
+    ]
+  }
 )
 
 #set text(
-  font: ("Inter", "Liberation Sans"),
+  font: ("Geist", "Inter", "Liberation Sans"),
   size: 10.5pt,
-  fill: black,
+  fill: rgb("#1e293b"),
   lang: "fr"
 )
 
 #set par(justify: true, leading: 0.72em)
 #set heading(numbering: "1.1")
 
-// --- Style des titres en noir & blanc ---
-#show heading: it => [
-  #v(10pt)
-  #text(fill: black, weight: "bold")[#it]
-  #v(4pt)
-]
+// --- Couleurs thématiques ezShell ---
+#let brand-dark = rgb("#0b121b")
+#let brand-blue = rgb("#2563eb")
+#let surface-card = rgb("#f8fafc")
+#let border-card = rgb("#e2e8f0")
 
-// --- Header Principal (Noir & Blanc) ---
+// --- Header Principal ---
 #block(
-  fill: white,
-  stroke: 1.5pt + black,
-  inset: 16pt,
-  radius: 4pt,
+  fill: brand-dark,
+  inset: 18pt,
+  radius: 8pt,
   width: 100%,
+  stroke: 1pt + rgb("#1e293b"),
   [
-    #grid(
-      columns: (1fr, auto),
-      align: (left + horizon, right + horizon),
-      [
-        #text(size: 22pt, weight: "bold")[ezShell] \
-        #v(2pt)
-        #text(size: 13pt, weight: "bold")[Feuille de Route & Plan de Développement (2 Jours)] \
-        #text(fill: luma(90), size: 9.5pt)[Assistant Terminal & Bureau Intelligent propulsé par Groq LLM]
-      ],
-      [
-        #box(
-          stroke: 1pt + black,
-          radius: 3pt,
-          inset: (x: 10pt, y: 6pt),
-          [#text(size: 8.5pt, weight: "bold")[VERSION 0.1.0 • MVP]]
-        )
-      ]
-    )
+    #align(center)[
+      #text(fill: rgb("#ffffff"), size: 22pt, weight: "bold")[ezShell]
+    ]
   ]
 )
 
@@ -57,54 +45,54 @@
 
 // --- Métadonnées ---
 #grid(
-  columns: (1fr, 1fr),
+  columns: (1fr, 1fr, 1fr),
   gutter: 12pt,
   [
-    #block(fill: luma(250), stroke: 1pt + luma(180), inset: 9pt, radius: 4pt)[
-      #text(size: 8pt, fill: luma(90), weight: "bold")[PÉRIODE] \
+    #block(fill: surface-card, inset: 10pt, radius: 5pt, stroke: 1pt + border-card)[
+      #text(size: 8pt, fill: rgb("#64748b"), weight: "bold")[DATE] \
       #text(weight: "medium")[16 - 17 Octobre 2026]
     ]
   ],
   [
-    #block(fill: luma(250), stroke: 1pt + luma(180), inset: 9pt, radius: 4pt)[
-      #text(size: 8pt, fill: luma(90), weight: "bold")[PROJET & DÉPÔT] \
+    #block(fill: surface-card, inset: 10pt, radius: 5pt, stroke: 1pt + border-card)[
+      #text(size: 8pt, fill: rgb("#64748b"), weight: "bold")[RÉPOSITATION] \
       #text(weight: "medium")[Waddle-io / ezShell]
     ]
   ]
 )
 
-#v(8pt)
+#v(12pt)
 
 == Synthèse des Travaux Réalisés
 
-Toutes les fondations critiques du système ont été finalisées et déployées sur la branche principale (`main`) :
+Toutes les fondations critiques du système ont été finalisées, testées et déployées sur la branche principale (`main`) :
 
 #block(
-  fill: luma(252),
-  stroke: 1pt + luma(180),
+  fill: surface-card,
   inset: 12pt,
-  radius: 4pt,
+  radius: 6pt,
+  stroke: 1pt + border-card,
   [
-    - *Suppression du texte statique bidon* : Remplacement par un vrai *Launcher dynamique*.
+    - *Suppression du texte statique bidon* : Le faux exemple `git pull --rebase` a été éliminé au profit d'un vrai *Launcher dynamique*.
     - *Historique Shell Réel* : Détection automatique de la dernière commande exécutée (`.bash_history`, `.zsh_history`, `$HISTFILE` et `.last_command`).
     - *Hooks Shell & Raccourci Global* : Intégration transparente pour Zsh et Bash avec injection de la combinaison *`Alt+E`*.
     - *Sécurité & Masquage des Secrets* : Implémentation de `src/core/redact.py` pour caviarder les clés API (`gsk_`, `sk-`), tokens et mots de passe.
     - *Internationalisation Bilingue* : Système `src/i18n.py` complet (Français / Anglais) avec auto-détection de locale.
-    - *Refonte de l'Affichage* : Formatage épuré des réponses de l'IA (puces nettoyées, commande prioritaire tout en haut, pas de parasites markdown).
+    - *Design & Typographie* : Éléments typographiques agrandis (titres 20px, code 15px) avec polices _Inter Display_ et _JetBrains Mono_.
   ]
 )
 
-#v(8pt)
+#v(12pt)
 
 == Ce Que Je Fais Aujourd'hui (Jour 1 — Finalisation Développeur)
 
 Objectif du jour : consolider l'expérience locale, valider les flux en conditions réelles et préparer une passation sans accroc pour mon collègue.
 
-=== 1. Validation & Prise en Main en Conditions Réelles
+=== 1. Validation & Test en Conditions Réelles
 - [ ] *Activer le hook shell en local* :
   Exécuter `ezsh init --install` puis recharger la configuration avec `source ~/.bashrc` (ou `~/.zshrc`).
 - [ ] *Tester la détection des pannes* :
-  Lancer intentionnellement une fausse commande (ex: `git pushh`), puis appuyer sur *`Alt+E`*.
+  Lancer intentionnellement une fausse commande (ex: `pytest inexistant/` ou `git pushh`), puis appuyer sur *`Alt+E`*.
 - [ ] *Vérifier l'ouverture du popup* :
   S'assurer que la commande échouée apparaît immédiatement dans l'encart avec le bouton *« Diagnostiquer cette erreur »*.
 
@@ -116,7 +104,7 @@ Objectif du jour : consolider l'expérience locale, valider les flux en conditio
 - [ ] Vérifier que le `README.md` est clair et permet un onboarding immédiat en moins de 2 minutes.
 - [ ] Laisser des notes précises sur les modules clés (`src/core/shell_hook.py`, `src/ui/gui_window.py`).
 
-#v(8pt)
+#v(12pt)
 
 == Ce Que Mon Collègue Fait Demain (Jour 2 — Déploiement & Packaging)
 
@@ -142,19 +130,25 @@ Objectif du jour 2 : automatiser la distribution, faciliter l'installation pour 
 - [ ] *Support Fish Shell* : Valider les hooks Fish dans des environnements réels.
 - [ ] *Mode Notification Système* : Proposer une bulle de notification bureau lorsqu'une commande longue en arrière-plan se termine avec une erreur.
 
-#v(10pt)
+#v(14pt)
 
 == Résumé des Commandes Indispensables
 
 #table(
   columns: (auto, 1fr),
-  fill: (col, row) => if row == 0 { black } else if calc.even(row) { luma(248) } else { white },
-  stroke: 0.5pt + luma(180),
+  fill: (col, row) => if row == 0 { rgb("#1e293b") } else if calc.even(row) { rgb("#f8fafc") } else { rgb("#ffffff") },
+  stroke: 0.5pt + rgb("#cbd5e1"),
   inset: 7pt,
-  [#text(fill: white, weight: "bold")[Commande]], [#text(fill: white, weight: "bold")[Description]],
-  [`ezsh`], [Ouvre la fenêtre d'assistance en mode Launcher dynamique],
-  [`ezsh init --install`], [Injecte automatiquement le hook dans le shell actif (~/.zshrc ou ~/.bashrc)],
-  [`Alt + E`], [Raccourci clavier universel pour appeler ezShell depuis le terminal],
-  [`ezsh --check-key`], [Vérifie la validité et la connectivité de la clé API Groq],
-  [`ezsh --tui`], [Mode terminal pur (Textual) pour les sessions distantes ou SSH],
+  [*Commande*], [*Description*],
+  [#text(fill: brand-blue, font: "JetBrains Mono")[ezsh]], [Ouvre la fenêtre d'assistance en mode Launcher dynamique],
+  [#text(fill: brand-blue, font: "JetBrains Mono")[ezsh init --install]], [Injecte automatiquement le hook dans le shell actif (~/.zshrc ou ~/.bashrc)],
+  [#text(fill: brand-blue, font: "JetBrains Mono")[Alt + E]], [Raccourci clavier universel pour appeler ezShell depuis le terminal],
+  [#text(fill: brand-blue, font: "JetBrains Mono")[ezsh --check-key]], [Vérifie la validité et la connectivité de la clé API Groq],
+  [#text(fill: brand-blue, font: "JetBrains Mono")[ezsh --tui]], [Mode terminal pur (Textual) pour les sessions distantes ou SSH],
+  [#text(fill: brand-blue, font: "JetBrains Mono")[pytest tests/ -v]], [Lance les 30 tests unitaires du projet],
 )
+
+#v(16pt)
+#align(center)[
+  #text(size: 8.5pt, fill: rgb("#94a3b8"))[Document généré pour le projet ezShell • Tous droits réservés]
+]

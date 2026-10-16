@@ -29,3 +29,4 @@ def test_install_hook_bash(tmp_path, monkeypatch):
     ok2, msg2, _ = install_hook("bash")
     assert ok2 is True
     assert "already present" in msg2
+
