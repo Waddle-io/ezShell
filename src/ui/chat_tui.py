@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import os
 from pathlib import Path
@@ -30,44 +32,25 @@ Screen {
 
 #dialog-container {
     width: 88%;
-    max-width: 110;
-    height: 85%;
-    max-height: 40;
+    max-width: 108;
+    height: 86%;
+    max-height: 38;
     background: #0B0F19;
-    border: heavy #00E5FF;
+    border: round #00E5FF;
+    border-title-color: #00E5FF;
+    border-title-style: bold;
+    border-title-align: left;
+    border-subtitle-color: #94A3B8;
+    border-subtitle-align: right;
     padding: 0 1;
-}
-
-#header-bar {
-    height: 3;
-    padding: 0 1;
-    border-bottom: solid #1E293B;
-    align-vertical: middle;
-}
-
-#title-group {
-    width: auto;
-    height: 100%;
-}
-
-#title-app {
-    color: #00E5FF;
-    text-style: bold;
-}
-
-#title-model {
-    color: #C084FC;
-    text-style: bold;
-}
-
-.title-sep {
-    color: #475569;
 }
 
 #context-bar {
     height: 1;
-    margin: 0 1;
+    margin: 0;
+    padding: 0 1;
     color: #94A3B8;
+    border-bottom: solid #1E293B;
 }
 
 #chat-scroll {
@@ -78,20 +61,16 @@ Screen {
 }
 
 .welcome-card {
-    background: #111A2E;
-    border: solid #00E5FF;
-    padding: 1 2;
+    background: #0D1527;
+    border: round #00E5FF;
+    border-title-color: #00E5FF;
+    border-title-style: bold;
+    padding: 1;
     margin-bottom: 1;
-}
-
-.welcome-title {
-    color: #00E5FF;
-    text-style: bold;
 }
 
 .welcome-desc {
     color: #FFFFFF;
-    margin-top: 1;
 }
 
 .welcome-examples {
@@ -100,55 +79,50 @@ Screen {
 }
 
 .user-bubble {
-    background: #131C2E;
-    border-left: thick #00E5FF;
-    padding: 1;
+    background: #111A2E;
+    border: round #00E5FF;
+    border-title-color: #00E5FF;
+    border-title-style: bold;
+    padding: 0 1;
     margin-bottom: 1;
-}
-
-.user-tag {
-    color: #00E5FF;
-    text-style: bold;
 }
 
 .user-text {
     color: #FFFFFF;
+    padding: 0;
 }
 
 .ai-bubble {
-    background: #0F172A;
-    border-left: thick #C084FC;
-    padding: 1;
+    background: #0C1222;
+    border: round #C084FC;
+    border-title-color: #C084FC;
+    border-title-style: bold;
+    padding: 0 1;
     margin-bottom: 1;
 }
 
-.ai-tag {
+.loading-tag {
     color: #C084FC;
     text-style: bold;
+    margin: 0 1;
 }
 
 .cmd-container {
     background: #020617;
-    border: solid #00FF88;
-    padding: 1;
+    border: round #00FF88;
+    border-title-color: #00FF88;
+    border-title-style: bold;
+    padding: 0 1;
     margin-top: 1;
 }
 
 .cmd-container-danger {
     background: #020617;
-    border: solid #FF2A6D;
-    padding: 1;
+    border: round #FF2A6D;
+    border-title-color: #FF2A6D;
+    border-title-style: bold;
+    padding: 0 1;
     margin-top: 1;
-}
-
-.cmd-header {
-    color: #00FF88;
-    text-style: bold;
-}
-
-.cmd-danger-tag {
-    color: #FF2A6D;
-    text-style: bold;
 }
 
 .cmd-code {
@@ -162,57 +136,52 @@ Screen {
 .cmd-btn-row {
     height: auto;
     margin-top: 1;
+    margin-bottom: 0;
 }
 
 .run-btn {
     background: #00FF88;
     color: #0B0F19;
     text-style: bold;
+    border: round #00FF88;
     margin-right: 1;
-    border: none;
 }
 
 .run-btn-danger {
     background: #FF2A6D;
     color: #FFFFFF;
     text-style: bold;
+    border: round #FF2A6D;
     margin-right: 1;
-    border: none;
 }
 
 .copy-btn {
     background: #1E293B;
     color: #94A3B8;
-    border: none;
+    border: round #334155;
 }
 
 .exec-result {
-    background: #090D16;
-    border-left: thick #00FF88;
-    padding: 1;
+    background: #050D1A;
+    border: round #00FF88;
+    border-title-color: #00FF88;
+    border-title-style: bold;
+    padding: 0 1;
     margin-top: 1;
 }
 
 .exec-result-err {
-    background: #090D16;
-    border-left: thick #FF2A6D;
-    padding: 1;
+    background: #14070D;
+    border: round #FF2A6D;
+    border-title-color: #FF2A6D;
+    border-title-style: bold;
+    padding: 0 1;
     margin-top: 1;
-}
-
-.exec-status-ok {
-    color: #00FF88;
-    text-style: bold;
-}
-
-.exec-status-err {
-    color: #FF2A6D;
-    text-style: bold;
 }
 
 .exec-output {
     color: #94A3B8;
-    margin-top: 1;
+    margin-top: 0;
 }
 
 #input-bar {
@@ -223,13 +192,13 @@ Screen {
 
 #chat-input {
     width: 1fr;
-    background: #131C2E;
+    background: #111A2E;
     color: #FFFFFF;
-    border: tall #00E5FF;
+    border: round #00E5FF;
 }
 
 #chat-input:focus {
-    border: tall #C084FC;
+    border: round #C084FC;
 }
 
 #send-btn {
@@ -237,8 +206,8 @@ Screen {
     background: #00E5FF;
     color: #0B0F19;
     text-style: bold;
+    border: round #00E5FF;
     margin-left: 1;
-    border: none;
 }
 
 #shortcuts-bar {
@@ -248,31 +217,19 @@ Screen {
     margin-top: 1;
 }
 
-.key-hint {
-    color: #00E5FF;
-    text-style: bold;
-}
-
-.key-action {
-    color: #94A3B8;
-}
-
 .api-key-box {
     background: #111A2E;
-    border: solid #FFB800;
-    padding: 1 2;
+    border: round #FFB800;
+    border-title-color: #FFB800;
+    border-title-style: bold;
+    padding: 1;
     margin: 1 0;
-}
-
-.api-key-title {
-    color: #FFB800;
-    text-style: bold;
 }
 """
 
 
 class CommandBox(Static):
-    """Interactive command snippet box with Run & Copy actions."""
+    """Interactive command snippet box with rounded corners and Run & Copy actions."""
 
     def __init__(self, command: str, safety_report: Optional[SafetyReport] = None, **kwargs):
         super().__init__(**kwargs)
@@ -285,16 +242,14 @@ class CommandBox(Static):
             and self.safety_report.risk_level == RiskLevel.DANGEROUS
         )
         box_class = "cmd-container-danger" if is_dangerous else "cmd-container"
+        box_title = (
+            f" [!] DANGEROUS: {self.safety_report.reason} "
+            if is_dangerous
+            else " Suggested Command "
+        )
 
-        with Container(classes=box_class):
-            if is_dangerous:
-                yield Label(
-                    f"› DANGEROUS COMMAND: {self.safety_report.reason}",
-                    classes="cmd-danger-tag",
-                )
-            else:
-                yield Label("› Recommended Shell Command", classes="cmd-header")
-
+        with Container(classes=box_class) as c:
+            c.border_title = box_title
             yield Static(f"  {self.command}", classes="cmd-code")
 
             with Horizontal(classes="cmd-btn-row"):
@@ -314,35 +269,35 @@ class CommandBox(Static):
 
 
 class UserBubble(Static):
-    """User message bubble."""
+    """User message bubble with rounded cyan border and embedded title."""
 
     def __init__(self, text: str, **kwargs):
         super().__init__(**kwargs)
         self.text = text
 
     def compose(self) -> ComposeResult:
-        with Container(classes="user-bubble"):
-            yield Label("› You", classes="user-tag")
+        with Container(classes="user-bubble") as c:
+            c.border_title = " › You "
             yield Static(self.text, classes="user-text")
 
 
 class AssistantBubble(Static):
-    """Assistant response bubble with markdown explanation and command boxes."""
+    """Assistant response bubble with rounded purple border, markdown explanation and commands."""
 
     def __init__(self, result: ChatMessageResult, **kwargs):
         super().__init__(**kwargs)
         self.result = result
 
     def compose(self) -> ComposeResult:
-        with Container(classes="ai-bubble"):
-            yield Label("› ezShell", classes="ai-tag")
+        with Container(classes="ai-bubble") as c:
+            c.border_title = " › ezShell "
             yield Markdown(self.result.content)
             for cmd, safety in zip(self.result.suggested_commands, self.result.safety_reports):
                 yield CommandBox(command=cmd, safety_report=safety)
 
 
 class ExecutionResultBubble(Static):
-    """Displays output from executed shell command."""
+    """Displays command execution output in a rounded container."""
 
     def __init__(self, command: str, exit_code: int, output: str, **kwargs):
         super().__init__(**kwargs)
@@ -352,15 +307,14 @@ class ExecutionResultBubble(Static):
 
     def compose(self) -> ComposeResult:
         is_ok = self.exit_code == 0
-        container_class = "exec-result" if is_ok else "exec-result-err"
-        status_class = "exec-status-ok" if is_ok else "exec-status-err"
-        status_text = (
-            f"✔ Command finished (Exit code 0)"
+        box_class = "exec-result" if is_ok else "exec-result-err"
+        box_title = (
+            f" Output (Exit: 0): `{self.command}` "
             if is_ok
-            else f"✘ Command exited with code {self.exit_code}"
+            else f" Output (Failed: {self.exit_code}): `{self.command}` "
         )
-        with Container(classes=container_class):
-            yield Label(f"{status_text}: `{self.command}`", classes=status_class)
+        with Container(classes=box_class) as c:
+            c.border_title = box_title
             yield Static(
                 self.output.strip() or "(No output)",
                 classes="exec-output",
@@ -368,7 +322,7 @@ class ExecutionResultBubble(Static):
 
 
 class ErrorBubble(Static):
-    """Displays error notice."""
+    """Displays error notice in a rounded container."""
 
     def __init__(self, title: str, message: str, **kwargs):
         super().__init__(**kwargs)
@@ -376,13 +330,13 @@ class ErrorBubble(Static):
         self.message = message
 
     def compose(self) -> ComposeResult:
-        with Container(classes="api-key-box"):
-            yield Label(self.title, classes="api-key-title")
+        with Container(classes="api-key-box") as c:
+            c.border_title = f" {self.title} "
             yield Static(self.message, classes="user-text")
 
 
 class EzShellChatApp(App):
-    """Floating modal TUI chat popup powered by Groq LLM and Textual."""
+    """Floating modal TUI chat popup with rounded borders powered by Groq LLM and Textual."""
 
     CSS = CHAT_CSS
     TITLE = "ezShell Popup"
@@ -405,15 +359,10 @@ class EzShellChatApp(App):
             self.chat_session = ChatSession(config=self.config, context=self.context)
 
     def compose(self) -> ComposeResult:
-        with Container(id="dialog-container"):
-            # 1. Header bar
-            with Horizontal(id="header-bar"):
-                with Horizontal(id="title-group"):
-                    yield Label("ezShell  ", id="title-app")
-                    yield Label("•  Model: ", classes="title-sep")
-                    yield Label(f"{self.config.model}  ", id="title-model")
-                    yield Label("•  ", classes="title-sep")
-                    yield Label("[Esc] Close", classes="title-sep")
+        with Container(id="dialog-container") as dlg:
+            # 1. Embedded rounded border title and subtitle
+            dlg.border_title = f" ezShell • {self.config.model} "
+            dlg.border_subtitle = " [Esc] Close "
 
             # 2. Context line
             cwd = self.context.current_directory
@@ -429,8 +378,8 @@ class EzShellChatApp(App):
             # 3. Chat scrollable area
             with VerticalScroll(id="chat-scroll"):
                 if not self.config.get_effective_api_key():
-                    with Container(classes="api-key-box", id="api-key-container"):
-                        yield Label("GROQ_API_KEY Missing", classes="api-key-title")
+                    with Container(classes="api-key-box") as box:
+                        box.border_title = " GROQ_API_KEY Required "
                         yield Static(
                             "ezShell requires a Groq API key to activate instant AI diagnostics & chat.\n"
                             "Get a free key at https://console.groq.com and paste it below:",
@@ -444,8 +393,8 @@ class EzShellChatApp(App):
                             )
                             yield Button("Save Key", id="save-key-btn", classes="run-btn")
                 else:
-                    with Container(classes="welcome-card"):
-                        yield Label("ezShell Terminal Assistant", classes="welcome-title")
+                    with Container(classes="welcome-card") as wc:
+                        wc.border_title = " ezShell AI Terminal Assistant "
                         yield Static(
                             "Ask questions, explain code or errors, or describe any task you need executed.",
                             classes="welcome-desc",
@@ -527,7 +476,7 @@ class EzShellChatApp(App):
         scroll = self.query_one("#chat-scroll", VerticalScroll)
         scroll.remove_children()
         scroll.mount(
-            Static("✔ Groq API Key Activated! AI assistant is now ready.", classes="welcome-title")
+            Static("✔ Groq API Key Activated! AI assistant is now ready.", classes="welcome-desc")
         )
         self.query_one("#chat-input", Input).focus()
 
@@ -557,7 +506,7 @@ class EzShellChatApp(App):
         scroll.scroll_end(animate=False)
 
         # Mount loading tag
-        loading_label = Label("› ezShell thinking...", classes="ai-tag", id="loading-tag")
+        loading_label = Label("› ezShell thinking...", classes="loading-tag", id="loading-tag")
         scroll.mount(loading_label)
         scroll.scroll_end(animate=False)
 
@@ -609,5 +558,5 @@ class EzShellChatApp(App):
     def post_system_notice(self, msg: str) -> None:
         """Posts a system notice into chat."""
         scroll = self.query_one("#chat-scroll", VerticalScroll)
-        scroll.mount(Static(f"[!] {msg}", classes="user-tag"))
+        scroll.mount(Static(f"[!] {msg}", classes="user-text"))
         scroll.scroll_end(animate=False)

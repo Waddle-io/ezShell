@@ -50,3 +50,4 @@ async def test_chat_tui_send_and_run_command():
         await pilot.pause()
 
         await pilot.press("escape")
+
