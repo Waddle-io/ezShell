@@ -140,7 +140,7 @@ def get_prompt_text(context: SystemContext, last_exit_code: int = 0) -> HTML:
     arrow_color = "#7dcfff" if last_exit_code == 0 else "#f7768e"
 
     return HTML(
-        f'<style fg="#3b4261">╭─</style> <style fg="#e0af68">⚡</style> '
+        f'<style fg="#3b4261">╭─</style> '
         f'<style fg="#bb9af7"><b>{user}</b></style> '
         f'<style fg="#565f89">in</style> '
         f'<style fg="#7aa2f7"><b>{display_cwd}</b></style>'

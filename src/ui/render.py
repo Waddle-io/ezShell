@@ -39,7 +39,6 @@ def render_banner(model_name: str, shell_name: str) -> None:
     console.print()
 
     title_text = Text()
-    title_text.append(" ⚡ ", style="bold #e0af68")
     title_text.append("ezShell ", style="bold #7dcfff")
     title_text.append("v0.1.0", style="#565f89")
     title_text.append("  •  ", style="#3b4261")
@@ -74,7 +73,7 @@ def render_banner(model_name: str, shell_name: str) -> None:
 def render_api_key_missing_card() -> None:
     """Renders an attractive notice card when GROQ_API_KEY is not configured."""
     text = Text()
-    text.append("🔑  Groq AI Engine Inactive\n", style="bold #e0af68")
+    text.append("Groq AI Engine Inactive\n", style="bold #e0af68")
     text.append("ezShell will run commands normally, but automated error diagnosis is off.\n\n", style="#c0caf5")
     text.append("To activate AI assistance:\n", style="#565f89")
     text.append("  1. Add to .env.local: ", style="#565f89")
@@ -100,7 +99,7 @@ def render_error_card(result: DiagnosticResult) -> None:
     # 1. Summary with icon
     if result.summary:
         summary_text = Text()
-        summary_text.append("✦ Cause: ", style="bold #f7768e")
+        summary_text.append("Cause: ", style="bold #f7768e")
         summary_text.append(f"{result.summary}\n", style="bold #c0caf5")
         elements.append(summary_text)
 
@@ -111,7 +110,7 @@ def render_error_card(result: DiagnosticResult) -> None:
     # 3. Suggested Fix
     if result.suggested_fix:
         fix_title = Text()
-        fix_title.append("\n⚡ Suggested Fix", style="bold #9ece6a")
+        fix_title.append("\n› Suggested Fix", style="bold #9ece6a")
         if result.fix_description:
             fix_title.append(f"  ({result.fix_description})", style="italic #565f89")
         elements.append(fix_title)
@@ -130,7 +129,7 @@ def render_error_card(result: DiagnosticResult) -> None:
     if result.safety_report and result.safety_report.risk_level != RiskLevel.SAFE:
         level_style = "bold #f7768e" if result.safety_report.risk_level == RiskLevel.DANGEROUS else "bold #e0af68"
         elements.append(
-            f"\n[{level_style}]⚠ SAFETY WARNING:[/{level_style}] {result.safety_report.reason}"
+            f"\n[{level_style}]SAFETY WARNING:[/{level_style}] {result.safety_report.reason}"
         )
 
     panel = Panel(
@@ -155,7 +154,7 @@ def render_ask_card(result: AskResult) -> None:
 
     if result.suggested_fix:
         fix_title = Text()
-        fix_title.append("\n⚡ Recommended Command", style="bold #7dcfff")
+        fix_title.append("\n› Recommended Command", style="bold #7dcfff")
         if result.fix_description:
             fix_title.append(f"  ({result.fix_description})", style="italic #565f89")
         elements.append(fix_title)
@@ -215,7 +214,7 @@ def prompt_fix_action(
     """
     if safety_report and safety_report.risk_level == RiskLevel.DANGEROUS:
         console.print(
-            f"\n[bold #f7768e]⚠ DANGEROUS COMMAND DETECTED:[/] [bold #c0caf5]{safety_report.reason}[/]"
+            f"\n[bold #f7768e][!] DANGEROUS COMMAND DETECTED:[/] [bold #c0caf5]{safety_report.reason}[/]"
         )
         try:
             confirmation = console.input(
@@ -227,7 +226,7 @@ def prompt_fix_action(
 
     try:
         choice = console.input(
-            "\n[bold #9ece6a]▶ Execute fix?[/] [[bold #7dcfff]y[/]es / [bold #565f89]N[/]o / [bold #bb9af7]e[/]dit]: "
+            "\n[bold #9ece6a]› Execute fix?[/] [[bold #7dcfff]y[/]es / [bold #565f89]N[/]o / [bold #bb9af7]e[/]dit]: "
         ).strip().lower()
 
         if choice in ("y", "yes"):
