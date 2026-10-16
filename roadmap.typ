@@ -4,11 +4,6 @@
   margin: (x: 2cm, top: 2.2cm, bottom: 2.2cm),
   header: align(right)[
     #text(size: 8.5pt, fill: luma(110))[*ezShell* — Roadmap & Passation Technique]
-  ],
-  footer: align(center)[
-    #context text(size: 8.5pt, fill: luma(120))[
-      Page #counter(page).display("1 sur 1", both: true)
-    ]
   ]
 )
 
@@ -62,24 +57,18 @@
 
 // --- Métadonnées ---
 #grid(
-  columns: (1fr, 1fr, 1fr),
-  gutter: 10pt,
+  columns: (1fr, 1fr),
+  gutter: 12pt,
   [
     #block(fill: luma(250), stroke: 1pt + luma(180), inset: 9pt, radius: 4pt)[
-      #text(size: 8pt, fill: luma(90), weight: "bold")[DATE] \
+      #text(size: 8pt, fill: luma(90), weight: "bold")[PÉRIODE] \
       #text(weight: "medium")[16 - 17 Octobre 2026]
     ]
   ],
   [
     #block(fill: luma(250), stroke: 1pt + luma(180), inset: 9pt, radius: 4pt)[
-      #text(size: 8pt, fill: luma(90), weight: "bold")[PROJET] \
+      #text(size: 8pt, fill: luma(90), weight: "bold")[PROJET & DÉPÔT] \
       #text(weight: "medium")[Waddle-io / ezShell]
-    ]
-  ],
-  [
-    #block(fill: luma(250), stroke: 1pt + luma(180), inset: 9pt, radius: 4pt)[
-      #text(size: 8pt, fill: luma(90), weight: "bold")[TESTS UNITAIRES] \
-      #text(weight: "bold")[● 30/30 Tests Passants]
     ]
   ]
 )
@@ -88,7 +77,7 @@
 
 == Synthèse des Travaux Réalisés
 
-Toutes les fondations critiques du système ont été finalisées, testées et déployées sur la branche principale (`main`) :
+Toutes les fondations critiques du système ont été finalisées et déployées sur la branche principale (`main`) :
 
 #block(
   fill: luma(252),
@@ -111,11 +100,11 @@ Toutes les fondations critiques du système ont été finalisées, testées et d
 
 Objectif du jour : consolider l'expérience locale, valider les flux en conditions réelles et préparer une passation sans accroc pour mon collègue.
 
-=== 1. Validation & Test en Conditions Réelles
+=== 1. Validation & Prise en Main en Conditions Réelles
 - [ ] *Activer le hook shell en local* :
   Exécuter `ezsh init --install` puis recharger la configuration avec `source ~/.bashrc` (ou `~/.zshrc`).
 - [ ] *Tester la détection des pannes* :
-  Lancer intentionnellement une fausse commande (ex: `pytest inexistant/` ou `git pushh`), puis appuyer sur *`Alt+E`*.
+  Lancer intentionnellement une fausse commande (ex: `git pushh`), puis appuyer sur *`Alt+E`*.
 - [ ] *Vérifier l'ouverture du popup* :
   S'assurer que la commande échouée apparaît immédiatement dans l'encart avec le bouton *« Diagnostiquer cette erreur »*.
 
@@ -168,10 +157,4 @@ Objectif du jour 2 : automatiser la distribution, faciliter l'installation pour 
   [`Alt + E`], [Raccourci clavier universel pour appeler ezShell depuis le terminal],
   [`ezsh --check-key`], [Vérifie la validité et la connectivité de la clé API Groq],
   [`ezsh --tui`], [Mode terminal pur (Textual) pour les sessions distantes ou SSH],
-  [`pytest tests/ -v`], [Lance les 30 tests unitaires du projet],
 )
-
-#v(14pt)
-#align(center)[
-  #text(size: 8.5pt, fill: luma(110))[ezShell • Document interne d'équipe • Version Noir & Blanc]
-]
