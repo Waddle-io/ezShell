@@ -33,3 +33,4 @@ MIIEowIBAAKCAQEA0Y1+
 -----END RSA PRIVATE KEY-----"""
     redacted = redact_secrets(raw)
     assert "[REDACTED_PRIVATE_KEY]" in redacted
+

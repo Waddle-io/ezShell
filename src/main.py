@@ -77,6 +77,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Display the official ezShell ASCII art logo and welcome overview.",
     )
     parser.add_argument(
+        "--install-hook",
+        action="store_true",
+        help="Automatically install ezShell hook into your active ~/.zshrc or ~/.bashrc.",
+    )
+    parser.add_argument(
         "query",
         nargs="?",
         default=None,
@@ -86,8 +91,41 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    # Subcommand: init (e.g. `eval "$(ezsh init zsh)"` or `ezsh init --install`)
+    if len(sys.argv) > 1 and sys.argv[1] == "init":
+        from src.core.shell_hook import detect_current_shell, get_hook_script, install_hook
+        remaining = sys.argv[2:]
+        if "--install" in remaining or "-i" in remaining:
+            target_shells = [arg for arg in remaining if not arg.startswith("-")]
+            shell_name = target_shells[0] if target_shells else None
+            ok, msg, rc_path = install_hook(shell_name)
+            if ok:
+                render_success(msg)
+                render_info(f"Reload your shell with: source {rc_path}")
+                return 0
+            else:
+                render_error(msg)
+                return 1
+
+        shell_name = remaining[0] if remaining else detect_current_shell()
+        sys.stdout.write(get_hook_script(shell_name))
+        sys.stdout.flush()
+        return 0
+
     parser = build_arg_parser()
     args = parser.parse_args()
+
+    # Flag: --install-hook
+    if args.install_hook:
+        from src.core.shell_hook import install_hook
+        ok, msg, rc_path = install_hook()
+        if ok:
+            render_success(msg)
+            render_info(f"Reload your shell with: source {rc_path}")
+            return 0
+        else:
+            render_error(msg)
+            return 1
 
     config = EzShellConfig.load()
     if args.model:

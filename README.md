@@ -76,44 +76,37 @@ ezshell --check-key
 
 ##  Utilisation
 
-### 1. Session interactive (Recommandé)
-Lancez simplement `ezshell` :
+### 1. Intégration Shell Automatique (Recommandé)
+
+Activez ezShell directement dans votre terminal habituel (Zsh ou Bash) en une seule commande :
+
 ```bash
+# Installation automatique dans votre ~/.zshrc ou ~/.bashrc
+ezsh init --install
+
+# Ou manuellement dans votre ~/.zshrc :
+eval "$(ezsh init zsh)"
+
+# Ou dans votre ~/.bashrc :
+eval "$(ezsh init bash)"
+```
+
+Une fois installé :
+- ezShell capture silencieusement la dernière commande exécutée et son code de sortie.
+- **Raccourci magique `Alt+E`** : Ouvre instantanément l'assistant ezShell directement par-dessus votre terminal !
+
+### 2. Assistant Graphique & Pop-up (Mode Launcher)
+
+Lancez simplement :
+```bash
+ezsh
+# ou
 ezshell
 ```
 
-Travaillez normalement dans votre shell :
-```text
-╭─ ⚡ nuelo in ~/waddle/ezShell on ⎇ main*
-╰─❯ git comit -m "add feature"
-git: 'comit' is not a git command. See 'git --help'.
-
-╭────────────────────── ✘ Command Failed (Exit Code 1) ──────────────────────╮
-│                                                                              │
-│  ✦ Cause: Faute de frappe dans la sous-commande git 'comit'                  │
-│                                                                              │
-│  La commande a échoué car 'comit' n'est pas reconnu par Git.                 │
-│                                                                              │
-│  ⚡ Suggested Fix  (Corrige l'orthographe en 'commit')                        │
-│                                                                              │
-│    git commit -m "add feature"                                               │
-│                                                                              │
-╰─────────────────────  `git comit -m "add feature"`  ────────────────────────╯
-
- Execute fix? [yes / No / edit]: y
-```
-
-### 2. Commandes intégrées (Méta-commandes)
-À l'intérieur d'ezShell :
-
-| Commande | Description |
-|---|---|
-| `!ask <question>` | Interroge l'IA sur une commande ou un problème DevOps (`Ctrl+Space`) |
-| `!fix` | Ré-affiche ou relance le dernier fix proposé |
-| `!config` | Affiche la configuration active et le modèle Groq |
-| `!help` | Affiche l'aide intégrée |
-| `clear` | Efface l'écran |
-| `exit` / `quit` | Quitte ezShell |
+- **Mode Launcher** : Barre de recherche immédiatement active, détection automatique de la dernière commande exécutée dans votre historique shell avec un bouton de diagnostic direct.
+- **Mode Diagnostic** : Détection de la cause racine, proposition de la solution en ligne de commande `$ ...`, évaluation du niveau de risque et raccourcis (`[Enter]` pour exécuter, `[c]` pour copier, `[e]` pour éditer, `[Esc]` pour fermer).
+- **Mode TUI dans le terminal** : `ezsh --tui` pour les serveurs distants ou sessions SSH sans affichage graphique.
 
 ### 3. Diagnostic direct en une ligne
 ```bash
@@ -127,7 +120,7 @@ ezshell -c "pytest tests/"
 
 ---
 
-##  Tests
+## Tests
 
 Exécuter la suite de tests avec `pytest` :
 ```bash
@@ -136,27 +129,36 @@ Exécuter la suite de tests avec `pytest` :
 
 ---
 
-##  Architecture & Sécurité
+## Architecture & Sécurité
+
+- **Protection des données sensibles ([`src/core/redact.py`](file:///home/nuelo/waddle/ezShell/src/core/redact.py))** : Masque automatiquement les mots de passe, clés API (`gsk_...`, `sk-...`, `ghp_...`) et clés privées avant envoi à l'IA.
+- **Garde-fous de sécurité ([`src/core/safety.py`](file:///home/nuelo/waddle/ezShell/src/core/safety.py))** : Inspecte toutes les commandes suggérées avant exécution pour bloquer toute commande destructrice.
+- **Support bilingue FR/EN ([`src/i18n.py`](file:///home/nuelo/waddle/ezShell/src/i18n.py))** : Détection automatique de la langue système (`$LANG`, `EZSHELL_LANG`).
 
 ```text
 ezShell/
-├── setup.py              # Packaging et point d'entrée CLI `ezshell`
+├── setup.py              # Packaging et points d'entrée CLI (ezshell, ezsh, eszh)
 ├── requirements.txt      # Dépendances de production
-├── tests/                # Tests unitaires (config, safety, context, pty, assistant)
+├── tests/                # 30 tests unitaires passants
 └── src/
-    ├── main.py           # Point d'entrée CLI avec options
-    ├── app.py            # Boucle REPL interactive et gestion des builtins
+    ├── main.py           # Point d'entrée CLI avec routage (init, gui, tui, explain)
+    ├── i18n.py           # Catalogue bilingue FR / EN & auto-détection de locale
+    ├── app.py            # Boucle REPL interactive et shell PTY
     ├── core/
+    │   ├── shell_hook.py # Générateur de hooks shell pour Bash, Zsh, Fish (Alt+E)
+    │   ├── redact.py     # Masquage automatique des secrets et identifiants
     │   ├── pty_shell.py  # Moteur pseudo-terminal (PTY) & nettoyage ANSI
-    │   ├── groq_client.py# Client Groq avec retries et gestion d'erreurs
+    │   ├── groq_client.py# Client Groq avec retries et repli multi-modèles
     │   ├── assistant.py  # Logique de diagnostic et extraction JSON
-    │   ├── safety.py     # Détection des commandes dangereuses
-    │   ├── context.py    # Détection OS, shell, git et télémétrie locale
-    │   ├── prompts.py    # System prompts spécialisés DevOps
-    │   └── config.py     # Gestionnaire de configuration hiérarchique
+    │   ├── safety.py     # Détection et classification des risques
+    │   ├── context.py    # Détection OS, historique shell (.last_command) et git
+    │   ├── prompts.py    # Prompts DevOps optimisés
+    │   └── config.py     # Gestionnaire de configuration hiérarchique (.env.local)
     └── ui/
-        ├── prompt.py     # Prompt prompt_toolkit 2 lignes style Starship
-        └── render.py     # Moteur de rendu Rich avec palette Tokyo Night
+        ├── gui_window.py # Fenêtre Desktop CustomTkinter (Launcher dynamique)
+        ├── chat_tui.py   # Modal TUI déplaçable Textual pour SSH / terminaux purs
+        ├── logo.py       # Bannière de bienvenue bilingue et logo ASCII
+        └── render.py     # Moteur de rendu Rich
 ```
 
 ---

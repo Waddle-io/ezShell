@@ -179,3 +179,19 @@ def get_last_shell_command() -> Optional[str]:
     return None
 
 
+def get_last_exit_code() -> Optional[int]:
+    """Retrieves the last command's exit code from ~/.ezshell/.last_exit_code.
+
+    Returns:
+        Optional[int]: The exit code (e.g. 0, 1, 127), or None if not available.
+    """
+    marker = Path.home() / ".ezshell" / ".last_exit_code"
+    if marker.is_file():
+        try:
+            val = marker.read_text(encoding="utf-8").strip()
+            return int(val)
+        except Exception:
+            pass
+    return None
+
+
