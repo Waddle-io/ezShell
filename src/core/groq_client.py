@@ -171,11 +171,7 @@ class GroqClient:
             raised (including network errors).
         """
         try:
-            self.client.chat.completions.create(
-                model="llama-3.1-8b-instant",
-                messages=[{"role": "user", "content": "ping"}],
-                max_tokens=5,
-            )
+            self.client.models.list()
             return True
         except (groq.AuthenticationError, groq.PermissionDeniedError):
             # Key is present but rejected by the server
@@ -234,6 +230,21 @@ class GroqClient:
             raise GroqAuthError(f"Groq authentication failed: {e}") from e
         except groq.RateLimitError as e:
             raise GroqRateLimitError(f"Groq rate limit exceeded: {e}") from e
+        except groq.NotFoundError:
+            # If requested model is not found on account, fallback to available chat models
+            for fallback_model in ("openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b", "llama-3.1-8b-instant"):
+                if fallback_model != model:
+                    try:
+                        resp = self.client.chat.completions.create(
+                            model=fallback_model,
+                            messages=messages,
+                            temperature=temperature,
+                            max_tokens=max_tokens,
+                        )
+                        return resp.choices[0].message.content or ""
+                    except Exception:
+                        continue
+            raise GroqClientError(f"Groq model '{model}' not found on account and fallbacks failed.")
         except groq.APIConnectionError as e:
             raise GroqConnectionError(f"Network error connecting to Groq API: {e}") from e
         except groq.APIStatusError as e:

@@ -22,7 +22,7 @@ def test_config_save_and_load(tmp_path: Path):
 
     assert cfg_file.exists()
 
-    loaded = EzShellConfig.load(config_path=cfg_file)
+    loaded = EzShellConfig.load(config_path=cfg_file, cwd=tmp_path)
     assert loaded.groq_api_key == "gsk_test12345"
     assert loaded.model == "llama-3.3-70b-versatile"
 
