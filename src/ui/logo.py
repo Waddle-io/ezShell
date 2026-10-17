@@ -63,7 +63,7 @@ def render_logo_ascii() -> List[str]:
     with a chevron ">" and cursor bar "=" inside. Uses ANSI truecolor for a
     cyan-to-blue vertical gradient that mimics the metallic 3D look.
     """
-    # Raw ASCII art lines (no color) -- hand-crafted to match the logo.png shape
+    # Raw ASCII art lines (no color) -- hand-crafted to match the symbol logo shape
     raw = [
         r"            ██████████████████████████            ",
         r"        ████▀▀                      ▀▀████        ",

@@ -1,6 +1,6 @@
 <div align="center">
 
-# ezShell
+<img src="assets/logos/ezshell-horizontal-transparent.png" alt="ezShell" width="335">
 
 **Un assistant de terminal propulsé par Groq (`openai/gpt-oss-120b` par défaut).**
 *Il repère la commande qui vient d'échouer, explique la cause et place une correction dans votre prompt, sans jamais l'exécuter à votre place.*

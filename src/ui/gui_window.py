@@ -11,7 +11,7 @@ import warnings
 warnings.filterwarnings("ignore", message=".*Given image is not CTkImage.*")
 
 import customtkinter as ctk
-from PIL import Image
+from PIL import Image, ImageTk
 
 from src.core.assistant import ChatMessageResult
 from src.core.config import EzShellConfig
@@ -145,21 +145,13 @@ class EzShellDesktopApp(ctk.CTk):
         self.last_detected_cmd = get_last_shell_command()
         self.last_exit_code = get_last_exit_code()
 
-        # Load logo image (supports 28x28 pre-rendered PNG via Tk PhotoImage)
+        # Load the transparent symbol logo at the compact size used by the header.
         self.logo_image = None
-        logo_28_path = Path(__file__).resolve().parent.parent.parent / "assets" / "logo_28.png"
-        if not logo_28_path.is_file():
-            logo_orig = Path(__file__).resolve().parent.parent.parent / "assets" / "logo.png"
-            if logo_orig.is_file():
-                try:
-                    Image.open(logo_orig).convert("RGBA").resize((28, 28), Image.Resampling.LANCZOS).save(logo_28_path)
-                except Exception:
-                    pass
-
-        if logo_28_path.is_file():
+        logo_path = Path(__file__).resolve().parent.parent.parent / "assets" / "logos" / "ezshell-symbol-transparent.png"
+        if logo_path.is_file():
             try:
-                import tkinter as tk
-                self.logo_image = tk.PhotoImage(file=str(logo_28_path))
+                logo = Image.open(logo_path).convert("RGBA").resize((28, 28), Image.Resampling.LANCZOS)
+                self.logo_image = ImageTk.PhotoImage(logo)
             except Exception:
                 pass
 
