@@ -2,7 +2,7 @@
 
 # ezShell
 
-**Un assistant de terminal propulsé par Groq (`llama-3.1-8b-instant` par défaut).**
+**Un assistant de terminal propulsé par Groq (`openai/gpt-oss-120b` par défaut).**
 *Il repère la commande qui vient d'échouer, explique la cause et place une correction dans votre prompt, sans jamais l'exécuter à votre place.*
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
@@ -83,7 +83,7 @@ ezsh --check-key
 | Variable | Rôle |
 |---|---|
 | `GROQ_API_KEY` | Clé API Groq |
-| `EZSHELL_MODEL` / `EZSH_MODEL` | Modèle à utiliser (défaut : `llama-3.1-8b-instant`). `--model` fait la même chose ponctuellement. |
+| `EZSHELL_MODEL` / `EZSH_MODEL` | Modèle à utiliser (défaut : `openai/gpt-oss-120b`). `--model` fait la même chose ponctuellement. |
 | `EZSHELL_LANG` | Force la langue de l'interface et des réponses (`fr` ou `en`) ; sinon déduite de `$LANG` |
 | `EZSH_STATE_DIR` | Dossier d'état par terminal (défaut : `$XDG_RUNTIME_DIR/ezsh`, sinon `/tmp/ezsh-<uid>`) |
 | `EZSH_MOCK_LLM` | Simule le modèle : `1`, `high`, `uncertain`, `offline`, `quota`, `trial`, `invalid`, `error`, `slow` |

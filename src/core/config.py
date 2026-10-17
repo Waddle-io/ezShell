@@ -51,14 +51,14 @@ DEFAULT_CONFIG_DIR = Path.home() / ".ezshell"
 DEFAULT_CONFIG_PATH = DEFAULT_CONFIG_DIR / "config.json"
 
 #: Groq model identifier used when no model is specified by the user.
-DEFAULT_MODEL = "llama-3.1-8b-instant"
+DEFAULT_MODEL = "openai/gpt-oss-120b"
 
 #: Supported provider identifiers.
 SUPPORTED_PROVIDERS: list[str] = ["groq", "openai", "anthropic", "ollama"]
 
 #: Default model per provider.
 PROVIDER_DEFAULT_MODELS: dict[str, str] = {
-    "groq": "llama-3.1-8b-instant",
+    "groq": DEFAULT_MODEL,
     "openai": "gpt-4o-mini",
     "anthropic": "claude-3-5-haiku-20241022",
     "ollama": "llama3",
@@ -77,7 +77,7 @@ class EzShellConfig:
             authenticate requests.  When ``None``, the value is looked up
             from the ``GROQ_API_KEY`` environment variable at runtime via
             :meth:`get_effective_api_key`.
-        model (str): Groq model identifier (e.g. ``"llama-3.1-8b-instant"``).
+        model (str): Groq model identifier (e.g. ``"openai/gpt-oss-120b"``).
             Overridable via the ``EZSHELL_MODEL`` environment variable.
         temperature (float): Sampling temperature passed to the language
             model.  Lower values (closer to 0) produce more deterministic

@@ -83,7 +83,7 @@ class EzShellApp:
   [bold]exit[/bold] or [bold]quit[/bold]      Leave ezShell
 
 [bold cyan]Key Features:[/bold cyan]
-  • Automatic failure detection with root cause diagnosis via Groq ([green]llama-3.1-8b-instant[/green])
+    • Automatic failure detection with root cause diagnosis via Groq ([green]openai/gpt-oss-120b[/green])
   • One-click fix execution with built-in destructive command guard
   • Command and path autocompletion ([italic]Tab[/italic]), auto-suggestions ([italic]Right Arrow[/italic])
   • Press [bold]Ctrl+Space[/bold] to quickly begin an [bold]!ask[/bold] query

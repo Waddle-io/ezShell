@@ -47,6 +47,8 @@ jamais à importer directement depuis ``groq``.
 
 import os
 from typing import Generator, Optional
+
+from .config import DEFAULT_MODEL
 import groq
 from groq import Groq
 
@@ -183,7 +185,7 @@ class GroqClient:
     def chat(
         self,
         messages: list[dict[str, str]],
-        model: str = "llama-3.1-8b-instant",
+        model: str = DEFAULT_MODEL,
         temperature: float = 0.2,
         max_tokens: int = 1024,
     ) -> str:
@@ -199,7 +201,7 @@ class GroqClient:
                 ``"assistant"``) and ``"content"`` keys, following the
                 OpenAI Chat Completions format accepted by Groq.
             model (str): Groq model identifier to use for this request.
-                Defaults to ``"llama-3.1-8b-instant"``.
+                Defaults to ``"openai/gpt-oss-120b"``.
             temperature (float): Sampling temperature in the range ``[0, 2]``.
                 Lower values produce more focused, deterministic output.
                 Defaults to ``0.2``.
@@ -232,7 +234,7 @@ class GroqClient:
             raise GroqRateLimitError(f"Groq rate limit exceeded: {e}") from e
         except groq.NotFoundError:
             # If requested model is not found on account, fallback to available chat models
-            for fallback_model in ("openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b", "llama-3.1-8b-instant"):
+            for fallback_model in ("openai/gpt-oss-20b", "qwen/qwen3.8-27b"):
                 if fallback_model != model:
                     try:
                         resp = self.client.chat.completions.create(
@@ -256,7 +258,7 @@ class GroqClient:
         self,
         prompt: str,
         system_prompt: str,
-        model: str = "llama-3.1-8b-instant",
+        model: str = DEFAULT_MODEL,
         temperature: float = 0.2,
         max_tokens: int = 1024,
     ) -> str:
@@ -273,7 +275,7 @@ class GroqClient:
             system_prompt (str): Instruction placed in the ``"system"`` role
                 that shapes the model's behaviour for this request.
             model (str): Groq model identifier.  Defaults to
-                ``"llama-3.1-8b-instant"``.
+                ``"openai/gpt-oss-120b"``.
             temperature (float): Sampling temperature.  Defaults to ``0.2``.
             max_tokens (int): Maximum tokens to generate.  Defaults to
                 ``1024``.
@@ -298,7 +300,7 @@ class GroqClient:
         self,
         prompt: str,
         system_prompt: str,
-        model: str = "llama-3.1-8b-instant",
+        model: str = DEFAULT_MODEL,
         temperature: float = 0.2,
         max_tokens: int = 1024,
     ) -> Generator[str, None, None]:
@@ -314,7 +316,7 @@ class GroqClient:
             prompt (str): The user-facing instruction or question.
             system_prompt (str): Instruction placed in the ``"system"`` role.
             model (str): Groq model identifier.  Defaults to
-                ``"llama-3.1-8b-instant"``.
+                ``"openai/gpt-oss-120b"``.
             temperature (float): Sampling temperature.  Defaults to ``0.2``.
             max_tokens (int): Maximum tokens to generate.  Defaults to
                 ``1024``.
