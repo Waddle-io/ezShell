@@ -122,16 +122,13 @@ def main() -> int:
         return fast
 
     from src.app import EzShellApp
-    from src.core.assistant import ShellAssistant
     from src.core.config import EzShellConfig
-    from src.core.context import SystemContext
     from src.core.groq_client import GroqClient
     from src.ui.chat_tui import EzShellChatApp
     from src.ui.logo import show_welcome_banner
     from src.ui.render import (
         console,
         render_error,
-        render_error_card,
         render_info,
         render_success,
     )
@@ -190,6 +187,20 @@ def main() -> int:
 
     # Flag: --check-key
     if args.check_key:
+        from src.core.provider import get_provider
+        from src.core.proxy_client import ProxyProvider
+
+        provider = get_provider(config)
+        if isinstance(provider, ProxyProvider):
+            with console.status("[cyan]Checking the ezShell service...[/cyan]", spinner="dots"):
+                ok = provider.health()
+            if ok:
+                render_success(
+                    f"ezShell service reachable ({provider.base_url}): no local key needed."
+                )
+                return 0
+            render_error(f"ezShell service unreachable ({provider.base_url}).")
+            return 1
         api_key = config.get_effective_api_key()
         if not api_key:
             render_error(
@@ -207,26 +218,27 @@ def main() -> int:
             render_error("Groq API key validation failed. Please verify your credentials.")
             return 1
 
-    # Flag: --explain
+    # Flag: --explain (même chemin que Alt+E : proxy, validation, plancher de risque)
     if args.explain:
-        if not config.get_effective_api_key():
-            render_error("GROQ_API_KEY is required for --explain.")
-            return 1
-        assistant = ShellAssistant(config=config)
-        context = SystemContext.collect()
+        from src.core.chat_bridge import describe_error
+        from src.core.provider import get_provider
+        from src.core.redact import redact_secrets
+        from src.core.suggest import build_request, get_suggestion
+        from src.ui.panel import result_panel
+
+        req = build_request("")
+        req.mode = "explain_error"
+        req.stderr_tail = redact_secrets(args.explain)[-4096:]
+        if req.exit_code is None:
+            req.exit_code = 1
         with console.status("[cyan]Analyzing error message...[/cyan]", spinner="dots"):
             try:
-                diag = assistant.diagnose_failure(
-                    command="(manual input)",
-                    exit_code=1,
-                    error_output=args.explain,
-                    context=context,
-                )
-                render_error_card(diag)
-                return 0
+                suggestion = get_suggestion(req, get_provider(config))
             except Exception as e:
-                render_error(f"Analysis failed: {e}")
+                render_error(describe_error(e))
                 return 1
+        console.print(result_panel(suggestion, req.lang))
+        return 0
 
     # Flag: -c / --command
     if args.command:

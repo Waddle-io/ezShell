@@ -217,6 +217,12 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "GROQ_API_KEY is missing. Run 'ezsh --set-key <key>' to configure.",
         "fr": "GROQ_API_KEY manquante. Lancez 'ezsh --set-key <cle>' pour configurer.",
     },
+    "error_invalid_key": {
+        "en": "Groq rejected the API key (invalid or revoked). Create a new one at "
+        "console.groq.com/keys, then run 'ezsh --set-key <key>'.",
+        "fr": "Groq refuse la clé API (invalide ou révoquée). Créez-en une sur "
+        "console.groq.com/keys, puis lancez 'ezsh --set-key <clé>'.",
+    },
     "error_api_generic": {
         "en": "Error querying Groq AI: ",
         "fr": "Erreur lors de la requête Groq AI : ",

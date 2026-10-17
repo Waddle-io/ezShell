@@ -13,9 +13,11 @@ warnings.filterwarnings("ignore", message=".*Given image is not CTkImage.*")
 import customtkinter as ctk
 from PIL import Image
 
-from src.core.assistant import ChatMessageResult, ChatSession
+from src.core.assistant import ChatMessageResult
 from src.core.config import EzShellConfig
 from src.core.context import SystemContext, get_last_exit_code, get_last_shell_command
+from src.core import chat_bridge
+from src.core.provider import get_provider
 from src.core.pty_shell import PTYExecutor
 from src.core.safety import RiskLevel, SafetyGuard, SafetyReport
 from src.i18n import t
@@ -107,10 +109,7 @@ class EzShellDesktopApp(ctk.CTk):
 
         self.config = config or EzShellConfig.load()
         self.context = SystemContext.collect()
-        self.chat_session: Optional[ChatSession] = None
-
-        if self.config.get_effective_api_key():
-            self.chat_session = ChatSession(config=self.config, context=self.context)
+        self.provider = get_provider(self.config)
 
         # Window properties
         self.title("ezShell")
@@ -181,14 +180,28 @@ class EzShellDesktopApp(ctk.CTk):
         except Exception:
             cell_w, cell_h = 8, 17
         return columns * cell_w, rows * cell_h
+
+    def _autowrap(self, label: ctk.CTkLabel, margin: int = 0) -> None:
+        """Renvoie le texte du label à la ligne selon la largeur réelle de son conteneur."""
+        container = label.master
+
+        def _on_resize(event) -> None:
+            scaling = ctk.ScalingTracker.get_widget_scaling(label)
+            width = max(60, int((event.width - margin) / scaling))
+            try:
+                label.configure(wraplength=width)
+            except Exception:
+                pass
+
+        container.bind("<Configure>", _on_resize, add="+")
     def _build_ui(self) -> None:
         """Constructs the application layout."""
         self.main_container = ctk.CTkFrame(self, fg_color="transparent")
-        self.main_container.pack(fill="both", expand=True, padx=24, pady=(18, 14))
+        self.main_container.pack(fill="both", expand=True, padx=16, pady=(12, 8))
 
         # 1. Header Bar: [Icon] ez (blue) Shell (white) ............ [Esc] to close
         self.header_frame = ctk.CTkFrame(self.main_container, fg_color="transparent", height=32)
-        self.header_frame.pack(fill="x", pady=(0, 12))
+        self.header_frame.pack(fill="x", pady=(0, 8))
 
         # Drag support on header
         self.header_frame.bind("<ButtonPress-1>", self._start_drag)
@@ -262,18 +275,19 @@ class EzShellDesktopApp(ctk.CTk):
         close_text.bind("<Button-1>", lambda e: self.destroy())
 
         # Top divider line
-        ctk.CTkFrame(self.main_container, fg_color=self.COLOR_BORDER, height=1).pack(fill="x", pady=(0, 16))
+        ctk.CTkFrame(self.main_container, fg_color=self.COLOR_BORDER, height=1).pack(fill="x", pady=(0, 10))
+
+        # Footer réservé en premier (side="bottom") : le corps extensible ne peut plus le rogner
+        self.footer_bar = ctk.CTkFrame(self.main_container, fg_color="transparent", height=24)
+        self.footer_bar.pack(side="bottom", fill="x")
+        self._build_footer_status()
+        ctk.CTkFrame(self.main_container, fg_color=self.COLOR_BORDER, height=1).pack(
+            side="bottom", fill="x", pady=(8, 6)
+        )
 
         # Dynamic body container
         self.body_container = ctk.CTkFrame(self.main_container, fg_color="transparent")
         self.body_container.pack(fill="both", expand=True)
-
-        # Bottom divider + persistent footer status bar
-        ctk.CTkFrame(self.main_container, fg_color=self.COLOR_BORDER, height=1).pack(fill="x", pady=(14, 9))
-
-        self.footer_bar = ctk.CTkFrame(self.main_container, fg_color="transparent", height=24)
-        self.footer_bar.pack(fill="x")
-        self._build_footer_status()
 
         if self.current_query:
             self._render_result_view()
@@ -295,8 +309,7 @@ class EzShellDesktopApp(ctk.CTk):
         ).pack(side="left")
 
         # Right: Active Provider & Model pill
-        provider_name = getattr(self.config, "provider", "groq").capitalize()
-        model_name = getattr(self.config, "get_effective_model", lambda: self.config.model)()
+        provider_label = chat_bridge.provider_label(self.provider, self.config)
 
         provider_frame = ctk.CTkFrame(self.footer_bar, fg_color="transparent")
         provider_frame.pack(side="right")
@@ -311,7 +324,7 @@ class EzShellDesktopApp(ctk.CTk):
 
         ctk.CTkLabel(
             provider_frame,
-            text=f"{provider_name} · {model_name}",
+            text=provider_label,
             text_color=self.COLOR_TEXT_SUBTLE,
             font=ctk.CTkFont(family=self.FONT_FAMILY_CODE, size=10),
             anchor="e",
@@ -431,7 +444,6 @@ class EzShellDesktopApp(ctk.CTk):
                 height=34,
             )
             cmd_box.pack(fill="x", padx=12, pady=(0, 10))
-            cmd_box.pack_propagate(False)
 
             cmd_mono = ctk.CTkLabel(
                 cmd_box,
@@ -440,7 +452,8 @@ class EzShellDesktopApp(ctk.CTk):
                 font=ctk.CTkFont(family=self.FONT_FAMILY_CODE, size=12, weight="bold"),
                 anchor="w",
             )
-            cmd_mono.pack(fill="both", expand=True, padx=6)
+            cmd_mono.pack(fill="both", expand=True, padx=6, pady=6)
+            self._autowrap(cmd_mono, 24)
 
             # Action buttons row
             btn_row = ctk.CTkFrame(last_cmd_card, fg_color="transparent")
@@ -455,7 +468,9 @@ class EzShellDesktopApp(ctk.CTk):
                 font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=11, weight="bold"),
                 height=28,
                 corner_radius=5,
-                command=lambda: self._query_groq(f"diagnose failed command: {self.last_detected_cmd}"),
+                command=lambda: self._query_groq(
+                    f"diagnose failed command: {self.last_detected_cmd}", mode="explain_error"
+                ),
             )
             diag_btn.pack(side="left", padx=(0, 8))
 
@@ -470,7 +485,10 @@ class EzShellDesktopApp(ctk.CTk):
                 font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=11),
                 height=28,
                 corner_radius=5,
-                command=lambda: self._query_groq(f"explain what this command does: {self.last_detected_cmd}"),
+                command=lambda: self._query_groq(
+                    f"explain what this command does: {self.last_detected_cmd}",
+                    mode="explain_command",
+                ),
             )
             explain_btn.pack(side="left")
         else:
@@ -515,9 +533,14 @@ class EzShellDesktopApp(ctk.CTk):
             if self.context.git_branch:
                 chips.append(f"Git: {self.context.git_branch}")
 
-            for c in chips:
+            # Deux puces par ligne : elles tiennent dans la fenêtre compacte (45 colonnes)
+            row = None
+            for i, c in enumerate(chips):
+                if i % 2 == 0:
+                    row = ctk.CTkFrame(chips_row, fg_color="transparent")
+                    row.pack(fill="x", pady=(0, 4))
                 chip_lbl = ctk.CTkLabel(
-                    chips_row,
+                    row,
                     text=c,
                     text_color=self.COLOR_TEXT_MUTED,
                     fg_color="#0F172A",
@@ -546,7 +569,6 @@ class EzShellDesktopApp(ctk.CTk):
             scrollbar_button_color="#1E293B",
             scrollbar_button_hover_color=self.COLOR_PRIMARY_BLUE,
         )
-        content_scroll.pack(fill="both", expand=True, pady=(0, 8))
 
         # 1. User Query Pill Banner: > {query}
         query_card = ctk.CTkFrame(
@@ -558,7 +580,6 @@ class EzShellDesktopApp(ctk.CTk):
             height=38,
         )
         query_card.pack(fill="x", pady=(0, 12))
-        query_card.pack_propagate(False)
 
         q_inner = ctk.CTkFrame(query_card, fg_color="transparent")
         q_inner.pack(fill="both", expand=True, padx=12, pady=6)
@@ -578,6 +599,8 @@ class EzShellDesktopApp(ctk.CTk):
             anchor="w",
         )
         self.query_label.pack(side="left", fill="x", expand=True)
+        self.query_label.configure(justify="left")
+        self._autowrap(self.query_label, 8)
 
         # 2. Section: FIX / COMMANDE RECOMMANDEE (Prominently placed at top so it's instantly visible!)
         if self.current_cmd:
@@ -598,7 +621,6 @@ class EzShellDesktopApp(ctk.CTk):
                 height=46,
             )
             self.cmd_box.pack(fill="x", pady=(0, 8))
-            self.cmd_box.pack_propagate(False)
 
             cmd_inner = ctk.CTkFrame(self.cmd_box, fg_color="transparent")
             cmd_inner.pack(fill="both", expand=True, padx=12, pady=6)
@@ -618,6 +640,8 @@ class EzShellDesktopApp(ctk.CTk):
                 anchor="w",
             )
             self.cmd_text_lbl.pack(side="left", fill="x", expand=True)
+            self.cmd_text_lbl.configure(justify="left")
+            self._autowrap(self.cmd_text_lbl, 8)
 
             # Quick Copy Button inside the code box
             self.quick_copy_btn = ctk.CTkButton(
@@ -692,13 +716,16 @@ class EzShellDesktopApp(ctk.CTk):
                 font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=self.FONT_SIZE_RISK_BADGE, weight="bold"),
             ).pack(side="left", padx=(0, 8))
 
-            ctk.CTkLabel(
+            risk_reason_lbl = ctk.CTkLabel(
                 risk_row,
                 text=self.current_risk_reason or t("risk_reason_default"),
                 text_color=self.COLOR_TEXT_MUTED,
                 font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=self.FONT_SIZE_RISK_BADGE),
                 anchor="w",
-            ).pack(side="left", fill="x", expand=True)
+                justify="left",
+            )
+            risk_reason_lbl.pack(side="left", fill="x", expand=True)
+            self._autowrap(risk_reason_lbl, 4)
 
         # 3. Section: EXPLANATION or CAUSE (Cleaned of raw markdown syntax)
         is_error = any(w in self.current_query.lower() for w in ("diagnose", "error", "failed", "échec", "fail"))
@@ -730,9 +757,9 @@ class EzShellDesktopApp(ctk.CTk):
             font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=self.FONT_SIZE_CAUSE_BODY),
             anchor="w",
             justify="left",
-            wraplength=680,
         )
         self.cause_body.pack(fill="x", padx=12, pady=10)
+        self._autowrap(self.cause_body, 24)
 
         # Execution Result Box (appears when Enter/run is clicked)
         self.exec_box = ctk.CTkFrame(content_scroll, fg_color=self.COLOR_BG_CODE, border_color=self.COLOR_BORDER, border_width=1, corner_radius=6)
@@ -744,9 +771,9 @@ class EzShellDesktopApp(ctk.CTk):
             anchor="w",
         )
         self.exec_label.pack(fill="both", expand=True, padx=10, pady=8)
+        self._autowrap(self.exec_label, 20)
 
-        # 4. Bottom Controls: Follow-up Input Entry
-        ctk.CTkFrame(self.body_container, fg_color=self.COLOR_BORDER, height=1).pack(fill="x", pady=(0, 8))
+        # 4. Bottom Controls: Follow-up Input Entry (packé côté bas avant la zone défilante)
 
         bottom_input_box = ctk.CTkFrame(
             self.body_container,
@@ -756,8 +783,12 @@ class EzShellDesktopApp(ctk.CTk):
             corner_radius=8,
             height=40,
         )
-        bottom_input_box.pack(fill="x")
+        bottom_input_box.pack(side="bottom", fill="x")
         bottom_input_box.pack_propagate(False)
+        ctk.CTkFrame(self.body_container, fg_color=self.COLOR_BORDER, height=1).pack(
+            side="bottom", fill="x", pady=(0, 8)
+        )
+        content_scroll.pack(fill="both", expand=True, pady=(0, 8))
 
         ctk.CTkLabel(
             bottom_input_box,
@@ -830,7 +861,7 @@ class EzShellDesktopApp(ctk.CTk):
             corner_radius=6,
             height=28,
         )
-        pill.pack_propagate(False)
+        # Pas de pack_propagate(False) : la pastille prend la largeur de son contenu (sinon 200 px fixes)
 
         key_lbl = ctk.CTkLabel(
             pill,
@@ -938,7 +969,7 @@ class EzShellDesktopApp(ctk.CTk):
         self._on_submit_input()
         return "break"
 
-    def _query_groq(self, query: str) -> None:
+    def _query_groq(self, query: str, mode: str = "translate") -> None:
         """Sends query to active LLM in a background thread and updates the UI."""
         self.current_query = query
         self.current_cause = ""
@@ -948,17 +979,16 @@ class EzShellDesktopApp(ctk.CTk):
 
         def _worker():
             try:
-                if not self.chat_session:
-                    self.after(
-                        0,
-                        lambda: self._apply_error(t("error_no_api_key")),
-                    )
-                    return
-
-                result: ChatMessageResult = self.chat_session.send_message(query)
+                result = chat_bridge.ask(
+                    query if mode == "translate" else "",
+                    mode=mode,
+                    command=self.last_detected_cmd or "",
+                    provider=self.provider,
+                )
                 self.after(0, lambda: self._apply_result(result))
             except Exception as e:
-                self.after(0, lambda: self._apply_error(str(e)))
+                msg = chat_bridge.describe_error(e)
+                self.after(0, lambda: self._apply_error(msg))
 
         threading.Thread(target=_worker, daemon=True).start()
 
@@ -980,7 +1010,7 @@ class EzShellDesktopApp(ctk.CTk):
 
     def _apply_error(self, err_msg: str) -> None:
         """Renders API error message."""
-        self.current_cause = f"{t('error_api_generic')}{err_msg}"
+        self.current_cause = err_msg
         self.current_cmd = ""
         self._render_result_view()
 

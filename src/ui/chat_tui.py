@@ -17,12 +17,13 @@ from textual.widgets import (
     Static,
 )
 
-from src.core.assistant import ChatMessageResult, ChatSession, extract_bash_commands
+from src.core import chat_bridge
+from src.core.assistant import ChatMessageResult, extract_bash_commands
 from src.core.config import EzShellConfig
 from src.core.context import SystemContext
+from src.core.provider import GroqProvider, get_provider
 from src.core.pty_shell import PTYExecutor
 from src.core.safety import RiskLevel, SafetyGuard, SafetyReport
-
 
 CHAT_CSS = """
 Screen {
@@ -408,16 +409,17 @@ class EzShellChatApp(App):
         super().__init__()
         self.config = config or EzShellConfig.load()
         self.context = SystemContext.collect()
-        self.chat_session: Optional[ChatSession] = None
+        self.provider = get_provider(self.config)
         self.latest_command: Optional[str] = None
 
-        if self.config.get_effective_api_key():
-            self.chat_session = ChatSession(config=self.config, context=self.context)
+    def _needs_key(self) -> bool:
+        """Clé locale requise seulement en appel direct à Groq (le proxy n'en a pas besoin)."""
+        return isinstance(self.provider, GroqProvider) and not self.provider.api_key
 
     def compose(self) -> ComposeResult:
         with DraggableDialog(id="dialog-container") as dlg:
             # 1. Embedded rounded border title and movable hints
-            dlg.border_title = f" ezShell • {self.config.model} "
+            dlg.border_title = f" {chat_bridge.provider_label(self.provider, self.config)} "
             dlg.border_subtitle = " [Drag / Alt+Arrows] Move  •  [Esc] Close "
 
             # 2. Context line
@@ -433,7 +435,7 @@ class EzShellChatApp(App):
 
             # 3. Chat scrollable area
             with VerticalScroll(id="chat-scroll"):
-                if not self.config.get_effective_api_key():
+                if self._needs_key():
                     with Container(classes="api-key-box") as box:
                         box.border_title = " GROQ_API_KEY Required "
                         yield Static(
@@ -489,8 +491,6 @@ class EzShellChatApp(App):
 
     def action_clear_chat(self) -> None:
         """Clears the chat screen and resets conversation history."""
-        if self.chat_session:
-            self.chat_session.clear()
         scroll = self.query_one("#chat-scroll", VerticalScroll)
         scroll.remove_children()
 
@@ -541,7 +541,7 @@ class EzShellChatApp(App):
 
         self.config.groq_api_key = val
         self.config.save()
-        self.chat_session = ChatSession(config=self.config, context=self.context)
+        self.provider = get_provider(self.config)
 
         # Refresh scroll area
         scroll = self.query_one("#chat-scroll", VerticalScroll)
@@ -566,7 +566,7 @@ class EzShellChatApp(App):
         inp.value = ""
 
         # Check API key
-        if not self.chat_session:
+        if self._needs_key():
             self.post_system_notice("GROQ_API_KEY is not configured. Please configure it to chat.")
             return
 
@@ -588,10 +588,10 @@ class EzShellChatApp(App):
     async def _async_fetch_ai_reply(self, user_text: str, loading_widget: Label) -> None:
         """Worker thread to fetch LLM response without blocking the UI."""
         try:
-            result = await asyncio.to_thread(self.chat_session.send_message, user_text)
+            result = await asyncio.to_thread(chat_bridge.ask, user_text, provider=self.provider)
             self._render_ai_reply(result, loading_widget)
         except Exception as e:
-            self._render_ai_error(str(e), loading_widget)
+            self._render_ai_error(chat_bridge.describe_error(e), loading_widget)
 
     def _render_ai_reply(self, result: ChatMessageResult, loading_widget: Label) -> None:
         """Renders AI message inside the chat scroll container."""

@@ -26,7 +26,7 @@ from src.core.provider import (
 )
 
 # À renseigner après le déploiement (ex. "https://ezshell.vercel.app"). Surchargé par EZSH_API_URL.
-DEFAULT_API_URL = ""
+DEFAULT_API_URL = "https://ezshell.vercel.app"
 TIMEOUT_S = 12.0
 _LOOPBACK = {"localhost", "127.0.0.1", "::1"}
 
@@ -107,6 +107,15 @@ class ProxyProvider(LLMProvider):
         except json.JSONDecodeError:
             data = {}
         return status, text, data if isinstance(data, dict) else {}
+
+    def health(self) -> bool:
+        """True si ``GET /api/v1/health`` répond 200 (aucun jeton nécessaire)."""
+        try:
+            self._check_url()
+            with urllib.request.urlopen(self.base_url + "/api/v1/health", timeout=TIMEOUT_S) as r:
+                return r.status == 200
+        except (ProviderError, urllib.error.URLError, OSError):
+            return False
 
     # -- Jeton ----------------------------------------------------------------
     def _register(self) -> str:

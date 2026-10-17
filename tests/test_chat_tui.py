@@ -1,11 +1,10 @@
-import asyncio
-from unittest.mock import MagicMock
+import json
+
 import pytest
 from textual import events
 
-from src.core.assistant import ChatMessageResult
 from src.core.config import EzShellConfig
-from src.core.safety import RiskLevel, SafetyReport
+from src.core.provider import LLMProvider
 from src.ui.chat_tui import DraggableDialog, EzShellChatApp
 
 
@@ -26,19 +25,12 @@ async def test_chat_tui_send_and_run_command():
     app = EzShellChatApp(config=config)
 
     cmd_sample = "echo ezShell rocks"
-    mock_session = MagicMock()
-    mock_session.send_message.return_value = ChatMessageResult(
-        content="You can test with:\n```bash\n" + cmd_sample + "\n```",
-        suggested_commands=[cmd_sample],
-        safety_reports=[
-            SafetyReport(
-                risk_level=RiskLevel.SAFE,
-                command=cmd_sample,
-                reason="",
-            )
-        ],
-    )
-    app.chat_session = mock_session
+
+    class FixedProvider(LLMProvider):
+        def ask(self, req):
+            return json.dumps({"command": cmd_sample, "explanation": "Test.", "risk": "low"})
+
+    app.provider = FixedProvider()
 
     async with app.run_test() as pilot:
         inp = pilot.app.query_one("#chat-input")
