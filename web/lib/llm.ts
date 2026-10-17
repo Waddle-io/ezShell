@@ -65,6 +65,8 @@ export class GroqProvider implements LLMProvider {
       }
     }
     // On ne journalise que le type d'erreur, jamais le contenu des requêtes.
-    throw new UpstreamError(lastErr instanceof Error ? lastErr.name : "upstream");
+    throw new UpstreamError(
+  lastErr instanceof UpstreamError ? lastErr.message : lastErr instanceof Error ? lastErr.name : "upstream",
+);
   }
 }

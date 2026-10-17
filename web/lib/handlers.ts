@@ -132,6 +132,7 @@ export async function ask(
     // Le service ne doit pas facturer un appel raté. Aucun contenu n'est journalisé.
     await refundDaily(pool, subjectType, subjectId);
     await refundDaily(pool, "global", "all");
+    console.error("[ask] échec amont :", err instanceof Error ? err.message : "inconnu");
     return { status: 502, body: { error: err instanceof UpstreamError ? "upstream" : "internal" } };
   }
 }
