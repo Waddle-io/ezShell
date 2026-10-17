@@ -1,20 +1,25 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import CopyButton from "./CopyButton";
+import Examples from "./Examples";
+import HeroDemo from "./HeroDemo";
+import ShellTabs from "./ShellTabs";
 
 const INSTALL_COMMAND = "pipx install git+https://github.com/Waddle-io/ezShell.git";
 const GITHUB_URL = "https://github.com/Waddle-io/ezShell";
 
 export const metadata: Metadata = {
   title: "ezShell | Ton terminal t'explique ses erreurs",
-  description: "ezShell explique les erreurs de ton terminal et propose une commande à relire avant insertion.",
+  description:
+    "Une commande échoue ? Alt+E explique la cause et place une correction dans ton prompt. Tu relis, tu valides. Sans clé API.",
   openGraph: {
     title: "ezShell | Ton terminal t'explique ses erreurs",
-    description: "Un assistant de terminal direct, prudent et lisible.",
+    description: "Alt+E après une erreur : la cause, une correction, son niveau de risque. Rien ne s'exécute sans toi.",
     type: "website",
     locale: "fr_FR",
   },
-  themeColor: "#111315",
 };
+
+export const viewport: Viewport = { themeColor: "#111315" };
 
 function ArrowIcon() {
   return (
@@ -24,37 +29,47 @@ function ArrowIcon() {
   );
 }
 
-function CheckIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 20 20" fill="none">
-      <path d="m4 10 4 4 8-8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
+const FACTS = [
+  ["Sans clé API", "essai gratuit, sans compte"],
+  ["bash · zsh · fish", "dans ton terminal habituel"],
+  ["Linux · macOS", "Windows pas encore"],
+  ["Rien n'est exécuté", "la commande arrive dans ton prompt"],
+] as const;
 
-function ShieldIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
-      <path d="M12 3 19 6v5c0 4.5-2.8 8-7 10-4.2-2-7-5.5-7-10V6l7-3Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-      <path d="m8.5 12 2.2 2.2 4.8-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
+const SENT = [
+  "ton OS et ton shell",
+  "le dossier courant (avec ~ à la place de ton nom)",
+  "la dernière commande et son code de sortie",
+  "la fin de la sortie d'erreur (4 Ko max), si tu passes par ezsh run",
+];
 
-function TerminalIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
-      <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="1.5" />
-      <path d="m7 9 3 3-3 3m5 0h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
+const NEVER = [
+  "tes mots de passe, clés API, jetons et clés privées : masqués avant l'envoi, puis une seconde fois sur le serveur",
+  "ton historique, tes fichiers, tes variables d'environnement",
+  "le contenu de tes requêtes : le service ne garde qu'un jeton d'appareil haché et des compteurs de quota",
+];
 
-const securityCards = [
-  ["Aucune clé sur ta machine", "Les secrets restent masqués avant l'envoi au modèle.", "shield"],
-  ["Tu gardes la main", "La commande est insérée dans ton prompt, jamais exécutée sans toi.", "terminal"],
-  ["Un risque lisible", "Chaque suggestion porte un niveau: faible, moyen ou élevé.", "check"],
-  ["Pas de stockage", "Le service ne stocke ni tes commandes ni tes messages d'erreur.", "shield"],
+const FAQ = [
+  [
+    "Est-ce qu'ezShell exécute les corrections ?",
+    "Non. La commande est insérée dans ta ligne de saisie ; c'est toi qui appuies sur Entrée. Les commandes à risque élevé ou sur plusieurs lignes demandent en plus une confirmation explicite (y).",
+  ],
+  [
+    "Faut-il une clé Groq ou OpenAI ?",
+    "Non. ezShell passe par son propre service, qui détient la clé. Ton appareil reçoit un jeton anonyme au premier usage, avec un quota quotidien gratuit.",
+  ],
+  [
+    "Et si je pose une question au lieu d'avoir une erreur ?",
+    "Tape ta demande dans la ligne de saisie (« trouver les fichiers de plus de 1 Go »), puis Alt+E : ezShell la traduit en commande.",
+  ],
+  [
+    "Comment avoir un diagnostic plus précis ?",
+    "Lance la commande via ezsh run -- <commande>. La fin de sa sortie d'erreur est alors gardée (et masquée) pour le diagnostic.",
+  ],
+  [
+    "Comment le désinstaller ?",
+    "Retire la ligne ezsh init de ton fichier de configuration du shell, puis pipx uninstall ezshell.",
+  ],
 ] as const;
 
 export default function Home() {
@@ -68,8 +83,8 @@ export default function Home() {
             <span>ezShell</span>
           </a>
           <nav aria-label="Navigation principale">
-            <a href="#fonctionnement">Fonctionnement</a>
-            <a href="#securite">Sécurité</a>
+            <a href="#exemples">Exemples</a>
+            <a href="#confidentialite">Confidentialité</a>
             <a href="#installation">Installation</a>
             <a className="nav-github" href={GITHUB_URL} target="_blank" rel="noreferrer">
               GitHub <ArrowIcon />
@@ -81,91 +96,134 @@ export default function Home() {
       <main id="contenu">
         <section className="hero shell" id="top">
           <div className="hero-copy">
-            <p className="eyebrow"><span className="status-dot" /> assistant terminal pour bash, zsh et fish</p>
+            <p className="eyebrow"><span className="status-dot" /> assistant terminal · bash, zsh, fish</p>
             <h1>Ton terminal t'explique ses erreurs<span className="accent">.</span></h1>
-            <p className="hero-lede">Une commande échoue. Tu comprends pourquoi. Tu relis la correction. C'est toi qui valides.</p>
+            <p className="hero-lede">
+              Une commande échoue ? Appuie sur <kbd>Alt</kbd>+<kbd>E</kbd>. ezShell explique la cause et place une
+              correction dans ton prompt. Tu relis, tu valides.
+            </p>
             <div className="install-box" aria-label="Commande d'installation">
               <code><span className="prompt">$</span> {INSTALL_COMMAND}</code>
-              <CopyButton value={INSTALL_COMMAND} />
+              <CopyButton value={INSTALL_COMMAND} label="Copier la commande d'installation" />
             </div>
             <div className="hero-links">
-              <a className="text-link" href={GITHUB_URL} target="_blank" rel="noreferrer">Voir le projet sur GitHub <ArrowIcon /></a>
-              <span className="platform-note">Linux · macOS</span>
+              <a className="button-link" href="#installation">Installer en 2 minutes <ArrowIcon /></a>
+              <a className="text-link" href={GITHUB_URL} target="_blank" rel="noreferrer">Code source sur GitHub</a>
             </div>
           </div>
-          <div className="hero-aside" aria-label="Aperçu d'une suggestion ezShell">
-            <div className="signal-line"><span /> <span /> <span /></div>
-            <p className="aside-label">dernière erreur détectée</p>
-            <code className="aside-command">git push origin main</code>
-            <p className="aside-error">fatal: la branche n'a pas de branche amont</p>
-            <div className="aside-footer"><span className="mini-check">✓</span> correction prête à relire <span>Alt+E</span></div>
+          <HeroDemo />
+        </section>
+
+        <section className="facts shell" aria-label="En bref">
+          {FACTS.map(([title, text]) => (
+            <div className="fact" key={title}>
+              <strong>{title}</strong>
+              <span>{text}</span>
+            </div>
+          ))}
+        </section>
+
+        <section className="section shell" id="exemples" aria-labelledby="examples-title">
+          <div className="section-intro">
+            <p className="eyebrow">exemples</p>
+            <h2 id="examples-title">Une erreur devient une prochaine étape.</h2>
+            <p className="section-lede">
+              Chaque réponse donne la cause, une commande et son niveau de risque. Les règles d'ezShell
+              relèvent ce niveau si le modèle le sous-estime.
+            </p>
+          </div>
+          <Examples />
+        </section>
+
+        <section className="section shell" id="fonctionnement" aria-labelledby="steps-title">
+          <div className="section-intro">
+            <p className="eyebrow">le principe</p>
+            <h2 id="steps-title">Trois gestes, zéro copier-coller.</h2>
+          </div>
+          <ol className="steps-grid">
+            <li className="step">
+              <span className="step-number">01</span>
+              <h3>Une commande échoue</h3>
+              <p>Le hook d'ezShell note la commande et son code de sortie. Rien n'est envoyé à ce moment-là.</p>
+            </li>
+            <li className="step">
+              <span className="step-number">02</span>
+              <h3>Tu appuies sur <kbd>Alt</kbd>+<kbd>E</kbd></h3>
+              <p>Un panneau s'ouvre dans le terminal : la cause, la commande proposée, son risque.</p>
+            </li>
+            <li className="step">
+              <span className="step-number">03</span>
+              <h3>Tu relis, puis Entrée</h3>
+              <p>La commande arrive dans ton prompt. Tu peux la modifier, la copier ou fermer.</p>
+            </li>
+          </ol>
+        </section>
+
+        <section className="section shell" id="confidentialite" aria-labelledby="privacy-title">
+          <div className="section-intro">
+            <p className="eyebrow">confidentialité</p>
+            <h2 id="privacy-title">Ce qui part, ce qui reste chez toi.</h2>
+          </div>
+          <div className="privacy-grid">
+            <div className="privacy-col">
+              <h3><span className="pill pill-sent">envoyé</span> seulement quand tu appuies sur Alt+E</h3>
+              <ul>{SENT.map((s) => <li key={s}>{s}</li>)}</ul>
+            </div>
+            <div className="privacy-col">
+              <h3><span className="pill pill-never">jamais</span> envoyé ni conservé</h3>
+              <ul>{NEVER.map((s) => <li key={s}>{s}</li>)}</ul>
+            </div>
           </div>
         </section>
 
-        <section className="demo-section shell" aria-labelledby="demo-title">
+        <section className="section install-section shell" id="installation" aria-labelledby="install-title">
           <div className="section-intro">
-            <p className="eyebrow">dans ton terminal</p>
-            <h2 id="demo-title">Une erreur devient une prochaine étape.</h2>
+            <p className="eyebrow">installation</p>
+            <h2 id="install-title">Prêt en deux commandes.</h2>
+            <p className="section-lede">Python 3.10 ou plus récent. <a href="https://pipx.pypa.io/stable/installation/" target="_blank" rel="noreferrer">pipx</a> l'isole du reste de ton système.</p>
           </div>
-          <div className="terminal-window">
-            <div className="window-bar"><span className="window-dots"><i /><i /><i /></span><span>~/projet · zsh</span><span className="window-key">Alt+E</span></div>
-            <div className="terminal-body">
-              <div><span className="terminal-prompt">➜</span> <span className="terminal-path">~/projet</span> git push origin main</div>
-              <div className="terminal-dim">fatal: la branche 'main' n'a pas de branche amont</div>
-              <div className="terminal-gap" />
-              <div><span className="terminal-prompt">➜</span> <span className="terminal-path">~/projet</span> <span className="cursor">▌</span></div>
-              <div className="suggestion-panel">
-                <div className="panel-heading"><span>ezShell</span><span className="risk-low">RISQUE FAIBLE</span></div>
-                <p className="panel-cause">La branche locale n'est pas encore reliée à une branche distante.</p>
-                <div className="panel-command"><span>$</span> git push --set-upstream origin main</div>
-                <div className="panel-hint"><kbd>Entrée</kbd> insérer <span>·</span> <kbd>e</kbd> modifier <span>·</span> <kbd>q</kbd> fermer</div>
+          <div className="install-steps">
+            <div className="install-step">
+              <span className="step-number">1 · installer</span>
+              <div className="code-line">
+                <code>{INSTALL_COMMAND}</code>
+                <CopyButton value={INSTALL_COMMAND} label="Copier la commande d'installation" compact />
               </div>
             </div>
+            <div className="install-step">
+              <span className="step-number">2 · brancher sur ton shell</span>
+              <ShellTabs />
+            </div>
+            <div className="install-step">
+              <span className="step-number">3 · essayer</span>
+              <p className="rc-hint">Lance une commande qui échoue (<code>git psuh</code>, par exemple), puis <kbd>Alt</kbd>+<kbd>E</kbd>.</p>
+            </div>
           </div>
         </section>
 
-        <section className="steps-section shell" id="fonctionnement" aria-labelledby="steps-title">
-          <div className="section-intro narrow"><p className="eyebrow">le principe</p><h2 id="steps-title">Trois gestes, zéro devinette.</h2></div>
-          <div className="steps-grid">
-            <article className="step"><span className="step-number">01</span><h3>Une commande échoue</h3><p>ezShell repère la dernière erreur et garde le contexte utile.</p></article>
-            <article className="step"><span className="step-number">02</span><h3>Tu appuies sur Alt+E</h3><p>Le panneau te montre une explication et une commande proposée.</p></article>
-            <article className="step"><span className="step-number">03</span><h3>Tu relis, puis Entrée</h3><p>La commande arrive dans ton prompt. Tu décides de l'exécuter.</p></article>
+        <section className="section shell" aria-labelledby="faq-title">
+          <div className="section-intro">
+            <p className="eyebrow">questions</p>
+            <h2 id="faq-title">Avant de commencer.</h2>
           </div>
-        </section>
-
-        <section className="security-section shell" id="securite" aria-labelledby="security-title">
-          <div className="section-intro narrow"><p className="eyebrow">conçu pour rester prudent</p><h2 id="security-title">Tes commandes restent à toi.</h2></div>
-          <div className="security-grid">
-            {securityCards.map(([title, text, icon]) => (
-              <article className="security-card" key={title}>
-                <span className="card-icon">{icon === "terminal" ? <TerminalIcon /> : icon === "check" ? <CheckIcon /> : <ShieldIcon />}</span>
-                <h3>{title}</h3><p>{text}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="install-section shell" id="installation" aria-labelledby="install-title">
-          <div className="install-copy"><p className="eyebrow">prêt quand tu l'es</p><h2 id="install-title">Installe-le dans ton shell.</h2><p>Linux et macOS sont pris en charge. Windows pas encore.</p></div>
-          <div className="shell-commands">
-            <div><span className="shell-label">bash</span><code>eval "$(ezsh init bash)"</code></div>
-            <div><span className="shell-label">zsh</span><code>eval "$(ezsh init zsh)"</code></div>
-            <div><span className="shell-label">fish</span><code>ezsh init fish | source</code></div>
-          </div>
-        </section>
-
-        <section className="faq-section shell" aria-labelledby="faq-title">
-          <div className="section-intro narrow"><p className="eyebrow">questions rapides</p><h2 id="faq-title">Avant de commencer.</h2></div>
           <div className="faq-list">
-            <details><summary>Est-ce qu'ezShell exécute les corrections ?</summary><p>Non. La commande est insérée dans ton prompt; tu appuies toi-même sur Entrée.</p></details>
-            <details><summary>Quels shells sont pris en charge ?</summary><p>Bash, zsh et fish, sur Linux et macOS.</p></details>
-            <details><summary>Que devient mon mot de passe dans une erreur ?</summary><p>Les secrets sont masqués avant tout envoi au modèle.</p></details>
-            <details><summary>Le service conserve-t-il mes commandes ?</summary><p>Non, le service ne stocke ni tes commandes ni tes messages d'erreur.</p></details>
+            {FAQ.map(([q, a]) => (
+              <details key={q}><summary>{q}</summary><p>{a}</p></details>
+            ))}
           </div>
         </section>
       </main>
 
-      <footer className="site-footer"><div className="shell footer-inner"><span>ezShell · ton terminal, en clair.</span><div><a href={GITHUB_URL} target="_blank" rel="noreferrer">GitHub</a><a href={`${GITHUB_URL}/blob/main/LICENSE`} target="_blank" rel="noreferrer">Licence MIT</a></div></div></footer>
+      <footer className="site-footer">
+        <div className="shell footer-inner">
+          <span>ezShell · ton terminal, en clair.</span>
+          <div>
+            <a href={GITHUB_URL} target="_blank" rel="noreferrer">GitHub</a>
+            <a href={`${GITHUB_URL}/issues`} target="_blank" rel="noreferrer">Signaler un problème</a>
+            <a href="/api/v1/health">État du service</a>
+          </div>
+        </div>
+      </footer>
     </>
   );
 }
