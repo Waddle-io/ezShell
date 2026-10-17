@@ -73,23 +73,23 @@ class EzShellDesktopApp(ctk.CTk):
     FONT_SIZE_PILL_LABEL = 11
     FONT_SIZE_EXEC_OUTPUT = 12
 
-    # Modern refined developer color palette
-    COLOR_PRIMARY_BLUE = "#3B82F6"      # Refined royal blue accent
-    COLOR_BLUE_HOVER = "#2563EB"        # Active button blue
-    COLOR_LIGHT_BLUE = "#60A5FA"        # Light blue highlights
-    COLOR_BG_WINDOW = "#0B0F17"         # Clean deep slate window background
-    COLOR_BG_CARD = "#121826"           # Dark card background
-    COLOR_BG_CARD_HOVER = "#182235"     # Interactive hover card
-    COLOR_BG_CODE = "#090D14"           # Terminal dark code background
-    COLOR_BG_INPUT = "#111827"          # Input entry background
-    COLOR_BORDER = "#1E293B"            # Subtle card border
-    COLOR_BORDER_FOCUS = "#3B82F6"      # Focused input border
-    COLOR_TEXT_PRIMARY = "#F8FAFC"      # White primary text
-    COLOR_TEXT_MUTED = "#94A3B8"        # Slate muted text
-    COLOR_TEXT_SUBTLE = "#64748B"       # Subtle gray
-    COLOR_SUCCESS = "#10B981"           # Emerald green for safe / exit 0
-    COLOR_WARNING = "#F59E0B"           # Amber warning
-    COLOR_DANGER = "#EF4444"            # Clean red for danger / failed
+    # Quiet charcoal palette with one restrained mint accent.
+    COLOR_PRIMARY_BLUE = "#2DD4BF"
+    COLOR_BLUE_HOVER = "#14B8A6"
+    COLOR_LIGHT_BLUE = "#99F6E4"
+    COLOR_BG_WINDOW = "#111315"
+    COLOR_BG_CARD = "#191C1F"
+    COLOR_BG_CARD_HOVER = "#23282B"
+    COLOR_BG_CODE = "#0C0E0F"
+    COLOR_BG_INPUT = "#171A1C"
+    COLOR_BORDER = "#2A3033"
+    COLOR_BORDER_FOCUS = "#2DD4BF"
+    COLOR_TEXT_PRIMARY = "#F4F1EA"
+    COLOR_TEXT_MUTED = "#A6AFB0"
+    COLOR_TEXT_SUBTLE = "#748082"
+    COLOR_SUCCESS = "#34D399"
+    COLOR_WARNING = "#FBBF24"
+    COLOR_DANGER = "#FB7185"
 
     def __init__(
         self,
@@ -114,7 +114,7 @@ class EzShellDesktopApp(ctk.CTk):
         self.configure(fg_color=self.COLOR_BG_WINDOW)
 
         # Dimensions & screen centering: Sleek compact launcher proportions
-        win_w, win_h = 760, 500
+        win_w, win_h = 680, 460
         try:
             sw = self.winfo_screenwidth()
             sh = self.winfo_screenheight()
@@ -124,7 +124,7 @@ class EzShellDesktopApp(ctk.CTk):
         except Exception:
             self.geometry(f"{win_w}x{win_h}")
 
-        self.minsize(700, 460)
+        self.minsize(620, 420)
 
         # Keyboard shortcuts
         self.bind("<Escape>", lambda e: self.destroy())
@@ -170,11 +170,11 @@ class EzShellDesktopApp(ctk.CTk):
     def _build_ui(self) -> None:
         """Constructs the application layout."""
         self.main_container = ctk.CTkFrame(self, fg_color="transparent")
-        self.main_container.pack(fill="both", expand=True, padx=20, pady=(16, 12))
+        self.main_container.pack(fill="both", expand=True, padx=24, pady=(18, 14))
 
         # 1. Header Bar: [Icon] ez (blue) Shell (white) ............ [Esc] to close
         self.header_frame = ctk.CTkFrame(self.main_container, fg_color="transparent", height=32)
-        self.header_frame.pack(fill="x", pady=(0, 10))
+        self.header_frame.pack(fill="x", pady=(0, 12))
 
         # Drag support on header
         self.header_frame.bind("<ButtonPress-1>", self._start_drag)
@@ -248,14 +248,14 @@ class EzShellDesktopApp(ctk.CTk):
         close_text.bind("<Button-1>", lambda e: self.destroy())
 
         # Top divider line
-        ctk.CTkFrame(self.main_container, fg_color=self.COLOR_BORDER, height=1).pack(fill="x", pady=(0, 12))
+        ctk.CTkFrame(self.main_container, fg_color=self.COLOR_BORDER, height=1).pack(fill="x", pady=(0, 16))
 
         # Dynamic body container
         self.body_container = ctk.CTkFrame(self.main_container, fg_color="transparent")
         self.body_container.pack(fill="both", expand=True)
 
         # Bottom divider + persistent footer status bar
-        ctk.CTkFrame(self.main_container, fg_color=self.COLOR_BORDER, height=1).pack(fill="x", pady=(10, 8))
+        ctk.CTkFrame(self.main_container, fg_color=self.COLOR_BORDER, height=1).pack(fill="x", pady=(14, 9))
 
         self.footer_bar = ctk.CTkFrame(self.main_container, fg_color="transparent", height=24)
         self.footer_bar.pack(fill="x")
@@ -297,7 +297,7 @@ class EzShellDesktopApp(ctk.CTk):
 
         ctk.CTkLabel(
             provider_frame,
-            text=f"{provider_name} · {model_name}  (ezShell v0.1.0)",
+            text=f"{provider_name} · {model_name}",
             text_color=self.COLOR_TEXT_SUBTLE,
             font=ctk.CTkFont(family=self.FONT_FAMILY_CODE, size=10),
             anchor="e",
@@ -338,7 +338,7 @@ class EzShellDesktopApp(ctk.CTk):
             font=ctk.CTkFont(family=self.FONT_FAMILY_CODE, size=self.FONT_SIZE_INPUT_ENTRY),
         )
         self.input_entry.pack(side="left", fill="both", expand=True, padx=(0, 8))
-        self.input_entry.bind("<Return>", lambda e: self._on_submit_input())
+        self.input_entry.bind("<Return>", self._on_input_return)
         self.input_entry.focus()
 
         # Focus ring animation
@@ -514,116 +514,12 @@ class EzShellDesktopApp(ctk.CTk):
                 )
                 chip_lbl.pack(side="left", padx=(0, 6))
 
-        # 3. Quick Actions — Refined 2x2 Interactive Grid
-        ctk.CTkLabel(
-            self.body_container,
-            text=f"› {t('quick_suggestions')}",
-            text_color=self.COLOR_TEXT_SUBTLE,
-            font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=10, weight="bold"),
-            anchor="w",
-        ).pack(fill="x", pady=(0, 6))
-
-        grid_frame = ctk.CTkFrame(self.body_container, fg_color="transparent")
-        grid_frame.pack(fill="x", expand=True)
-        grid_frame.columnconfigure(0, weight=1)
-        grid_frame.columnconfigure(1, weight=1)
-
-        actions = [
-            (
-                "⚡",
-                t("action_ports_title"),
-                t("action_ports_desc"),
-                "List all open listening ports and their associated process PIDs",
-                0,
-                0,
-            ),
-            (
-                "💾",
-                t("action_disk_title"),
-                t("action_disk_desc"),
-                "Show disk space usage of files and folders in current directory",
-                0,
-                1,
-            ),
-            (
-                "🐳",
-                t("action_docker_title"),
-                t("action_docker_desc"),
-                "Clean up stopped docker containers, unused volumes, and dangling images",
-                1,
-                0,
-            ),
-            (
-                "↩",
-                t("action_git_title"),
-                t("action_git_desc"),
-                "Safely undo the last git commit while keeping local changes unstaged",
-                1,
-                1,
-            ),
-        ]
-
-        for icon, title, desc, query, r, c in actions:
-            card = ctk.CTkFrame(
-                grid_frame,
-                fg_color=self.COLOR_BG_CARD,
-                border_color=self.COLOR_BORDER,
-                border_width=1,
-                corner_radius=8,
-                height=52,
-            )
-            card.grid(row=r, column=c, padx=4, pady=4, sticky="nsew")
-            card.pack_propagate(False)
-
-            # Inner content
-            card_inner = ctk.CTkFrame(card, fg_color="transparent")
-            card_inner.pack(fill="both", expand=True, padx=10, pady=6)
-
-            # Left icon
-            icon_lbl = ctk.CTkLabel(
-                card_inner,
-                text=icon,
-                text_color=self.COLOR_LIGHT_BLUE,
-                font=ctk.CTkFont(family=self.FONT_FAMILY_CODE, size=14, weight="bold"),
-            )
-            icon_lbl.pack(side="left", padx=(0, 8))
-
-            text_col = ctk.CTkFrame(card_inner, fg_color="transparent")
-            text_col.pack(side="left", fill="both", expand=True)
-
-            title_lbl = ctk.CTkLabel(
-                text_col,
-                text=title,
-                text_color=self.COLOR_TEXT_PRIMARY,
-                font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=11, weight="bold"),
-                anchor="w",
-            )
-            title_lbl.pack(fill="x")
-
-            desc_lbl = ctk.CTkLabel(
-                text_col,
-                text=desc,
-                text_color=self.COLOR_TEXT_MUTED,
-                font=ctk.CTkFont(family=self.FONT_FAMILY_UI, size=10),
-                anchor="w",
-            )
-            desc_lbl.pack(fill="x")
-
-            # Hover & Click events for entire tile
-            def _make_hover(target_card):
-                def _enter(e):
-                    target_card.configure(fg_color=self.COLOR_BG_CARD_HOVER, border_color=self.COLOR_PRIMARY_BLUE)
-
-                def _leave(e):
-                    target_card.configure(fg_color=self.COLOR_BG_CARD, border_color=self.COLOR_BORDER)
-
-                return _enter, _leave
-
-            enter_fn, leave_fn = _make_hover(card)
-            for w in (card, card_inner, icon_lbl, text_col, title_lbl, desc_lbl):
-                w.bind("<Enter>", enter_fn)
-                w.bind("<Leave>", leave_fn)
-                w.bind("<Button-1>", lambda e, q=query: self._query_groq(q))
+        # Quick Actions désactivées pour garder le launcher centré sur la question.
+        # Elles restent documentées ici pour une réactivation ultérieure :
+        # - ports : lister les ports ouverts et leurs PID
+        # - disque : afficher l'espace utilisé dans le dossier courant
+        # - Docker : nettoyer les conteneurs, volumes et images inutilisés
+        # - Git : annuler le dernier commit en conservant les changements locaux
 
     def _render_result_view(self) -> None:
         """Renders the clean diagnostic and result view with command prioritized at the top."""
@@ -866,7 +762,7 @@ class EzShellDesktopApp(ctk.CTk):
             font=ctk.CTkFont(family=self.FONT_FAMILY_CODE, size=self.FONT_SIZE_INPUT_ENTRY),
         )
         self.input_entry.pack(side="left", fill="both", expand=True, padx=(0, 6))
-        self.input_entry.bind("<Return>", lambda e: self._on_submit_input())
+        self.input_entry.bind("<Return>", self._on_input_return)
 
         # Focus ring animation on bottom input
         def _on_bottom_focus(e):
@@ -959,7 +855,8 @@ class EzShellDesktopApp(ctk.CTk):
 
     def _handle_global_key(self, event) -> None:
         """Handles single-key shortcuts when the text entry is not focused."""
-        if hasattr(self, "input_entry") and self.focus_get() == self.input_entry._entry:
+        focused = self.focus_get()
+        if hasattr(self, "input_entry") and focused in (self.input_entry, self.input_entry._entry):
             return
 
         k = event.keysym.lower()
@@ -1021,6 +918,11 @@ class EzShellDesktopApp(ctk.CTk):
 
         self.input_entry.delete(0, "end")
         self._query_groq(query)
+
+    def _on_input_return(self, _event=None) -> str:
+        """Submits the focused input and prevents the global Return shortcut."""
+        self._on_submit_input()
+        return "break"
 
     def _query_groq(self, query: str) -> None:
         """Sends query to active LLM in a background thread and updates the UI."""

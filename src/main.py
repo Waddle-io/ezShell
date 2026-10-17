@@ -4,24 +4,18 @@ import argparse
 import os
 import sys
 
-from src.app import EzShellApp
-from src.core.assistant import ShellAssistant
-from src.core.config import DEFAULT_MODEL, EzShellConfig
-from src.core.context import SystemContext
-from src.core.groq_client import GroqClient
-from src.ui.chat_tui import EzShellChatApp
-from src.ui.logo import show_welcome_banner
-from src.ui.render import (
-    console,
-    render_banner,
-    render_error,
-    render_error_card,
-    render_info,
-    render_success,
-)
 
+def _version() -> str:
+    try:
+        from importlib.metadata import version
+
+        return version("ezshell")
+    except Exception:
+        return "0.1.0"
 
 def build_arg_parser() -> argparse.ArgumentParser:
+    from src.core.config import DEFAULT_MODEL
+
     parser = argparse.ArgumentParser(
         prog="ezshell",
         description="ezShell: An intelligent terminal assistant with real-time Groq AI diagnostics and GUI window.",
@@ -90,7 +84,58 @@ def build_arg_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _fast_dispatch(argv: list) -> "int | None":
+    """Sous-commandes légères : aucun import lourd (objectif de démarrage < 200 ms)."""
+    if not argv:
+        return None
+    cmd = argv[0]
+    if cmd in ("--version", "-V"):
+        print(f"ezshell {_version()}")
+        return 0
+    if cmd == "run":
+        from src.core.capture import run_and_capture
+
+        rest = argv[1:]
+        if rest and rest[0] == "--":
+            rest = rest[1:]
+        return run_and_capture(rest)
+    if cmd == "suggest":
+        ask, free, it = None, [], iter(argv[1:])
+        for a in it:
+            if a.startswith("--ask="):
+                ask = a[len("--ask="):]
+            elif a == "--ask":
+                ask = next(it, None)
+            else:
+                free.append(a)
+        if ask is None and free:
+            ask = " ".join(free)
+        from src.ui.inline import run_inline
+
+        return run_inline(ask)
+    return None
+
+
 def main() -> int:
+    fast = _fast_dispatch(sys.argv[1:])
+    if fast is not None:
+        return fast
+
+    from src.app import EzShellApp
+    from src.core.assistant import ShellAssistant
+    from src.core.config import EzShellConfig
+    from src.core.context import SystemContext
+    from src.core.groq_client import GroqClient
+    from src.ui.chat_tui import EzShellChatApp
+    from src.ui.logo import show_welcome_banner
+    from src.ui.render import (
+        console,
+        render_error,
+        render_error_card,
+        render_info,
+        render_success,
+    )
+
     # Subcommand: init (e.g. `eval "$(ezsh init zsh)"` or `ezsh init --install`)
     if len(sys.argv) > 1 and sys.argv[1] == "init":
         from src.core.shell_hook import detect_current_shell, get_hook_script, install_hook

@@ -131,6 +131,16 @@ def get_last_shell_command() -> Optional[str]:
     Returns:
         Optional[str]: The command string, or None if no command history found.
     """
+    # 0. État par terminal (hooks M0) : plus fiable que l'historique partagé
+    try:
+        from src.core.capture import read_last_run
+
+        run = read_last_run()
+        if run and run.command:
+            return run.command
+    except Exception:
+        pass
+
     candidates = []
 
     # 1. ezShell runtime marker
@@ -194,6 +204,15 @@ def get_last_exit_code() -> Optional[int]:
     Returns:
         Optional[int]: The exit code (e.g. 0, 1, 127), or None if not available.
     """
+    try:
+        from src.core.capture import read_last_run
+
+        run = read_last_run()
+        if run and run.exit_code is not None:
+            return run.exit_code
+    except Exception:
+        pass
+
     marker = Path.home() / ".ezshell" / ".last_exit_code"
     if marker.is_file():
         try:

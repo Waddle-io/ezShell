@@ -23,35 +23,52 @@ import os
 from pathlib import Path
 from typing import Optional, Tuple
 
+_STATE_PREAMBLE = """export EZSH_SESSION="$$"
+if [ -z "$EZSH_STATE_DIR" ]; then
+    if [ -n "$XDG_RUNTIME_DIR" ]; then EZSH_STATE_DIR="$XDG_RUNTIME_DIR/ezsh"; else EZSH_STATE_DIR="${TMPDIR:-/tmp}/ezsh-$(id -u)"; fi
+    export EZSH_STATE_DIR
+fi
+( umask 077; mkdir -p "$EZSH_STATE_DIR" ) 2>/dev/null
+"""
+
 ZSH_HOOK = """# ---------------------------------------------------------------------------
-# ezShell Integration for Zsh
+# ezShell Integration for Zsh  (état par terminal ; insertion dans le prompt)
 # ---------------------------------------------------------------------------
-__ezshell_preexec() {
-    export _EZSHELL_LAST_CMD="$1"
+""" + _STATE_PREAMBLE + """__ezshell_preexec() {
+    __EZSHELL_LAST_CMD="$1"
 }
 
 __ezshell_precmd() {
     local exit_code=$?
-    if [[ -n "$_EZSHELL_LAST_CMD" ]]; then
-        case "$_EZSHELL_LAST_CMD" in
-            ezsh*|ezshell*|eszh*|clear|exit|history*) ;;
-            *)
-                mkdir -p "$HOME/.ezshell" 2>/dev/null
-                printf "%s" "$_EZSHELL_LAST_CMD" > "$HOME/.ezshell/.last_command"
-                printf "%d" "$exit_code" > "$HOME/.ezshell/.last_exit_code"
-                ;;
-        esac
-        unset _EZSHELL_LAST_CMD
-    fi
+    [[ -z "$__EZSHELL_LAST_CMD" ]] && return
+    case "$__EZSHELL_LAST_CMD" in
+        "ezsh suggest"*|"ezshell suggest"*|clear|exit|history*) ;;
+        *)
+            printf "%s" "$__EZSHELL_LAST_CMD" > "$EZSH_STATE_DIR/$EZSH_SESSION.cmd" 2>/dev/null
+            printf "%d" "$exit_code" > "$EZSH_STATE_DIR/$EZSH_SESSION.code" 2>/dev/null
+            case "$__EZSHELL_LAST_CMD" in
+                "ezsh run "*|"ezshell run "*) ;;
+                *) rm -f "$EZSH_STATE_DIR/$EZSH_SESSION.run.json" 2>/dev/null ;;
+            esac
+            ;;
+    esac
+    unset __EZSHELL_LAST_CMD
 }
 
 autoload -Uz add-zsh-hook 2>/dev/null
 add-zsh-hook preexec __ezshell_preexec 2>/dev/null
 add-zsh-hook precmd __ezshell_precmd 2>/dev/null
 
-# Global shortcut Alt+e to launch ezShell
+# Alt+E : l'interface s'affiche sur /dev/tty, la commande choisie est placée dans le prompt (jamais exécutée).
+# Si la ligne de saisie contient du texte, il est utilisé comme question en langage naturel.
 __ezshell_widget() {
-    ezsh
+    local out
+    zle -I
+    out="$(command ezsh suggest ${BUFFER:+--ask="$BUFFER"} </dev/tty)"
+    if [[ $? -eq 0 && -n "$out" ]]; then
+        BUFFER="$out"
+        CURSOR=${#BUFFER}
+    fi
     zle reset-prompt 2>/dev/null || true
 }
 zle -N __ezshell_widget 2>/dev/null || true
@@ -60,50 +77,92 @@ bindkey '\\ee' __ezshell_widget 2>/dev/null || true
 """
 
 BASH_HOOK = """# ---------------------------------------------------------------------------
-# ezShell Integration for Bash
+# ezShell Integration for Bash  (état par terminal ; insertion dans le prompt)
 # ---------------------------------------------------------------------------
-__ezshell_prompt_command() {
+""" + _STATE_PREAMBLE + """__ezshell_prompt_command() {
     local exit_code=$?
     local last_cmd
     last_cmd=$(HISTTIMEFORMAT= history 1 2>/dev/null | sed -e 's/^[ ]*[0-9]*[ ]*//')
-    if [[ -n "$last_cmd" ]]; then
-        case "$last_cmd" in
-            ezsh*|ezshell*|eszh*|clear|exit|history*) ;;
-            *)
-                mkdir -p "$HOME/.ezshell" 2>/dev/null
-                printf "%s" "$last_cmd" > "$HOME/.ezshell/.last_command"
-                printf "%d" "$exit_code" > "$HOME/.ezshell/.last_exit_code"
-                ;;
-        esac
-    fi
+    [[ -z "$last_cmd" ]] && return
+    # Ne rien refaire si la ligne d'historique n'a pas changé (prompt vide).
+    local hist_id
+    hist_id=$(HISTTIMEFORMAT= history 1 2>/dev/null | awk '{print $1}')
+    [[ "$hist_id" == "$__EZSHELL_LAST_HIST_ID" ]] && return
+    __EZSHELL_LAST_HIST_ID="$hist_id"
+    case "$last_cmd" in
+        "ezsh suggest"*|"ezshell suggest"*|clear|exit|history*) ;;
+        *)
+            printf "%s" "$last_cmd" > "$EZSH_STATE_DIR/$EZSH_SESSION.cmd" 2>/dev/null
+            printf "%d" "$exit_code" > "$EZSH_STATE_DIR/$EZSH_SESSION.code" 2>/dev/null
+            case "$last_cmd" in
+                "ezsh run "*|"ezshell run "*) ;;
+                *) rm -f "$EZSH_STATE_DIR/$EZSH_SESSION.run.json" 2>/dev/null ;;
+            esac
+            ;;
+    esac
 }
 
-if [[ ";$PROMPT_COMMAND;" != *";__ezshell_prompt_command;"* ]]; then
-    PROMPT_COMMAND="__ezshell_prompt_command${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
+if [[ \";$PROMPT_COMMAND;\" != *\";__ezshell_prompt_command;\"* ]]; then
+    PROMPT_COMMAND=\"__ezshell_prompt_command${PROMPT_COMMAND:+;$PROMPT_COMMAND}\"
 fi
 
-# Global shortcut Alt+e to launch ezShell
-bind -x '"\\ee": ezsh' 2>/dev/null || true
+# Alt+E : interface sur /dev/tty ; la commande choisie remplace la ligne (READLINE_LINE), jamais exécutée.
+__ezshell_widget() {
+    local out
+    out="$(command ezsh suggest ${READLINE_LINE:+--ask="$READLINE_LINE"} </dev/tty)"
+    if [[ $? -eq 0 && -n "$out" ]]; then
+        READLINE_LINE="$out"
+        READLINE_POINT=${#READLINE_LINE}
+    fi
+}
+bind -x '"\\ee": __ezshell_widget' 2>/dev/null || true
 # ---------------------------------------------------------------------------
 """
 
 FISH_HOOK = """# ---------------------------------------------------------------------------
 # ezShell Integration for Fish
 # ---------------------------------------------------------------------------
+set -gx EZSH_SESSION $fish_pid
+if test -z "$EZSH_STATE_DIR"
+    if test -n "$XDG_RUNTIME_DIR"
+        set -gx EZSH_STATE_DIR "$XDG_RUNTIME_DIR/ezsh"
+    else
+        set -gx EZSH_STATE_DIR (string join '' (test -n "$TMPDIR"; and echo $TMPDIR; or echo /tmp) "/ezsh-"(id -u))
+    end
+end
+mkdir -p -m 700 "$EZSH_STATE_DIR" 2>/dev/null
+
 function __ezshell_postexec --on-event fish_postexec
     set -l exit_code $status
     set -l last_cmd $argv[1]
     switch $last_cmd
-        case 'ezsh*' 'ezshell*' 'eszh*' 'clear' 'exit' 'history*'
+        case 'ezsh suggest*' 'ezshell suggest*' 'clear' 'exit' 'history*'
             return
+    end
+    printf "%s" "$last_cmd" > "$EZSH_STATE_DIR/$EZSH_SESSION.cmd" 2>/dev/null
+    printf "%d" "$exit_code" > "$EZSH_STATE_DIR/$EZSH_SESSION.code" 2>/dev/null
+    switch $last_cmd
+        case 'ezsh run *' 'ezshell run *'
         case '*'
-            mkdir -p "$HOME/.ezshell" 2>/dev/null
-            printf "%s" "$last_cmd" > "$HOME/.ezshell/.last_command"
-            printf "%d" "$exit_code" > "$HOME/.ezshell/.last_exit_code"
+            rm -f "$EZSH_STATE_DIR/$EZSH_SESSION.run.json" 2>/dev/null
     end
 end
 
-bind \\ee 'ezsh; commandline -f repaint' 2>/dev/null
+function __ezshell_widget
+    set -l buf (commandline)
+    set -l out
+    if test -n "$buf"
+        set out (command ezsh suggest --ask="$buf" </dev/tty)
+    else
+        set out (command ezsh suggest </dev/tty)
+    end
+    if test $status -eq 0; and test -n "$out"
+        commandline -r -- $out
+        commandline -C (string length -- $out)
+    end
+    commandline -f repaint
+end
+bind \\ee __ezshell_widget 2>/dev/null
 # ---------------------------------------------------------------------------
 """
 

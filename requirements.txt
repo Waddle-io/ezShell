@@ -6,3 +6,4 @@ python-dotenv>=1.0.0
 textual>=8.0.0
 customtkinter>=6.0.0
 pillow>=10.0.0
+pydantic>=2.5

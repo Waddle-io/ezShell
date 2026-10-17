@@ -5,3 +5,8 @@ target-version = "py310"
 select = ["E", "F", "W", "I"]
 ignore = []
 
+
+[lint.per-file-ignores]
+# Tables de textes (prompts, libellés FR/EN) : on ne coupe pas les phrases.
+"src/core/provider.py" = ["E501"]
+"src/ui/panel.py" = ["E501"]
