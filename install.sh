@@ -26,7 +26,7 @@ echo " / _ \/_  / \__ \/ __ \/ _ \/ / /  "
 echo "/  __/ / /____/ / / / /  __/ / /   "
 echo "\___/ /___/____/_/ /_/\___/_/_/    "
 echo -e "${NC}"
-echo -e "${BOLD}ezShell Installer — Intelligent Terminal Assistant${NC}"
+echo -e "${BOLD}ezShell Installer - Intelligent Terminal Assistant${NC}"
 echo "=========================================================="
 echo ""
 
