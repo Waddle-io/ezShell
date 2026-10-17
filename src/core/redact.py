@@ -18,38 +18,52 @@ from __future__ import annotations
 import re
 from typing import List, Pattern, Tuple
 
-# Patterns identifying sensitive credentials
+# Patterns identifying sensitive credentials. L'ordre compte : les motifs spécifiques
+# passent avant les motifs génériques (affectations), pour garder un libellé précis.
+_PEM = r"(?:RSA |EC |DSA |OPENSSH |ENCRYPTED |PGP )?PRIVATE KEY(?: BLOCK)?"
+
 SECRET_PATTERNS: List[Tuple[Pattern, str]] = [
-    # Groq API key (e.g. gsk_...)
-    (re.compile(r"\bgsk_[a-zA-Z0-9]{20,}\b"), "[REDACTED_GROQ_KEY]"),
-    # OpenAI API key (e.g. sk-...)
-    (re.compile(r"\bsk-[a-zA-Z0-9]{20,}\b"), "[REDACTED_OPENAI_KEY]"),
-    # GitHub personal access token (ghp_...)
-    (re.compile(r"\bghp_[a-zA-Z0-9]{20,}\b"), "[REDACTED_GITHUB_TOKEN]"),
-    # AWS access key ID
-    (re.compile(r"\bAKIA[0-9A-Z]{16}\b"), "[REDACTED_AWS_KEY]"),
-    # Bearer tokens in headers
-    (re.compile(r"(?i)\bBearer\s+[a-zA-Z0-9_\-\.]{20,}\b"), "Bearer [REDACTED_TOKEN]"),
+    # Clés privées PEM complètes, puis fin de clé tronquée (stderr coupé à 4 Ko)
+    (re.compile(rf"-----BEGIN {_PEM}-----[\s\S]*?(?:-----END {_PEM}-----|$)"), "[REDACTED_PRIVATE_KEY]"),
+    (re.compile(rf"\A[A-Za-z0-9+/=\s]{{40,}}-----END {_PEM}-----"), "[REDACTED_PRIVATE_KEY]"),
     # Identifiants dans une URL de connexion : postgresql://user:motdepasse@hote/db
-    (re.compile(r"\b[a-z][a-z0-9+.-]*://[^\s:@/]+:[^\s@/]+@[^\s'\"]+", re.IGNORECASE), "[REDACTED_URL_CREDENTIALS]"),
-    # JWT (trois segments base64url)
-    (re.compile(r"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b"), "[REDACTED_JWT]"),
-    # GitHub (jetons fins et variantes gho_/ghu_/ghs_/ghr_), Slack, Stripe
-    (re.compile(r"\bgithub_pat_[A-Za-z0-9_]{20,}\b"), "[REDACTED_GITHUB_TOKEN]"),
-    (re.compile(r"\bgh[ousr]_[A-Za-z0-9]{20,}\b"), "[REDACTED_GITHUB_TOKEN]"),
-    (re.compile(r"\bxox[abprs]-[A-Za-z0-9-]{10,}\b"), "[REDACTED_SLACK_TOKEN]"),
-    (re.compile(r"\b(?:sk|rk|pk)_(?:live|test)_[A-Za-z0-9]{16,}\b"), "[REDACTED_STRIPE_KEY]"),
-    # Jetons d'appareil ezShell
-    (re.compile(r"\bez[du]_[A-Za-z0-9_-]{20,}\b"), "[REDACTED_EZSHELL_TOKEN]"),
-    # Generic assignments: password=..., token=..., secret=..., DB_PASSWORD=...
     (
-        re.compile(r"(?i)\b([a-zA-Z0-9_]*(?:password|secret|token|api_?key|passwd))\s*[:=]\s*['\"]?([^\s'\"]{4,})['\"]?"),
-        r"\1=[REDACTED]",
+        re.compile(r"\b([a-z][a-z0-9+.-]*://)[^\s:@/]+:[^\s@/]+@", re.IGNORECASE),
+        r"\1[REDACTED_CREDENTIALS]@",
     ),
-    # PEM Private Key headers
+    # En-têtes d'authentification (Bearer, Basic, Token)
     (
-        re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
-        "[REDACTED_PRIVATE_KEY]",
+        re.compile(r"(?i)\b(authorization\s*[:=]\s*(?:basic|token|digest))\s+\S+"),
+        r"\1 [REDACTED_TOKEN]",
+    ),
+    (re.compile(r"(?i)\bBearer\s+[A-Za-z0-9_\-.~+/=]{16,}"), "Bearer [REDACTED_TOKEN]"),
+    # Fournisseurs connus
+    (re.compile(r"\bgsk_[A-Za-z0-9]{20,}"), "[REDACTED_GROQ_KEY]"),
+    (re.compile(r"\bsk-ant-[A-Za-z0-9_-]{20,}"), "[REDACTED_ANTHROPIC_KEY]"),
+    (re.compile(r"\bsk-(?:proj-|svcacct-|admin-)?[A-Za-z0-9_-]{20,}"), "[REDACTED_OPENAI_KEY]"),
+    (re.compile(r"\b(?:github_pat_[A-Za-z0-9_]{20,}|gh[pousr]_[A-Za-z0-9]{20,})"), "[REDACTED_GITHUB_TOKEN]"),
+    (re.compile(r"\bglpat-[A-Za-z0-9_-]{20,}"), "[REDACTED_GITLAB_TOKEN]"),
+    (re.compile(r"\bxox[abprs]-[A-Za-z0-9-]{10,}"), "[REDACTED_SLACK_TOKEN]"),
+    (re.compile(r"\b(?:sk|rk|pk)_(?:live|test)_[A-Za-z0-9]{16,}"), "[REDACTED_STRIPE_KEY]"),
+    (re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"), "[REDACTED_AWS_KEY]"),
+    (re.compile(r"\bAIza[0-9A-Za-z_-]{35}"), "[REDACTED_GOOGLE_KEY]"),
+    (re.compile(r"\bnpm_[A-Za-z0-9]{36}"), "[REDACTED_NPM_TOKEN]"),
+    (re.compile(r"\bhf_[A-Za-z0-9]{30,}"), "[REDACTED_HF_TOKEN]"),
+    (re.compile(r"\bez[du]_[A-Za-z0-9_-]{20,}"), "[REDACTED_EZSHELL_TOKEN]"),
+    (re.compile(r"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}"), "[REDACTED_JWT]"),
+    # Mots de passe en option de ligne de commande : mysql -pSECRET, --password=x, sshpass -p x, curl -u u:p
+    (re.compile(r"(\b(?:mysql|mysqldump|mariadb)\b[^\n]*?\s-p)(?!\s)\S+"), r"\1[REDACTED]"),
+    (re.compile(r"(?i)(--(?:password|passwd|pass|token|secret|api-key)[= ])(['\"]?)[^\s'\"]+\2"), r"\1[REDACTED]"),
+    (re.compile(r"(\b(?:sshpass|docker\s+login|podman\s+login)\b[^\n]*?\s-p\s+)\S+"), r"\1[REDACTED]"),
+    (re.compile(r"(\bcurl\b[^\n]*?\s(?:-u|--user)\s+[^\s:]+:)\S+"), r"\1[REDACTED]"),
+    # Affectations génériques : password=..., AWS_SECRET_ACCESS_KEY=..., DB_PASS: "a b c"
+    (
+        re.compile(
+            r"(?i)\b([A-Za-z0-9_.-]*(?:password|passwd|passphrase|pwd|secret|token|api_?key"
+            r"|access_?key|private_?key|client_?secret|credentials?|_pass)[A-Za-z0-9_]*)"
+            r"(\s*[:=]\s*)(?:\"[^\"\n]{1,}\"|'[^'\n]{1,}'|[^\s'\",;]{4,})"
+        ),
+        r"\1\2[REDACTED]",
     ),
 ]
 

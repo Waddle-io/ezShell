@@ -61,6 +61,9 @@ class EzShellDesktopApp(ctk.CTk):
     FONT_FAMILY_TITLE = "Inter Display"
     FONT_FAMILY_CODE = "JetBrains Mono"
 
+    DEFAULT_COLUMNS = 45
+    DEFAULT_ROWS = 15
+
     FONT_SIZE_APP_TITLE = 18
     FONT_SIZE_QUERY_CHEVRON = 16
     FONT_SIZE_QUERY_TEXT = 14
@@ -113,8 +116,8 @@ class EzShellDesktopApp(ctk.CTk):
         self.title("ezShell")
         self.configure(fg_color=self.COLOR_BG_WINDOW)
 
-        # Dimensions & screen centering: Sleek compact launcher proportions
-        win_w, win_h = 680, 460
+        # Taille par défaut en cellules de terminal (45 colonnes x 15 lignes), comme un émulateur
+        win_w, win_h = self._cell_size_px(self.DEFAULT_COLUMNS, self.DEFAULT_ROWS)
         try:
             sw = self.winfo_screenwidth()
             sh = self.winfo_screenheight()
@@ -124,7 +127,7 @@ class EzShellDesktopApp(ctk.CTk):
         except Exception:
             self.geometry(f"{win_w}x{win_h}")
 
-        self.minsize(620, 420)
+        self.minsize(win_w, win_h)
 
         # Keyboard shortcuts
         self.bind("<Escape>", lambda e: self.destroy())
@@ -167,6 +170,17 @@ class EzShellDesktopApp(ctk.CTk):
         if initial_query:
             self._query_groq(initial_query)
 
+
+    def _cell_size_px(self, columns: int, rows: int) -> tuple:
+        """Taille en pixels de `columns` x `rows` cellules de la police mono de l'application."""
+        import tkinter.font as tkfont
+
+        try:
+            font = tkfont.Font(root=self, family=self.FONT_FAMILY_CODE, size=self.FONT_SIZE_FIX_COMMAND)
+            cell_w, cell_h = font.measure("0"), font.metrics("linespace")
+        except Exception:
+            cell_w, cell_h = 8, 17
+        return columns * cell_w, rows * cell_h
     def _build_ui(self) -> None:
         """Constructs the application layout."""
         self.main_container = ctk.CTkFrame(self, fg_color="transparent")

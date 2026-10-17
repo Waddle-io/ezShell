@@ -33,3 +33,40 @@ def test_secret_is_masked(raw):
 def test_plain_text_untouched():
     t = "fatal: unable to access 'https://github.com/x/y.git/': Could not resolve host"
     assert redact_secrets(t) == t
+
+
+MORE = [
+    ("sk-proj-abcdefghijklmnopqrstuvwxyz12", "abcdefghijklmnop"),
+    ("sk-ant-api03-abcdefghijklmnopqrstuvwxyz", "abcdefghijklmnop"),
+    ("AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMIK7MDENGbPxRfiCY", "wJalrXUtn"),
+    ('password="my secret phrase"', "secret phrase"),
+    ("Authorization: Basic dXNlcjpwYXNzd29yZA==", "dXNlcjpw"),
+    ("mysql -u root -pHunter22 app", "Hunter22"),
+    ("docker login -u bob -p S3cretPass registry.io", "S3cretPass"),
+    ("curl -u admin:S3cretPass https://x", "S3cretPass"),
+    ("deploy --password=S3cretPass", "S3cretPass"),
+    ("glpat-abcdefghijklmnopqrstu", "abcdefghijklmnop"),
+    ("https://bob:S3cretPass@gitlab.com/x.git", "S3cretPass"),
+]
+
+
+@pytest.mark.parametrize("raw,secret", MORE)
+def test_more_secrets_are_masked(raw, secret):
+    out = redact_secrets(f"err: {raw} end")
+    assert secret not in out and "REDACTED" in out
+
+
+def test_url_credentials_keep_host_for_diagnosis():
+    out = redact_secrets("fatal: https://bob:S3cretPass@gitlab.com/x.git not found")
+    assert "gitlab.com/x.git" in out and "S3cretPass" not in out
+
+
+def test_truncated_private_key_is_masked():
+    body = "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7" * 3
+    assert "MIIEvQ" not in redact_secrets(body + "\n-----END PRIVATE KEY-----")
+    assert "MIIEvQ" not in redact_secrets("-----BEGIN RSA PRIVATE KEY-----\n" + body)
+
+
+def test_exit_codes_and_paths_untouched():
+    t = "ls: cannot access '/tmp/token_dir': No such file (exit 2) -p 8080"
+    assert redact_secrets(t) == t
