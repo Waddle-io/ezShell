@@ -30,6 +30,17 @@ SECRET_PATTERNS: List[Tuple[Pattern, str]] = [
     (re.compile(r"\bAKIA[0-9A-Z]{16}\b"), "[REDACTED_AWS_KEY]"),
     # Bearer tokens in headers
     (re.compile(r"(?i)\bBearer\s+[a-zA-Z0-9_\-\.]{20,}\b"), "Bearer [REDACTED_TOKEN]"),
+    # Identifiants dans une URL de connexion : postgresql://user:motdepasse@hote/db
+    (re.compile(r"\b[a-z][a-z0-9+.-]*://[^\s:@/]+:[^\s@/]+@[^\s'\"]+", re.IGNORECASE), "[REDACTED_URL_CREDENTIALS]"),
+    # JWT (trois segments base64url)
+    (re.compile(r"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b"), "[REDACTED_JWT]"),
+    # GitHub (jetons fins et variantes gho_/ghu_/ghs_/ghr_), Slack, Stripe
+    (re.compile(r"\bgithub_pat_[A-Za-z0-9_]{20,}\b"), "[REDACTED_GITHUB_TOKEN]"),
+    (re.compile(r"\bgh[ousr]_[A-Za-z0-9]{20,}\b"), "[REDACTED_GITHUB_TOKEN]"),
+    (re.compile(r"\bxox[abprs]-[A-Za-z0-9-]{10,}\b"), "[REDACTED_SLACK_TOKEN]"),
+    (re.compile(r"\b(?:sk|rk|pk)_(?:live|test)_[A-Za-z0-9]{16,}\b"), "[REDACTED_STRIPE_KEY]"),
+    # Jetons d'appareil ezShell
+    (re.compile(r"\bez[du]_[A-Za-z0-9_-]{20,}\b"), "[REDACTED_EZSHELL_TOKEN]"),
     # Generic assignments: password=..., token=..., secret=..., DB_PASSWORD=...
     (
         re.compile(r"(?i)\b([a-zA-Z0-9_]*(?:password|secret|token|api_?key|passwd))\s*[:=]\s*['\"]?([^\s'\"]{4,})['\"]?"),

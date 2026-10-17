@@ -210,6 +210,12 @@ def get_provider(config=None) -> LLMProvider:
     mock = os.environ.get("EZSH_MOCK_LLM")
     if mock and mock != "0":
         return MockProvider(mock)
+    # Proxy ezShell (M2) : le CLI n'a besoin d'aucune clé. EZSH_DIRECT=1 force l'appel direct à Groq.
+    if os.environ.get("EZSH_DIRECT") != "1":
+        from src.core.proxy_client import ProxyProvider, api_url
+
+        if api_url():
+            return ProxyProvider()
     if config is None:
         from src.core.config import EzShellConfig
 
