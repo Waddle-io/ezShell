@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -83,7 +84,7 @@ def run_and_capture(argv: List[str]) -> int:
         # Cmdlet ou alias PowerShell (Get-ChildItem, dir…) : on le lance via PowerShell.
         exe = shutil.which("pwsh") or shutil.which("powershell")
         if exe:
-            launch = [exe, "-NoLogo", "-NoProfile", "-Command", subprocess.list2cmdline(argv)]
+            launch = [exe, "-NoLogo", "-NoProfile", "-Command", _powershell_script(argv)]
     try:
         proc = subprocess.Popen(launch, stderr=subprocess.PIPE)
     except FileNotFoundError:
@@ -125,6 +126,25 @@ def run_and_capture(argv: List[str]) -> int:
     t.join(timeout=2)
     _store(argv, code, bytes(tail))
     return code
+
+
+def _ps_quote(arg: str) -> str:
+    """Argument PowerShell : nu s'il est sûr (garde -Recurse comme paramètre), sinon '…'."""
+    if re.fullmatch(r"[\w\-.:/\\=+,@%]+", arg):
+        return arg
+    return "'" + arg.replace("'", "''") + "'"
+
+
+def _powershell_script(argv: List[str]) -> str:
+    """Script PowerShell qui lance `argv` et reproduit les codes de sortie d'un shell :
+    127 si la commande n'existe pas, le code du programme natif, sinon 1 en cas d'échec."""
+    name = argv[0].replace("'", "''")
+    return (
+        f"if (-not (Get-Command -Name '{name}' -ErrorAction SilentlyContinue)) {{ "
+        f"[Console]::Error.WriteLine('ezsh: commande introuvable : {name}'); exit 127 }}; "
+        f"& {' '.join(_ps_quote(a) for a in argv)}; "
+        "if (-not $?) { if ($LASTEXITCODE) { exit $LASTEXITCODE } else { exit 1 } }"
+    )
 
 
 def _store(argv: List[str], code: int, tail: bytes) -> None:

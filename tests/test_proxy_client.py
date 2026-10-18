@@ -1,4 +1,5 @@
 import json
+import os
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
@@ -83,6 +84,7 @@ def test_registers_once_then_reuses_token(stub, provider):
     assert stub.requests[1][1] == "Bearer ezd_" + "t" * 43
 
 
+@pytest.mark.skipif(os.name == "nt", reason="droits POSIX : sous Windows, ACL du profil")
 def test_token_file_is_private(provider):
     provider.ask(req())
     mode = provider.store.path.stat().st_mode & 0o777

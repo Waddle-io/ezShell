@@ -1,4 +1,6 @@
 import json
+import os
+import shutil
 import sys
 
 import pytest
@@ -37,6 +39,7 @@ def test_unknown_command_gives_127():
     assert capture.read_last_run().exit_code == 127
 
 
+@pytest.mark.skipif(os.name == "nt", reason="droits POSIX : sous Windows, ACL de %LOCALAPPDATA%")
 def test_state_dir_is_private(state):
     capture.state_dir()
     assert oct(state.stat().st_mode & 0o777) == "0o700"
@@ -134,3 +137,18 @@ def test_run_reports_signal_as_128_plus_n(tmp_path, monkeypatch):
         [sys.executable, "-c", "import os,signal; os.kill(os.getpid(), signal.SIGTERM)"]
     )
     assert code == 128 + 15
+
+
+@pytest.mark.skipif(not shutil.which("pwsh"), reason="pwsh absent")
+@pytest.mark.parametrize(
+    "argv,expected",
+    [
+        (["definitely-not-a-command-xyz"], 127),
+        (["Get-Item", "/definitely/missing"], 1),
+        (["Write-Output", "it's ok"], 0),
+    ],
+)
+def test_windows_powershell_fallback_exit_codes(state, monkeypatch, argv, expected):
+    # Simule Windows (pwsh existe aussi sous Linux) : les noms inconnus passent par PowerShell.
+    monkeypatch.setattr(capture, "IS_WINDOWS", True)
+    assert capture.run_and_capture(argv) == expected
