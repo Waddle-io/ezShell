@@ -241,7 +241,7 @@ export default function Home() {
           <div className="footer-credits">
             <span>Made by <a href="https://github.com/Waddle-io" target="_blank" rel="noreferrer">Waddle Team</a></span>
             <span>
-              © {new Date().getFullYear()} Salomon ·{" "}
+              © {new Date().getFullYear()} Waddle Team ·{" "}
               <a href={`${GITHUB_URL}/blob/main/LICENSE`} target="_blank" rel="noreferrer">Licence MIT</a>
             </span>
           </div>
