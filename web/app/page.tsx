@@ -238,7 +238,13 @@ export default function Home() {
 
       <footer className="site-footer">
         <div className="shell footer-inner">
-          <span>ezShell · ton terminal, en clair.</span>
+          <div className="footer-credits">
+            <span>Made by <a href="https://github.com/Waddle-io" target="_blank" rel="noreferrer">Waddle Team</a></span>
+            <span>
+              © {new Date().getFullYear()} Salomon ·{" "}
+              <a href={`${GITHUB_URL}/blob/main/LICENSE`} target="_blank" rel="noreferrer">Licence MIT</a>
+            </span>
+          </div>
           <div>
             <a href={GITHUB_URL} target="_blank" rel="noreferrer">GitHub</a>
             <a href={`${GITHUB_URL}/issues`} target="_blank" rel="noreferrer">Signaler un problème</a>
