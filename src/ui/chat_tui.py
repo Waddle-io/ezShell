@@ -8,7 +8,7 @@ from typing import Optional
 from textual import events, work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Container, Horizontal, Vertical, VerticalScroll
+from textual.containers import Container, Horizontal, VerticalScroll
 from textual.widgets import (
     Button,
     Input,
@@ -18,12 +18,12 @@ from textual.widgets import (
 )
 
 from src.core import chat_bridge
-from src.core.assistant import ChatMessageResult, extract_bash_commands
+from src.core.assistant import ChatMessageResult
 from src.core.config import EzShellConfig
 from src.core.context import SystemContext
 from src.core.provider import GroqProvider, get_provider
 from src.core.pty_shell import PTYExecutor
-from src.core.safety import RiskLevel, SafetyGuard, SafetyReport
+from src.core.safety import RiskLevel, SafetyReport
 
 CHAT_CSS = """
 Screen {
@@ -290,8 +290,7 @@ class CommandBox(Static):
 
     def compose(self) -> ComposeResult:
         is_dangerous = (
-            self.safety_report is not None
-            and self.safety_report.risk_level == RiskLevel.DANGEROUS
+            self.safety_report is not None and self.safety_report.risk_level == RiskLevel.DANGEROUS
         )
         box_class = "cmd-container-danger" if is_dangerous else "cmd-container"
         box_title = (
@@ -426,7 +425,7 @@ class EzShellChatApp(App):
             cwd = self.context.current_directory
             home = str(Path.home())
             if cwd.startswith(home):
-                cwd = "~" + cwd[len(home):]
+                cwd = "~" + cwd[len(home) :]
             branch_info = f" • ⎇ {self.context.git_branch}" if self.context.git_branch else ""
             yield Static(
                 f"cwd: {cwd}{branch_info} • shell: {self.context.shell_name}",
@@ -459,10 +458,10 @@ class EzShellChatApp(App):
                         )
                         yield Static(
                             "Examples:\n"
-                            " › \"How do I find all processes using port 8000?\"\n"
-                            " › \"Show disk usage for current folder in human-readable format\"\n"
-                            " › \"Revert last commit but keep modified files\"\n"
-                            " › \"Clean up unused docker containers and dangling images\"",
+                            ' › "How do I find all processes using port 8000?"\n'
+                            ' › "Show disk usage for current folder in human-readable format"\n'
+                            ' › "Revert last commit but keep modified files"\n'
+                            ' › "Clean up unused docker containers and dangling images"',
                             classes="welcome-examples",
                         )
 
@@ -495,7 +494,9 @@ class EzShellChatApp(App):
         scroll.remove_children()
 
         scroll.mount(
-            Static("Conversation history reset. You can ask a new question:", classes="welcome-desc")
+            Static(
+                "Conversation history reset. You can ask a new question:", classes="welcome-desc"
+            )
         )
 
     def action_run_latest_command(self) -> None:

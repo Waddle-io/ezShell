@@ -6,14 +6,13 @@ import select
 import subprocess
 import sys
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional
 
 try:
-    import pty
-    import termios
-    import tty
-    import struct
     import fcntl
+    import pty
+    import struct
+    import termios
     HAS_PTY = True
 except ImportError:
     HAS_PTY = False
@@ -224,9 +223,6 @@ class PTYExecutor:
             cwd=cwd,
             text=True,
         )
-
-        stdout_chunks = []
-        stderr_chunks = []
 
         # Read output
         stdout_str, stderr_str = proc.communicate()

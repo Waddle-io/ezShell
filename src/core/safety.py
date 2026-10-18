@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """
 ezShell Command Safety Analysis
 =================================
@@ -30,6 +28,8 @@ schémas catastrophiques les plus courants (suppression récursive de la
 racine, bombes fork, écrasement de disque brut) et avertit des opérations
 sensibles (exécution de scripts distants, réinitialisations git dures).
 """
+
+from __future__ import annotations
 
 import re
 from dataclasses import dataclass

@@ -8,11 +8,11 @@ const INSTALL_COMMAND = "pipx install git+https://github.com/Waddle-io/ezShell.g
 const GITHUB_URL = "https://github.com/Waddle-io/ezShell";
 
 const SITE_URL = "https://ezshell.vercel.app";
-const TITLE = "ezShell, le terminal qui t'explique ses erreurs";
+const TITLE = "ezShell terminal, autrement";
 const DESCRIPTION =
-  "Une commande plante ? Alt+E : ezShell lit l'erreur, explique ce qui s'est passé et glisse une correction dans ton prompt. Tu relis, tu valides. Bash, zsh, fish.";
+  "Une commande plante ? Alt+E : ezShell lit l'erreur, explique ce qui s'est passé et glisse une correction dans ton prompt.";
 const SHARE_DESCRIPTION =
-  "Après une erreur, Alt+E : ezShell explique ce qui s'est passé et propose une commande. Elle arrive dans ton prompt, rien ne s'exécute sans toi.";
+  "Après une erreur, Alt+E : ezShell explique ce qui s'est passé et glisse une correction dans ton prompt. ";
 
 
   export const metadata: Metadata = {
@@ -27,12 +27,12 @@ const SHARE_DESCRIPTION =
     url: "/",
     siteName: "ezShell",
     locale: "fr_FR",
-    title: "ezShell : ton terminal t'explique ses erreurs",
+    title: "ezShell terminal, autrement",
     description: SHARE_DESCRIPTION,
   },
   twitter: {
     card: "summary_large_image",
-    title: "ezShell : ton terminal t'explique ses erreurs",
+    title: "ezShell terminal, autrement",
     description: SHARE_DESCRIPTION,
   },
 };
@@ -202,7 +202,7 @@ export default function Home() {
           <div className="section-intro">
             <p className="eyebrow">installation</p>
             <h2 id="install-title">Prêt en deux commandes.</h2>
-            <p className="section-lede">Python 3.10 ou plus récent. <a href="https://pipx.pypa.io/stable/installation/" target="_blank" rel="noreferrer">pipx</a> l'isole du reste de ton système.</p>
+            <p className="section-lede">Python 3.10 ou plus récent. <a href="https://pipx.pypa.io/stable/" target="_blank" rel="noreferrer">pipx</a> l'isole du reste de ton système.</p>
           </div>
           <div className="install-steps">
             <div className="install-step">

@@ -13,6 +13,7 @@ def _version() -> str:
     except Exception:
         return "0.1.0"
 
+
 def build_arg_parser() -> argparse.ArgumentParser:
     from src.core.config import DEFAULT_MODEL
 
@@ -23,7 +24,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--check-key",
         action="store_true",
-        help="Check whether the configured Groq API key is valid and can connect.",
+        help="Check that the ezShell service is reachable (or your Groq key with EZSH_DIRECT=1).",
     )
     parser.add_argument(
         "--set-key",
@@ -103,7 +104,7 @@ def _fast_dispatch(argv: list) -> "int | None":
         ask, free, it = None, [], iter(argv[1:])
         for a in it:
             if a.startswith("--ask="):
-                ask = a[len("--ask="):]
+                ask = a[len("--ask=") :]
             elif a == "--ask":
                 ask = next(it, None)
             else:
@@ -136,6 +137,7 @@ def main() -> int:
     # Subcommand: init (e.g. `eval "$(ezsh init zsh)"` or `ezsh init --install`)
     if len(sys.argv) > 1 and sys.argv[1] == "init":
         from src.core.shell_hook import detect_current_shell, get_hook_script, install_hook
+
         remaining = sys.argv[2:]
         if "--install" in remaining or "-i" in remaining:
             target_shells = [arg for arg in remaining if not arg.startswith("-")]
@@ -160,6 +162,7 @@ def main() -> int:
     # Flag: --install-hook
     if args.install_hook:
         from src.core.shell_hook import install_hook
+
         ok, msg, rc_path = install_hook()
         if ok:
             render_success(msg)
@@ -267,6 +270,7 @@ def main() -> int:
             os.environ["DISPLAY"] = ":0"
         try:
             import warnings
+
             warnings.filterwarnings("ignore", message=".*Given image is not CTkImage.*")
 
             from src.ui.gui_window import EzShellDesktopApp

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """
 ezShell LLM Client Abstraction
 ================================
@@ -18,7 +16,8 @@ et la fabrique ``create_client()`` qui instancie le bon client en fonction
 de la configuration active.
 """
 
-import os
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Generator, Protocol, runtime_checkable
 
 if TYPE_CHECKING:

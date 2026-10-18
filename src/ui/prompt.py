@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from typing import Optional
 
@@ -18,7 +17,6 @@ from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.styles import Style
 
 from src.core.context import SystemContext
-
 
 COMMON_COMMANDS = [
     "git",

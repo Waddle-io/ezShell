@@ -1,4 +1,5 @@
 from pathlib import Path
+
 from src.core.config import DEFAULT_MODEL, EzShellConfig
 
 

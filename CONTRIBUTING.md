@@ -15,19 +15,16 @@ cd ezShell
 python3 -m venv .venv
 source .venv/bin/activate
 
-# 3. Installer les dépendances
-pip install -r requirements.txt
-pip install -e .
+# 3. Installer le projet et les outils de développement
+pip install -e . -r requirements-dev.txt
 
-# 4. Configurer votre clé Groq (gratuite sur https://console.groq.com)
-cp .env.example .env.local
-# Éditer .env.local pour ajouter GROQ_API_KEY=gsk_...
-
-# 5. Vérifier la connectivité
+# 4. Aucune clé n'est nécessaire : le CLI passe par le service hébergé.
+#    Pour travailler hors ligne : export EZSH_MOCK_LLM=1
 ezsh --check-key
 
-# 6. Lancer les 30 tests unitaires
-pytest tests/ -v
+# 5. Lancer les tests et le lint
+pytest
+ruff check src tests
 ```
 
 ---
@@ -59,7 +56,7 @@ Le cœur applicatif et l'expérience utilisateur ont été finalisés et testés
    - Support bilingue intégral (Français / Anglais) avec auto-détection de la locale système.
 
 6. **Tests Automatisés (`tests/`)** :
-   - 30 tests unitaires passants couvrant la sécurité, le shell PTY, les prompts, les hooks, la configuration et la détection d'historique.
+   - Des tests unitaires couvrant la sécurité, le shell PTY, les prompts, les hooks, la configuration et la détection d'historique.
 
 ---
 
@@ -112,9 +109,9 @@ ezShell/
 │       ├── chat_tui.py   # Modal TUI Textual (pour SSH)
 │       ├── logo.py       # Bannière de bienvenue
 │       └── render.py     # Moteur de rendu Rich
-├── tests/                # 30 tests unitaires
+├── tests/                # Tests unitaires et e2e (pytest)
 ├── assets/               # Logo et icônes
-├── .env.example          # Gabarit de configuration
+├── web/                  # Service hébergé (Next.js + Postgres)
 └── README.md             # Documentation publique
 ```
 

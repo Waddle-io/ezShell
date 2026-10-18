@@ -1,0 +1,1 @@
+ezShell, l'assistant de terminal : une erreur « vite: command not found » expliquée, avec la correction npm install -D vite.

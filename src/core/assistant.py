@@ -46,7 +46,7 @@ from src.core.prompts import (
     build_chat_system_prompt,
     build_error_analysis_prompt,
 )
-from src.core.safety import RiskLevel, SafetyGuard, SafetyReport
+from src.core.safety import SafetyGuard, SafetyReport
 
 __all__ = [
     "DiagnosticResult",

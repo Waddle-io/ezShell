@@ -59,7 +59,7 @@ echo -e "${GREEN}[✓] Git detected.${NC}"
 BIN_DIR="${EZSHELL_BIN_DIR:-$HOME/.local/bin}"
 
 # If running directly inside a cloned ezShell directory, install from here
-if [ -f "$PWD/setup.py" ] && [ -d "$PWD/src" ] && [ -f "$PWD/src/main.py" ]; then
+if [ -f "$PWD/pyproject.toml" ] && grep -q '^name = "ezshell"' "$PWD/pyproject.toml" && [ -f "$PWD/src/main.py" ]; then
     INSTALL_DIR="$PWD"
     echo -e "${BLUE}[i] Installing from local repository: $INSTALL_DIR${NC}"
 else
@@ -94,7 +94,6 @@ mkdir -p "$BIN_DIR"
 
 ln -sf "$INSTALL_DIR/.venv/bin/ezsh" "$BIN_DIR/ezsh"
 ln -sf "$INSTALL_DIR/.venv/bin/ezshell" "$BIN_DIR/ezshell"
-ln -sf "$INSTALL_DIR/.venv/bin/eszh" "$BIN_DIR/eszh"
 
 # 6. Check if ~/.local/bin is in $PATH
 if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
@@ -134,9 +133,9 @@ echo -e "${BOLD}Next steps:${NC}"
 echo "  1. Reload your shell:"
 echo -e "     ${BLUE}source ~/.bashrc${NC}  (or ${BLUE}source ~/.zshrc${NC})"
 echo ""
-echo "  2. Configure your free Groq API key (from https://console.groq.com):"
-echo -e "     ${BLUE}ezsh --set-key <your-api-key>${NC}"
+echo -e "  2. Run a command that fails, then press ${BOLD}Alt+E${NC}."
+echo "     No API key needed: ezShell uses its hosted service (https://ezshell.vercel.app)."
 echo ""
-echo "  3. Launch ezShell:"
-echo -e "     ${BLUE}ezsh${NC}       (or press ${BOLD}Alt+E${NC} from anywhere in your shell)"
+echo "  3. Or open the desktop assistant:"
+echo -e "     ${BLUE}ezsh${NC}"
 echo ""

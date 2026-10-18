@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 import re
 import threading
-from typing import List, Optional
 import warnings
+from pathlib import Path
+from typing import Optional
 
 # Suppress spurious CustomTkinter HighDPI warning when using native tk.PhotoImage
 warnings.filterwarnings("ignore", message=".*Given image is not CTkImage.*")
@@ -13,13 +13,13 @@ warnings.filterwarnings("ignore", message=".*Given image is not CTkImage.*")
 import customtkinter as ctk
 from PIL import Image, ImageTk
 
+from src.core import chat_bridge
 from src.core.assistant import ChatMessageResult
 from src.core.config import EzShellConfig
 from src.core.context import SystemContext, get_last_exit_code, get_last_shell_command
-from src.core import chat_bridge
 from src.core.provider import get_provider
 from src.core.pty_shell import PTYExecutor
-from src.core.safety import RiskLevel, SafetyGuard, SafetyReport
+from src.core.safety import RiskLevel
 from src.i18n import t
 
 

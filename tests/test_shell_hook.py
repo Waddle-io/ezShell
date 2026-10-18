@@ -1,5 +1,4 @@
-from pathlib import Path
-from src.core.shell_hook import detect_current_shell, get_hook_script, install_hook
+from src.core.shell_hook import get_hook_script, install_hook
 
 
 def test_get_hook_script_zsh():

@@ -39,6 +39,7 @@ class SystemContext:
         if os_name == "Linux":
             try:
                 import distro  # type: ignore
+
                 distro_name = distro.name(pretty=True)
                 if distro_name:
                     os_name = distro_name
@@ -110,8 +111,7 @@ class SystemContext:
 
         if self.recent_history:
             recent_str = " -> ".join(
-                f"`{entry.command}` (exit: {entry.exit_code})"
-                for entry in self.recent_history[-3:]
+                f"`{entry.command}` (exit: {entry.exit_code})" for entry in self.recent_history[-3:]
             )
             lines.append(f"Recent Commands: {recent_str}")
 
@@ -155,7 +155,12 @@ def get_last_shell_command() -> Optional[str]:
 
     # 3. Standard shell history paths
     home = Path.home()
-    for p in [home / ".zsh_history", home / ".bash_history", home / ".histfile", home / ".zhistory"]:
+    for p in [
+        home / ".zsh_history",
+        home / ".bash_history",
+        home / ".histfile",
+        home / ".zhistory",
+    ]:
         if p.is_file():
             candidates.append(p)
 
@@ -221,5 +226,3 @@ def get_last_exit_code() -> Optional[int]:
         except Exception:
             pass
     return None
-
-

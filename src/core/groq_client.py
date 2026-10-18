@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """
 ezShell Groq API Client
 ========================
@@ -45,17 +43,20 @@ d'erreurs propre à l'application, de sorte que les appelants n'aient
 jamais à importer directement depuis ``groq``.
 """
 
+from __future__ import annotations
+
 import os
 from typing import Generator, Optional
 
-from .config import DEFAULT_MODEL
 import groq
 from groq import Groq
 
+from .config import DEFAULT_MODEL
 
 # ---------------------------------------------------------------------------
 # Application-level exception hierarchy
 # ---------------------------------------------------------------------------
+
 
 class GroqClientError(Exception):
     """Base exception for all errors raised by :class:`GroqClient`.
@@ -98,6 +99,7 @@ class GroqConnectionError(GroqClientError):
 # ---------------------------------------------------------------------------
 # Main client class
 # ---------------------------------------------------------------------------
+
 
 class GroqClient:
     """Thin, opinionated wrapper around the official Groq SDK for ezShell.
@@ -246,7 +248,9 @@ class GroqClient:
                         return resp.choices[0].message.content or ""
                     except Exception:
                         continue
-            raise GroqClientError(f"Groq model '{model}' not found on account and fallbacks failed.")
+            raise GroqClientError(
+                f"Groq model '{model}' not found on account and fallbacks failed."
+            )
         except groq.APIConnectionError as e:
             raise GroqConnectionError(f"Network error connecting to Groq API: {e}") from e
         except groq.APIStatusError as e:

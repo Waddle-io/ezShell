@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import sys
 from pathlib import Path
 from typing import List, Optional
 
@@ -11,7 +10,6 @@ from src.core.assistant import ShellAssistant
 from src.core.config import EzShellConfig
 from src.core.context import CommandHistoryEntry, SystemContext
 from src.core.pty_shell import PTYExecutor
-from src.core.safety import RiskLevel, SafetyGuard
 from src.ui.prompt import create_prompt_session, get_prompt_text
 from src.ui.render import (
     console,
@@ -23,7 +21,6 @@ from src.ui.render import (
     render_error_card,
     render_info,
     render_success,
-    render_warning,
 )
 
 

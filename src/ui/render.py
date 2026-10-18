@@ -3,7 +3,7 @@ from __future__ import annotations
 import sys
 from typing import Optional
 
-from rich.box import HEAVY_EDGE, ROUNDED
+from rich.box import ROUNDED
 from rich.console import Console, Group
 from rich.markdown import Markdown
 from rich.panel import Panel
@@ -15,7 +15,6 @@ from rich.theme import Theme
 
 from src.core.assistant import AskResult, DiagnosticResult
 from src.core.safety import RiskLevel, SafetyReport
-
 
 # Vivid neon palette — high-contrast, no muted tones
 custom_theme = Theme(

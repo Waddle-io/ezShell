@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """
 ezShell Configuration Management
 ==================================
@@ -32,13 +30,15 @@ plus spécifiques remplacent toujours les sources plus générales.
 4. Valeurs par défaut définies dans ce module
 """
 
+from __future__ import annotations
+
 import json
 import os
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Optional
-from dotenv import load_dotenv
 
+from dotenv import load_dotenv
 
 # ---------------------------------------------------------------------------
 # Module-level constants

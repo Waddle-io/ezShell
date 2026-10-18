@@ -1,5 +1,6 @@
 import json
 from unittest.mock import MagicMock
+
 from src.core.assistant import ShellAssistant, extract_json_payload
 from src.core.config import EzShellConfig
 from src.core.context import SystemContext
