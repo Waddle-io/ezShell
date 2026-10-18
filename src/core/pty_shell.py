@@ -213,16 +213,40 @@ class PTYExecutor:
         cwd: str,
         forward_output: bool,
     ) -> CommandResult:
-        """Standard subprocess execution fallback when PTY is unavailable."""
-        proc = subprocess.Popen(
-            command,
-            shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            env=env,
-            cwd=cwd,
-            text=True,
-        )
+        """Exécution sans PTY (Windows notamment).
+
+        Sous Windows, les suggestions sont en syntaxe PowerShell : on les lance donc dans
+        PowerShell, pas dans cmd.exe. stdin est fermé pour qu'une commande interactive
+        échoue au lieu de bloquer l'interface.
+        """
+        if os.name == "nt":
+            import shutil
+
+            exe = shutil.which("pwsh") or shutil.which("powershell") or "powershell"
+            args = [exe, "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", command]
+            proc = subprocess.Popen(
+                args,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env=env,
+                cwd=cwd,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+            )
+        else:
+            proc = subprocess.Popen(
+                command,
+                shell=True,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env=env,
+                cwd=cwd,
+                text=True,
+                errors="replace",
+            )
 
         # Read output
         stdout_str, stderr_str = proc.communicate()

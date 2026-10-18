@@ -1,6 +1,24 @@
 # ezShell v2 : support de Windows
 
-> Statut : proposition · Cible : PowerShell 5.1 et 7 (avec PSReadLine)
+> Statut : **étapes 1 et 2 implémentées** (bêta, à valider sur un Windows réel) · Étape 3 : à faire
+> Cible : PowerShell 5.1 et 7 (avec PSReadLine)
+
+## État d'avancement
+
+| Élément | État | Vérification |
+|---|---|---|
+| Hook PowerShell (`ezsh init powershell`) | fait | testé dans pwsh 7.6 (Linux) via tmux : capture des codes natifs, cmdlets en échec, `$LASTEXITCODE` préservé |
+| `Alt+E` (PSReadLine) | fait | testé dans pwsh 7.6 : panneau, insertion sans exécution, question en langage naturel |
+| `ezsh init --install` → `$PROFILE` | fait | tests unitaires ; profils 5.1 et 7 demandés à PowerShell lui-même |
+| Panneau : console Windows (`CONIN$`/`CONOUT$`, `msvcrt`) | fait | **non testé sur Windows réel** (CI Windows) |
+| Dossier d'état `%LOCALAPPDATA%\ezsh`, presse-papiers `clip.exe` | fait | tests unitaires |
+| Règles de risque PowerShell (12 règles) | fait | `tests/test_risk_powershell.py` |
+| Exécution GUI sans PTY (via PowerShell), `--wrapper` désactivé, console UTF-8 | fait | tests unitaires |
+| `ezsh run` : cmdlets via PowerShell, Ctrl+C, codes de signal | fait | tests unitaires |
+| CI `windows-latest` + test de fumée PowerShell | fait | à confirmer au premier push |
+| Docs (README, page web, CONTRIBUTING) | fait | — |
+| Étape 3 (cmd.exe/Clink, install.ps1, winget) | à faire | — |
+
 
 ## Contexte
 

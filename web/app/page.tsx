@@ -55,8 +55,8 @@ function ArrowIcon() {
 
 const FACTS = [
   ["Sans clé API", "essai gratuit, sans compte"],
-  ["bash · zsh · fish", "dans ton terminal habituel"],
-  ["Linux · macOS", "Windows pas encore"],
+  ["bash · zsh · fish · PowerShell", "dans ton terminal habituel"],
+  ["Linux · macOS · Windows", "Windows en bêta (PowerShell)"],
   ["Rien n'est exécuté", "la commande arrive dans ton prompt"],
 ] as const;
 

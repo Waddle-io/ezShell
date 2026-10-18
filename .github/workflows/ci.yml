@@ -8,12 +8,17 @@ on:
 
 jobs:
   test:
-    name: Test (Python ${{ matrix.python-version }})
-    runs-on: ubuntu-latest
+    name: Test (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest]
         python-version: ["3.10", "3.12", "3.13"]
+        include:
+          # Windows : PowerShell, console, règles de risque PowerShell
+          - os: windows-latest
+            python-version: "3.12"
 
     steps:
       - name: Checkout repository
@@ -26,6 +31,7 @@ jobs:
           cache: "pip"
 
       - name: Install system dependencies
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-tk
@@ -39,6 +45,16 @@ jobs:
         run: ruff check src tests
 
       - name: Run test suite
-        run: |
-          pytest tests/ -v
+        run: pytest tests/ -v
 
+      - name: Smoke test (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          ezsh --version
+          Invoke-Expression (& ezsh init powershell | Out-String)
+          if (-not $env:EZSH_SESSION) { throw "hook not loaded" }
+          $env:EZSH_MOCK_LLM = "1"
+          ezsh run -- python -c "import sys; sys.exit(3)"
+          if ($LASTEXITCODE -ne 3) { throw "ezsh run exit code: $LASTEXITCODE" }
+          ezsh --explain "npm: command not found"

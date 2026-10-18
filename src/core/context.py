@@ -82,8 +82,9 @@ class SystemContext:
             except Exception:
                 pass
 
-        shell_path = os.environ.get("SHELL", "/bin/bash")
-        shell_name = Path(shell_path).name
+        from src.core.suggest import detect_shell
+
+        shell_name = detect_shell()
 
         return cls(
             os_name=os_name,

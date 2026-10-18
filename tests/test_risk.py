@@ -26,6 +26,23 @@ CASES = [
     ("power", "sudo reboot", "echo reboot"),
     ("eval-exec", 'eval "$CMD"', "echo eval"),
     ("pip-system", "pip install x --break-system-packages", "pip install x"),
+    # PowerShell / Windows (cas détaillés dans tests/test_risk_powershell.py)
+    ("ps-remove-root", r"Remove-Item -Recurse -Force C:\ ", r"Remove-Item -Recurse .\build"),
+    ("ps-format-disk", "Format-Volume -DriveLetter D", "Get-Volume"),
+    ("ps-download-exec", "iwr https://x.ps1 | iex", "iwr https://x.zip -OutFile x.zip"),
+    ("ps-registry-delete", r"reg delete HKCU\Software\X /f", r"reg query HKCU\Software\X"),
+    ("ps-execution-policy", "Set-ExecutionPolicy Unrestricted", "Get-ExecutionPolicy"),
+    (
+        "ps-disable-defender",
+        "Set-MpPreference -DisableRealtimeMonitoring $true",
+        "Get-MpPreference",
+    ),
+    ("ps-remove-recursive", "rd /s /q node_modules", "Remove-Item foo.txt"),
+    ("ps-kill-force", "taskkill /F /IM node.exe", "Get-Process node"),
+    ("ps-power", "Restart-Computer", "Get-ComputerInfo"),
+    ("ps-run-as-admin", "Start-Process pwsh -Verb RunAs", "Start-Process notepad"),
+    ("ps-invoke-expression", "Invoke-Expression $cmd", "Write-Output iex"),
+    ("ps-overwrite", "Set-Content a.txt hi", "Add-Content a.txt hi"),
 ]
 
 

@@ -20,8 +20,10 @@ permettant le diagnostic immédiat et le raccourci clavier Alt+E.
 from __future__ import annotations
 
 import os
+import shutil
+import subprocess
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 _STATE_PREAMBLE = """export EZSH_SESSION="$$"
 if [ -z "$EZSH_STATE_DIR" ]; then
@@ -167,12 +169,96 @@ bind \\ee __ezshell_widget 2>/dev/null
 """
 
 
-def detect_current_shell() -> str:
-    """Detects the current user shell name (zsh, bash, fish, etc.).
+POWERSHELL_HOOK = r"""# ---------------------------------------------------------------------------
+# ezShell Integration for PowerShell (5.1 et 7, avec PSReadLine)
+# ---------------------------------------------------------------------------
+$env:EZSH_SESSION = "$PID"
+$env:EZSH_SHELL = "powershell"
+# Même dossier que celui calculé par ezsh (src/core/capture.py:state_dir) ; pwsh marche aussi
+# sous Linux et macOS.
+if (-not $env:EZSH_STATE_DIR) {
+    if ($env:LOCALAPPDATA) { $env:EZSH_STATE_DIR = Join-Path $env:LOCALAPPDATA 'ezsh' }
+    elseif ($env:XDG_RUNTIME_DIR) { $env:EZSH_STATE_DIR = Join-Path $env:XDG_RUNTIME_DIR 'ezsh' }
+    else { $env:EZSH_STATE_DIR = Join-Path ([IO.Path]::GetTempPath()) "ezsh-$(id -u)" }
+}
+New-Item -ItemType Directory -Force -Path $env:EZSH_STATE_DIR -ErrorAction SilentlyContinue | Out-Null
 
-    Returns:
-        str: 'zsh', 'bash', 'fish', or 'bash' as default.
-    """
+# On enrobe le prompt existant (starship, oh-my-posh...) une seule fois, sans le remplacer.
+if (-not $global:__ezshell_hooked) {
+    $global:__ezshell_hooked = $true
+    $global:__ezshell_orig_prompt = $function:prompt
+    $global:__ezshell_last_id = (Get-History -Count 1).Id
+}
+
+function global:prompt {
+    $ok = $?
+    $native = $global:LASTEXITCODE
+    $h = Get-History -Count 1
+    if ($h -and $h.Id -ne $global:__ezshell_last_id) {
+        $global:__ezshell_last_id = $h.Id
+        $line = $h.CommandLine
+        if ($line -notmatch '^\s*(ezsh|ezshell)(\.exe)?\s+suggest' -and $line -notmatch '^\s*(clear|cls|exit)\s*$') {
+            # $? dit si la commande a réussi. Si la dernière commande de la ligne est un programme
+            # natif, $LASTEXITCODE donne son vrai code ; sinon (cmdlet en échec) on note 1.
+            $code = 0
+            if (-not $ok) {
+                $code = 1
+                try {
+                    $ast = [System.Management.Automation.Language.Parser]::ParseInput($line, [ref]$null, [ref]$null)
+                    $cmds = $ast.FindAll({ $args[0] -is [System.Management.Automation.Language.CommandAst] }, $true)
+                    $name = if ($cmds) { @($cmds)[-1].GetCommandName() } else { $null }
+                    $info = if ($name) { Get-Command $name -ErrorAction SilentlyContinue | Select-Object -First 1 } else { $null }
+                    if ($info -and $info.CommandType -eq 'Application' -and $native) { $code = $native }
+                } catch { }
+            }
+            $dir = $env:EZSH_STATE_DIR
+            [IO.File]::WriteAllText((Join-Path $dir "$env:EZSH_SESSION.cmd"), $line)
+            [IO.File]::WriteAllText((Join-Path $dir "$env:EZSH_SESSION.code"), "$code")
+            if ($line -notmatch '^\s*(ezsh|ezshell)(\.exe)?\s+run\s') {
+                Remove-Item (Join-Path $dir "$env:EZSH_SESSION.run.json") -ErrorAction SilentlyContinue
+            }
+        }
+    }
+    $global:LASTEXITCODE = $native
+    & $global:__ezshell_orig_prompt
+}
+
+# Alt+E : le panneau s'affiche dans la console ; la commande choisie remplace la ligne (jamais exécutée).
+# Si la ligne contient du texte, il est envoyé comme question en langage naturel.
+if (Get-Command Set-PSReadLineKeyHandler -ErrorAction SilentlyContinue) { try {
+    Set-PSReadLineKeyHandler -Chord 'Alt+e' -BriefDescription 'ezShell' -Description 'ezShell : expliquer la derniere erreur' -ScriptBlock {
+        $line = $null; $cursor = $null
+        [Microsoft.PowerShell.PSConsoleReadLine]::GetBufferState([ref]$line, [ref]$cursor)
+        $prevEncoding = [Console]::OutputEncoding
+        $env:PYTHONIOENCODING = 'utf-8'
+        $env:EZSH_ASK = $line
+        $env:EZSH_ALT_SCREEN = '1'
+        try {
+            [Console]::OutputEncoding = [Text.Encoding]::UTF8
+            $out = & ezsh suggest
+            $code = $LASTEXITCODE
+        } finally {
+            [Console]::OutputEncoding = $prevEncoding
+            Remove-Item Env:EZSH_ASK, Env:EZSH_ALT_SCREEN -ErrorAction SilentlyContinue
+        }
+        if ($code -eq 0 -and $out) {
+            [Microsoft.PowerShell.PSConsoleReadLine]::RevertLine()
+            [Microsoft.PowerShell.PSConsoleReadLine]::Insert((@($out) -join ' '))
+        }
+        [Microsoft.PowerShell.PSConsoleReadLine]::InvokePrompt()
+    }
+} catch { } }  # session non interactive (CI, scripts) : pas de raccourci, le reste fonctionne
+# ---------------------------------------------------------------------------
+"""
+
+POWERSHELL_INIT_LINE = "Invoke-Expression (& ezsh init powershell | Out-String)"
+_POWERSHELL_NAMES = ("powershell", "pwsh")
+
+
+def detect_current_shell() -> str:
+    """Shell de l'utilisateur : zsh, bash, fish ou powershell (bash par défaut sous Unix)."""
+    if os.environ.get("EZSH_SHELL") in _POWERSHELL_NAMES:
+        return "powershell"
     shell_env = os.environ.get("SHELL", "").lower()
     if "zsh" in shell_env:
         return "zsh"
@@ -180,6 +266,8 @@ def detect_current_shell() -> str:
         return "fish"
     if "bash" in shell_env:
         return "bash"
+    if os.name == "nt":
+        return "powershell"
 
     # Fallback to checking existing rc files
     home = Path.home()
@@ -189,33 +277,96 @@ def detect_current_shell() -> str:
 
 
 def get_hook_script(shell_name: str) -> str:
-    """Returns the shell hook snippet for the specified shell.
-
-    Args:
-        shell_name (str): Target shell ('zsh', 'bash', or 'fish').
-
-    Returns:
-        str: Shell script code.
-    """
+    """Script d'intégration pour 'zsh', 'bash', 'fish' ou 'powershell' (alias 'pwsh')."""
     s = shell_name.strip().lower()
     if s == "zsh":
         return ZSH_HOOK
     if s == "fish":
         return FISH_HOOK
+    if s in _POWERSHELL_NAMES:
+        return POWERSHELL_HOOK
     return BASH_HOOK
 
 
-def install_hook(shell_name: Optional[str] = None) -> Tuple[bool, str, Path]:
-    """Appends ezShell init snippet to the user's shell rc file.
+def init_line(shell_name: str) -> str:
+    """Ligne à ajouter au fichier de configuration du shell."""
+    if shell_name in _POWERSHELL_NAMES:
+        return POWERSHELL_INIT_LINE
+    if shell_name == "fish":
+        return "ezsh init fish | source"
+    return f'eval "$(ezsh init {shell_name})"'
 
-    Args:
-        shell_name (Optional[str]): Explicit shell target ('zsh', 'bash'), or auto-detected.
+
+def reload_hint(shell_name: str, rc_file: Path) -> str:
+    """Commande pour recharger la configuration dans le terminal courant."""
+    if shell_name in _POWERSHELL_NAMES:
+        return ". $PROFILE"
+    return f"source {rc_file}"
+
+
+def powershell_profiles() -> List[Path]:
+    """$PROFILE de chaque PowerShell installé (5.1 et 7 n'utilisent pas le même fichier).
+
+    On demande le chemin à PowerShell lui-même : le dossier Documents peut être redirigé (OneDrive).
+    """
+    paths: List[Path] = []
+    for exe in ("pwsh", "powershell"):
+        if not shutil.which(exe):
+            continue
+        try:
+            out = subprocess.run(
+                [exe, "-NoLogo", "-NoProfile", "-Command", "$PROFILE"],
+                capture_output=True,
+                text=True,
+                timeout=15,
+            ).stdout.strip()
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if out and Path(out) not in paths:
+            paths.append(Path(out))
+    return paths
+
+
+def _append_line(rc_file: Path, line: str) -> Tuple[bool, str]:
+    """Ajoute la ligne d'init si elle n'y est pas déjà (lignes commentées ignorées)."""
+    try:
+        if rc_file.is_file():
+            content = rc_file.read_text(encoding="utf-8", errors="ignore")
+            active = [
+                ln for ln in content.splitlines() if not ln.lstrip().startswith("#")
+            ]
+            if any("ezsh init" in ln or "ezshell init" in ln for ln in active):
+                return True, f"ezShell hook is already present in {rc_file}"
+        rc_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(rc_file, "a", encoding="utf-8") as f:
+            f.write(f"\n# ezShell auto-diagnostic hook\n{line}\n")
+        return True, f"ezShell hook successfully added to {rc_file}!"
+    except OSError as e:
+        return False, f"Failed to write to {rc_file}: {e}"
+
+
+def install_hook(shell_name: Optional[str] = None) -> Tuple[bool, str, Path]:
+    """Ajoute la ligne d'init au fichier de configuration du shell.
 
     Returns:
-        Tuple[bool, str, Path]: (success, message, rc_file_path)
+        Tuple[bool, str, Path]: (succès, message, fichier modifié)
     """
-    target_shell = shell_name or detect_current_shell()
+    target_shell = (shell_name or detect_current_shell()).lower()
     home = Path.home()
+
+    if target_shell in _POWERSHELL_NAMES:
+        profiles = powershell_profiles()
+        if not profiles:
+            return False, "PowerShell not found (powershell or pwsh).", home
+        results = [_append_line(p, POWERSHELL_INIT_LINE) for p in profiles]
+        ok = all(r[0] for r in results)
+        msg = "\n".join(r[1] for r in results)
+        if ok:
+            msg += (
+                "\nIf PowerShell refuses to load your profile, allow local scripts with: "
+                "Set-ExecutionPolicy -Scope CurrentUser RemoteSigned"
+            )
+        return ok, msg, profiles[0]
 
     if target_shell == "zsh":
         rc_file = home / ".zshrc"
@@ -223,27 +374,15 @@ def install_hook(shell_name: Optional[str] = None) -> Tuple[bool, str, Path]:
         rc_file = home / ".config" / "fish" / "config.fish"
     else:
         rc_file = home / ".bashrc"
-
-    init_line = f'eval "$(ezsh init {target_shell})"'
-
-    # Check if already installed
-    if rc_file.is_file():
-        try:
-            content = rc_file.read_text(encoding="utf-8", errors="ignore")
-            if "ezsh init" in content or "ezshell init" in content:
-                return (True, f"ezShell hook is already present in {rc_file}", rc_file)
-        except Exception as e:
-            return (False, f"Could not read {rc_file}: {e}", rc_file)
-
-    # Append to rc file
-    try:
-        rc_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(rc_file, "a", encoding="utf-8") as f:
-            f.write(f"\n# ezShell auto-diagnostic hook\n{init_line}\n")
-        return (True, f"ezShell hook successfully added to {rc_file}!", rc_file)
-    except Exception as e:
-        return (False, f"Failed to write to {rc_file}: {e}", rc_file)
+    ok, msg = _append_line(rc_file, init_line(target_shell))
+    return ok, msg, rc_file
 
 
-__all__ = ["detect_current_shell", "get_hook_script", "install_hook"]
-
+__all__ = [
+    "detect_current_shell",
+    "get_hook_script",
+    "init_line",
+    "install_hook",
+    "powershell_profiles",
+    "reload_hint",
+]

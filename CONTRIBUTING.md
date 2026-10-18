@@ -25,6 +25,9 @@ ezsh --check-key
 # 5. Lancer les tests et le lint
 pytest
 ruff check src tests
+
+# Windows / PowerShell : pwsh existe aussi sous Linux et macOS, ce qui permet de tester le hook :
+#   pwsh -NoProfile -NoExit -Command 'Invoke-Expression (& ezsh init powershell | Out-String)'
 ```
 
 ---

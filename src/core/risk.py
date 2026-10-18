@@ -104,6 +104,61 @@ def _overwrite_redirect(t, raw):
     return False
 
 
+# ---- PowerShell / Windows -------------------------------------------------
+# PowerShell ignore la casse, accepte les alias (rm, del, ri…) et les paramètres abrégés
+# (-r, -rec, -Recurse) : ces règles travaillent donc sur le texte brut, segment par segment.
+_PS_REMOVE = r"(remove-item|ri|rm|del|erase|rd|rmdir)"
+_PS_ROOT = re.compile(
+    r"""^['"]?(
+        [a-z]:[\\/]?\*?                                   # C:  C:\  C:\*
+      | [\\/]\*?                                          # \   /
+      | ~[\\/]?\*?                                        # ~   ~\*
+      | \$home[\\/]?\*?
+      | \$env:(userprofile|systemdrive|systemroot|windir|homedrive|programfiles)[\\/]?\*?
+      | \*
+    )['"]?$""",
+    re.IGNORECASE | re.VERBOSE,
+)
+
+
+def _ps_segments(raw: str) -> List[str]:
+    return [seg.strip() for seg in re.split(r"&&|\|\||[;|\n]", raw) if seg.strip()]
+
+
+def _ps_args(segment: str, command: str) -> Optional[List[str]]:
+    """Arguments du segment s'il commence par `command` (regex, insensible à la casse)."""
+    words = segment.split()
+    if words and re.fullmatch(command, words[0].lstrip("&").strip("'\""), re.IGNORECASE):
+        return words[1:]
+    return None
+
+
+def _ps_recursive_remove(raw: str) -> Tuple[bool, bool]:
+    """(suppression récursive, cible racine/dossier personnel) pour Remove-Item, del /s, rd /s."""
+    recursive = root = False
+    for seg in _ps_segments(raw):
+        args = _ps_args(seg, _PS_REMOVE)
+        if args is None:
+            continue
+        flags = [a.lower() for a in args]
+        if any(re.fullmatch(r"-r(e(c(u(r(se?)?)?)?)?)?|/s", f) for f in flags):
+            recursive = True
+            if any(_PS_ROOT.match(a) for a in args if not a.startswith(("-", "/")) or len(a) <= 2):
+                root = True
+    return recursive, root
+
+
+def _ps_force_kill(t, raw):
+    for seg in _ps_segments(raw):
+        args = _ps_args(seg, r"(stop-process|spps|kill)")
+        if args is not None and any(re.fullmatch(r"-f(o(r(ce?)?)?)?", a, re.I) for a in args):
+            return True
+        args = _ps_args(seg, r"taskkill(\.exe)?")
+        if args is not None and any(a.lower() == "/f" for a in args):
+            return True
+    return False
+
+
 RULES: Tuple[Rule, ...] = (
     # ---- high -----------------------------------------------------------
     Rule(
@@ -158,6 +213,46 @@ RULES: Tuple[Rule, ...] = (
         _rx(r"\b(drop\s+(table|database|schema)|truncate\s+table)\b"),
     ),
     Rule("find-delete", HIGH, "find supprime les fichiers trouvés, sans corbeille.", _find_delete),
+    Rule(
+        "ps-remove-root",
+        HIGH,
+        "Suppression récursive d'un lecteur, de la racine ou du dossier personnel.",
+        lambda t, r: _ps_recursive_remove(r)[1],
+    ),
+    Rule(
+        "ps-format-disk",
+        HIGH,
+        "Formate ou efface un disque : toutes les données sont perdues.",
+        _rx(r"\b(format-volume|clear-disk|initialize-disk|format(\.com)?\s+[a-z]:)"),
+    ),
+    Rule(
+        "ps-download-exec",
+        HIGH,
+        "Exécute directement un script téléchargé (iwr | iex).",
+        _rx(
+            r"\b(iwr|irm|invoke-webrequest|invoke-restmethod|curl|wget)\b[^|]*\|\s*(iex|invoke-expression)\b"
+            r"|\b(iex|invoke-expression)\b\W*(\(\s*)*(new-object\s+(system\.)?net\.webclient|iwr|irm"
+            r"|invoke-webrequest|invoke-restmethod)\b"
+        ),
+    ),
+    Rule(
+        "ps-registry-delete",
+        HIGH,
+        "Supprime des clés du registre Windows.",
+        _rx(r"\breg(\.exe)?\s+delete\b|\bremove-item\b[^;|]*\b(hklm|hkcu|hkcr|registry)::?"),
+    ),
+    Rule(
+        "ps-execution-policy",
+        HIGH,
+        "Désactive la protection contre les scripts non signés.",
+        _rx(r"\bset-executionpolicy\b[^;|]*\b(unrestricted|bypass)\b"),
+    ),
+    Rule(
+        "ps-disable-defender",
+        HIGH,
+        "Désactive l'antivirus Windows Defender.",
+        _rx(r"\bset-mppreference\b[^;|]*-disable\w*\s+(\$true|1)\b"),
+    ),
     # ---- medium ---------------------------------------------------------
     Rule("rm-recursive", MEDIUM, "Suppression récursive, irréversible.", _rm_recursive),
     Rule(
@@ -214,6 +309,41 @@ RULES: Tuple[Rule, ...] = (
         lambda t, r: bool(t) and t[0] == "eval",
     ),
     Rule("pip-system", MEDIUM, "Modifie le Python du système.", _rx(r"--break-system-packages")),
+    Rule(
+        "ps-remove-recursive",
+        MEDIUM,
+        "Suppression récursive, irréversible (pas de corbeille).",
+        lambda t, r: _ps_recursive_remove(r)[0],
+    ),
+    Rule("ps-kill-force", MEDIUM, "Arrêt forcé de processus.", _ps_force_kill),
+    Rule(
+        "ps-power",
+        MEDIUM,
+        "Arrête ou redémarre la machine.",
+        _rx(r"\b(stop-computer|restart-computer)\b|\bshutdown(\.exe)?\s+/[srpf]\b"),
+    ),
+    Rule(
+        "ps-run-as-admin",
+        MEDIUM,
+        "Exécution avec privilèges administrateur.",
+        _rx(r"\bstart-process\b[^;|]*-verb\s+['\"]?runas\b"),
+    ),
+    Rule(
+        "ps-invoke-expression",
+        MEDIUM,
+        "Exécute du texte construit dynamiquement.",
+        _rx(r"(^|[;|(]\s*)(iex|invoke-expression)\b"),
+    ),
+    Rule(
+        "ps-overwrite",
+        MEDIUM,
+        "Écrase le contenu du fichier cible.",
+        lambda t, r: any(
+            _ps_args(seg, r"(set-content|sc|out-file)") is not None
+            and not re.search(r"-append\b", seg, re.I)
+            for seg in _ps_segments(r)
+        ),
+    ),
 )
 
 _RULES_BY_ID = {r.id: r for r in RULES}

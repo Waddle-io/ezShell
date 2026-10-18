@@ -100,6 +100,14 @@ def _fast_dispatch(argv: list) -> "int | None":
         if rest and rest[0] == "--":
             rest = rest[1:]
         return run_and_capture(rest)
+    if cmd == "init" and not ({"--install", "-i"} & set(argv[1:])):
+        # Exécuté à chaque ouverture de terminal : aucun import lourd.
+        from src.core.shell_hook import detect_current_shell, get_hook_script
+
+        shells = [a for a in argv[1:] if not a.startswith("-")]
+        sys.stdout.write(get_hook_script(shells[0] if shells else detect_current_shell()))
+        sys.stdout.flush()
+        return 0
     if cmd == "suggest":
         ask, free, it = None, [], iter(argv[1:])
         for a in it:
@@ -111,13 +119,27 @@ def _fast_dispatch(argv: list) -> "int | None":
                 free.append(a)
         if ask is None and free:
             ask = " ".join(free)
+        if ask is None:  # hook PowerShell : la ligne passe par l'environnement (pas de souci de quoting)
+            ask = os.environ.get("EZSH_ASK") or None
         from src.ui.inline import run_inline
 
         return run_inline(ask)
     return None
 
 
+def _utf8_console() -> None:
+    """Console Windows : UTF-8 pour les accents et les cadres (sinon cp1252 / cp850)."""
+    if os.name != "nt":
+        return
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[attr-defined]
+        except (AttributeError, ValueError):
+            pass
+
+
 def main() -> int:
+    _utf8_console()
     fast = _fast_dispatch(sys.argv[1:])
     if fast is not None:
         return fast
@@ -136,7 +158,12 @@ def main() -> int:
 
     # Subcommand: init (e.g. `eval "$(ezsh init zsh)"` or `ezsh init --install`)
     if len(sys.argv) > 1 and sys.argv[1] == "init":
-        from src.core.shell_hook import detect_current_shell, get_hook_script, install_hook
+        from src.core.shell_hook import (
+            detect_current_shell,
+            get_hook_script,
+            install_hook,
+            reload_hint,
+        )
 
         remaining = sys.argv[2:]
         if "--install" in remaining or "-i" in remaining:
@@ -145,7 +172,8 @@ def main() -> int:
             ok, msg, rc_path = install_hook(shell_name)
             if ok:
                 render_success(msg)
-                render_info(f"Reload your shell with: source {rc_path}")
+                shell = (shell_name or detect_current_shell()).lower()
+                render_info(f"Reload your shell with: {reload_hint(shell, rc_path)}")
                 return 0
             else:
                 render_error(msg)
@@ -161,12 +189,12 @@ def main() -> int:
 
     # Flag: --install-hook
     if args.install_hook:
-        from src.core.shell_hook import install_hook
+        from src.core.shell_hook import detect_current_shell, install_hook, reload_hint
 
         ok, msg, rc_path = install_hook()
         if ok:
             render_success(msg)
-            render_info(f"Reload your shell with: source {rc_path}")
+            render_info(f"Reload your shell with: {reload_hint(detect_current_shell(), rc_path)}")
             return 0
         else:
             render_error(msg)
@@ -251,8 +279,14 @@ def main() -> int:
     # Automatic first-time install greeting banner
     show_welcome_banner(force=False)
 
-    # Mode: Wrapper REPL
+    # Mode: Wrapper REPL (shell PTY : Unix uniquement)
     if args.wrapper:
+        if os.name == "nt":
+            render_error(
+                "--wrapper is not available on Windows. Use Alt+E in PowerShell "
+                "(ezsh init powershell), ezsh --tui or ezsh."
+            )
+            return 2
         app = EzShellApp(config=config)
         app.run()
         return 0

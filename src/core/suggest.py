@@ -24,10 +24,22 @@ def detect_lang() -> str:
     return "fr" if lang.lower().startswith("fr") else "en"
 
 
+def detect_shell() -> str:
+    """Shell courant : EZSH_SHELL (posé par le hook), sinon $SHELL, sinon PowerShell."""
+    forced = os.environ.get("EZSH_SHELL")
+    if forced:
+        return forced
+    if os.environ.get("SHELL"):
+        return os.path.basename(os.environ["SHELL"])
+    if os.name == "nt":
+        return "powershell"
+    return "sh"
+
+
 def build_request(query: str = "") -> AskRequest:
     """Contexte minimal et masqué. `query` donné => traduction ; sinon explication d'erreur."""
     last = read_last_run()
-    shell = os.path.basename(os.environ.get("SHELL", "")) or "sh"
+    shell = detect_shell()
     req = AskRequest(
         mode="translate" if query else "explain_error",
         query=redact_secrets(query),

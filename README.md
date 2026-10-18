@@ -25,7 +25,7 @@ Une commande échoue ? `Alt+E` explique la cause et place une correction dans to
 - **Niveau de risque** : faible, moyen ou élevé. Les règles locales d'ezShell relèvent le niveau si le modèle le sous-estime, et une commande à risque élevé exige une confirmation explicite (`y`).
 - **Sans clé API** : ezShell passe par son service hébergé ; ton appareil reçoit un jeton anonyme avec un quota quotidien gratuit.
 - **Secrets masqués** : mots de passe, clés API, jetons, identifiants dans les URL et clés privées sont masqués avant l'envoi, puis une seconde fois sur le serveur.
-- **bash, zsh et fish**, sur Linux et macOS. Une fenêtre de bureau et une interface plein terminal sont aussi disponibles.
+- **bash, zsh et fish** sur Linux et macOS, **PowerShell** sur Windows (bêta). Une fenêtre de bureau et une interface plein terminal sont aussi disponibles.
 
 ---
 
@@ -44,8 +44,11 @@ Puis branche ezShell sur ton shell, en ajoutant la ligne correspondante à la fi
 | zsh | `~/.zshrc` | `eval "$(ezsh init zsh)"` |
 | bash | `~/.bashrc` | `eval "$(ezsh init bash)"` |
 | fish | `~/.config/fish/config.fish` | `ezsh init fish \| source` |
+| PowerShell (Windows) | `$PROFILE` | `Invoke-Expression (& ezsh init powershell \| Out-String)` |
 
-Pour bash et zsh, `ezsh init --install` ajoute la ligne à ta place. Ouvre ensuite un nouveau terminal.
+Pour bash, zsh et PowerShell, `ezsh init --install` ajoute la ligne à ta place. Ouvre ensuite un nouveau terminal.
+
+**Windows (bêta) :** installe Python 3.10+ et [pipx](https://pipx.pypa.io/stable/), puis la même commande `pipx install` dans PowerShell (5.1 ou 7, avec PSReadLine). Si PowerShell refuse de charger ton profil, autorise les scripts locaux pour ton compte : `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`. Sous WSL, suis simplement les instructions Linux.
 
 <details>
 <summary>Autres méthodes d'installation</summary>
@@ -118,7 +121,7 @@ Aucune configuration n'est nécessaire. Variables utiles :
 | `EZSH_API_URL` | URL du service (défaut : `https://ezshell.vercel.app`) |
 | `EZSH_DIRECT=1` | Appelle Groq directement avec ta propre clé (`GROQ_API_KEY` ou `ezsh --set-key`) |
 | `EZSH_MODEL` | Modèle en mode direct (défaut : `openai/gpt-oss-120b`) |
-| `EZSH_STATE_DIR` | Dossier d'état par terminal (défaut : `$XDG_RUNTIME_DIR/ezsh`) |
+| `EZSH_STATE_DIR` | Dossier d'état par terminal (défaut : `$XDG_RUNTIME_DIR/ezsh`, `%LOCALAPPDATA%\ezsh` sous Windows) |
 | `EZSH_MOCK_LLM=1` | Simule le modèle, sans réseau (développement) |
 
 ---

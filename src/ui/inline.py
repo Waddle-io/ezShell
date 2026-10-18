@@ -1,6 +1,7 @@
 """Flux inline : `ezsh suggest`.
 
-L'interface s'affiche sur /dev/tty ; seule la commande finale sort sur stdout.
+L'interface s'affiche sur le terminal (/dev/tty sous Unix, la console CONOUT$/CONIN$ sous
+Windows) ; seule la commande finale sort sur stdout, que la fonction shell récupère.
 
 Règles (DEVELOPMENT.md §1) : jamais d'exécution silencieuse (on n'exécute RIEN, on insère
 dans le prompt via la fonction shell), le contenu des requêtes n'est jamais journalisé.
@@ -29,24 +30,54 @@ from src.core.schema import InvalidResponse
 from src.core.suggest import Suggestion, build_request, detect_lang, get_suggestion
 from src.ui.panel import loading_text, message_panel, result_panel, tr
 
-try:  # Unix uniquement (Windows hors MVP : D6)
+IS_WINDOWS = os.name == "nt"
+WIN_CONSOLE = -2  # pseudo-descripteur : les touches se lisent via msvcrt, pas via un fd
+
+if IS_WINDOWS:  # pragma: no cover - exécuté sur la CI Windows
+    import msvcrt
+
+    termios = None  # type: ignore
+else:
     import termios
     import tty as _tty
-except ImportError:  # pragma: no cover
-    termios = None  # type: ignore
+
+
+def _enable_vt(stream: TextIO) -> None:
+    """Active les séquences ANSI sur la console Windows (effacement de ligne, couleurs)."""
+    try:  # pragma: no cover - Windows uniquement
+        import ctypes
+
+        kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
+        handle = msvcrt.get_osfhandle(stream.fileno())
+        mode = ctypes.c_uint32()
+        if kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
+            # ENABLE_VIRTUAL_TERMINAL_PROCESSING
+            kernel32.SetConsoleMode(handle, mode.value | 0x0004)
+    except Exception:
+        pass
 
 
 def open_tty() -> Tuple[Optional[TextIO], Optional[int]]:
-    """(flux d'écriture, fd de lecture) sur le terminal de contrôle, sinon (stderr, None)."""
+    """(flux d'écriture, lecteur de touches) sur le terminal, même si stdout est capturé."""
+    if IS_WINDOWS:  # pragma: no cover - Windows uniquement
+        try:
+            out = open("CONOUT$", "w", buffering=1, encoding="utf-8", errors="replace")
+        except OSError:
+            return None, None
+        _enable_vt(out)
+        return out, WIN_CONSOLE
     try:
         fd = os.open("/dev/tty", os.O_RDWR)
         return os.fdopen(os.dup(fd), "w", buffering=1, encoding="utf-8"), fd
     except OSError:
-        return (sys.stderr if sys.stderr.isatty() else None), None
+        return None, None
 
 
 @contextmanager
 def raw_mode(fd: int):
+    if fd == WIN_CONSOLE:  # msvcrt lit déjà touche par touche, sans écho
+        yield
+        return
     old = termios.tcgetattr(fd)
     try:
         _tty.setcbreak(fd)
@@ -55,8 +86,23 @@ def raw_mode(fd: int):
         termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
 
+# Touches étendues de la console Windows (préfixe \x00 ou \xe0)
+_WIN_SPECIAL = {"K": "left", "M": "right", "G": "home", "O": "end", "S": "ignore"}
+
+
+def _read_key_windows() -> str:  # pragma: no cover - Windows uniquement
+    ch = msvcrt.getwch()
+    if ch in ("\x00", "\xe0"):
+        return _WIN_SPECIAL.get(msvcrt.getwch(), "ignore")
+    return {"\r": "enter", "\n": "enter", "\x03": "ctrl-c", "\x08": "backspace", "\x1b": "esc"}.get(
+        ch, ch
+    )
+
+
 def read_key(fd: int) -> str:
     """Une touche : enter, esc, backspace, left, right, home, end, ctrl-c, ou le caractère."""
+    if fd == WIN_CONSOLE:
+        return _read_key_windows()
     b = os.read(fd, 1)
     if not b:
         return "esc"
@@ -122,6 +168,13 @@ def edit_line(fd: int, out: TextIO, prompt: str, initial: str = "") -> Optional[
 
 
 def copy_to_clipboard(text: str) -> bool:
+    if IS_WINDOWS:  # clip.exe lit l'UTF-16 avec BOM : accents et symboles conservés
+        try:
+            data = b"\xff\xfe" + text.encode("utf-16-le")
+            subprocess.run(["clip"], input=data, check=True, timeout=2)
+            return True
+        except Exception:
+            return False
     for cmd in (
         ["pbcopy"],
         ["wl-copy"],
@@ -159,17 +212,37 @@ def _fetch(req, provider: LLMProvider, console, lang: str):
 
 def run_inline(ask: Optional[str] = None, provider: Optional[LLMProvider] = None) -> int:
     """0 : commande écrite sur stdout ; 1 : annulé ; 2 : environnement inadapté (pas de tty)."""
-    from rich.console import Console
-
     out, fd = open_tty()
-    if out is None or fd is None or termios is None:
-        print("ezsh: terminal interactif requis (pas de /dev/tty).", file=sys.stderr)
+    if out is None or fd is None:
+        print("ezsh: terminal interactif requis (pas de /dev/tty ni de console).", file=sys.stderr)
         return 2
+    # PSReadLine redessine le prompt à sa position d'origine : le hook PowerShell demande
+    # l'écran alternatif pour que le panneau ne décale pas la ligne de saisie.
+    alt = os.environ.get("EZSH_ALT_SCREEN") == "1"
+    if alt:
+        out.write("\x1b[?1049h\x1b[H")
+        out.flush()
+    try:
+        return _run_inline(out, fd, ask, provider)
+    finally:
+        if alt:
+            out.write("\x1b[?1049l")
+            out.flush()
+
+
+def _run_inline(out: TextIO, fd: int, ask: Optional[str], provider: Optional[LLMProvider]) -> int:
+    from rich.console import Console
     lang = detect_lang()
     t = tr(lang)
     width = min(80, shutil.get_terminal_size((80, 24)).columns)
     console = Console(
-        file=out, force_terminal=True, width=width, highlight=False, markup=False, emoji=False
+        file=out,
+        force_terminal=True,
+        legacy_windows=False,  # VT activé sur la console Windows : rendu ANSI partout
+        width=width,
+        highlight=False,
+        markup=False,
+        emoji=False,
     )
     provider = provider or get_provider()
 

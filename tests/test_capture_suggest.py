@@ -100,3 +100,37 @@ def test_invalid_response_retries_then_fails():
 def test_injected_ansi_in_explanation_is_stripped():
     s = get_suggestion(build_request(), MockProvider("injection"))
     assert "\x1b" not in s.response.explanation
+
+
+def test_state_dir_on_windows_uses_localappdata(tmp_path, monkeypatch):
+    from src.core import capture
+
+    monkeypatch.delenv("EZSH_STATE_DIR", raising=False)
+    monkeypatch.setattr(capture, "IS_WINDOWS", True)
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    assert capture.state_dir() == tmp_path / "ezsh"
+
+
+def test_detect_shell_order(monkeypatch):
+    from src.core import suggest
+
+    monkeypatch.setenv("EZSH_SHELL", "powershell")
+    assert suggest.detect_shell() == "powershell"
+    monkeypatch.delenv("EZSH_SHELL")
+    monkeypatch.setenv("SHELL", "/usr/bin/zsh")
+    assert suggest.detect_shell() == "zsh"
+
+
+def test_run_reports_signal_as_128_plus_n(tmp_path, monkeypatch):
+    import os
+    import sys
+
+    from src.core import capture
+
+    if os.name == "nt":
+        return
+    monkeypatch.setenv("EZSH_STATE_DIR", str(tmp_path))
+    code = capture.run_and_capture(
+        [sys.executable, "-c", "import os,signal; os.kill(os.getpid(), signal.SIGTERM)"]
+    )
+    assert code == 128 + 15

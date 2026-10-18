@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -25,6 +26,7 @@ from pathlib import Path
 from typing import List, Optional
 
 STDERR_TAIL_BYTES = 4096
+IS_WINDOWS = os.name == "nt"
 
 
 def state_dir() -> Path:
@@ -32,6 +34,10 @@ def state_dir() -> Path:
     override = os.environ.get("EZSH_STATE_DIR")
     if override:
         base = Path(override)
+    elif IS_WINDOWS:
+        # Même chemin que le hook PowerShell : %LOCALAPPDATA%\ezsh (privé à l'utilisateur).
+        local = os.environ.get("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")
+        base = Path(local) / "ezsh"
     else:
         runtime = os.environ.get("XDG_RUNTIME_DIR")
         base = (
@@ -72,8 +78,14 @@ def run_and_capture(argv: List[str]) -> int:
         return 2
     tail = bytearray()
     lock = threading.Lock()
+    launch = argv
+    if IS_WINDOWS and not shutil.which(argv[0]):
+        # Cmdlet ou alias PowerShell (Get-ChildItem, dir…) : on le lance via PowerShell.
+        exe = shutil.which("pwsh") or shutil.which("powershell")
+        if exe:
+            launch = [exe, "-NoLogo", "-NoProfile", "-Command", subprocess.list2cmdline(argv)]
     try:
-        proc = subprocess.Popen(argv, stderr=subprocess.PIPE)
+        proc = subprocess.Popen(launch, stderr=subprocess.PIPE)
     except FileNotFoundError:
         msg = f"ezsh: commande introuvable : {argv[0]}\n"
         sys.stderr.write(msg)
@@ -100,21 +112,30 @@ def run_and_capture(argv: List[str]) -> int:
 
     t = threading.Thread(target=pump, daemon=True)
     t.start()
-    try:
-        code = proc.wait()
-    except KeyboardInterrupt:
-        proc.terminate()
-        code = 130
+    # Ctrl+C arrive aussi à l'enfant (même terminal) : on le laisse décider de s'arrêter
+    # au lieu de le tuer, pour ne pas casser les programmes qui gèrent SIGINT (REPL, psql…).
+    while True:
+        try:
+            code = proc.wait()
+            break
+        except KeyboardInterrupt:
+            continue
+    if code < 0:  # tué par un signal (Unix) : convention shell 128 + n
+        code = 128 - code
     t.join(timeout=2)
     _store(argv, code, bytes(tail))
     return code
 
 
 def _store(argv: List[str], code: int, tail: bytes) -> None:
-    import shlex
+    if IS_WINDOWS:
+        command = subprocess.list2cmdline(argv)
+    else:
+        import shlex
 
+        command = " ".join(shlex.quote(a) for a in argv)
     payload = {
-        "command": " ".join(shlex.quote(a) for a in argv),
+        "command": command,
         "exit_code": code,
         "stderr_tail": tail.decode("utf-8", errors="replace"),
         "cwd": os.getcwd(),
