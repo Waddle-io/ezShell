@@ -7,19 +7,43 @@ import ShellTabs from "./ShellTabs";
 const INSTALL_COMMAND = "pipx install git+https://github.com/Waddle-io/ezShell.git";
 const GITHUB_URL = "https://github.com/Waddle-io/ezShell";
 
-export const metadata: Metadata = {
-  title: "ezShell | Ton terminal t'explique ses erreurs",
-  description:
-    "Une commande échoue ? Alt+E explique la cause et place une correction dans ton prompt. Tu relis, tu valides. Sans clé API.",
+const SITE_URL = "https://ezshell.vercel.app";
+const TITLE = "ezShell, le terminal qui t'explique ses erreurs";
+const DESCRIPTION =
+  "Une commande plante ? Alt+E : ezShell lit l'erreur, explique ce qui s'est passé et glisse une correction dans ton prompt. Tu relis, tu valides. Bash, zsh, fish.";
+const SHARE_DESCRIPTION =
+  "Après une erreur, Alt+E : ezShell explique ce qui s'est passé et propose une commande. Elle arrive dans ton prompt, rien ne s'exécute sans toi.";
+
+
+  export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  title: TITLE,
+  description: DESCRIPTION,
+  applicationName: "ezShell",
+  alternates: { canonical: "/" },
+  robots: { index: true, follow: true },
   openGraph: {
-    title: "ezShell | Ton terminal t'explique ses erreurs",
-    description: "Alt+E après une erreur : la cause, une correction, son niveau de risque. Rien ne s'exécute sans toi.",
     type: "website",
+    url: "/",
+    siteName: "ezShell",
     locale: "fr_FR",
+    title: "ezShell : ton terminal t'explique ses erreurs",
+    description: SHARE_DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ezShell : ton terminal t'explique ses erreurs",
+    description: SHARE_DESCRIPTION,
   },
 };
 
-export const viewport: Viewport = { themeColor: "#111315" };
+// themeColor ne va plus dans `metadata` depuis Next 14 : il passe par `viewport`.
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#111315" },
+    { media: "(prefers-color-scheme: light)", color: "#f4f5f1" },
+  ],
+};
 
 function ArrowIcon() {
   return (
@@ -79,8 +103,7 @@ export default function Home() {
       <header className="site-header">
         <div className="shell header-inner">
           <a className="brand" href="#top" aria-label="ezShell, accueil">
-            <span className="brand-mark">&gt;_</span>
-            <span>ezShell</span>
+            <img src="/assets/logos/ezshell-horizontal-original-bg.png" alt="ezShell" />
           </a>
           <nav aria-label="Navigation principale">
             <a href="#exemples">Exemples</a>
@@ -96,7 +119,6 @@ export default function Home() {
       <main id="contenu">
         <section className="hero shell" id="top">
           <div className="hero-copy">
-            <p className="eyebrow"><span className="status-dot" /> assistant terminal · bash, zsh, fish</p>
             <h1>Ton terminal t'explique ses erreurs<span className="accent">.</span></h1>
             <p className="hero-lede">
               Une commande échoue ? Appuie sur <kbd>Alt</kbd>+<kbd>E</kbd>. ezShell explique la cause et place une
