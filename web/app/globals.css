@@ -177,6 +177,20 @@ details p { max-width: 680px; margin: -4px 0 20px; color: var(--muted); font-siz
 .footer-inner .footer-credits { flex-direction: column; gap: 2px; }
 .footer-credits a { color: var(--muted); }
 
+/* Message de soutien */
+.support-popup { position: fixed; right: 24px; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); z-index: 20; width: min(360px, calc(100% - 32px)); padding: 22px 22px 20px; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--surface); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35); animation: support-in 320ms ease both; }
+.support-popup h2 { margin-bottom: 8px; font-size: 18px; letter-spacing: -0.02em; }
+.support-popup .eyebrow { margin-bottom: 10px; }
+.support-text { margin-bottom: 18px; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.support-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; font-size: 14px; }
+.support-actions .button-link svg { width: 16px; height: 16px; vertical-align: -3px; }
+.support-later { padding: 0; border: 0; background: none; cursor: pointer; font: inherit; font-weight: 600; }
+.support-later:hover { color: var(--accent); }
+.support-close { position: absolute; top: 10px; right: 10px; display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border: 0; border-radius: 6px; background: none; color: var(--faint); cursor: pointer; }
+.support-close:hover { color: var(--text); background: var(--surface-raised); }
+.support-close svg { width: 16px; height: 16px; }
+@keyframes support-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
 @media (prefers-color-scheme: light) {
   :root { --bg: #f4f5f1; --surface: #ffffff; --surface-raised: #eef1ed; --border: #d9dfda; --border-strong: #aab8b1; --text: #17201f; --muted: #586765; --faint: #7c8a86; --accent: #0f9e8e; --accent-soft: rgba(15, 158, 142, 0.1); --success: #15936a; --warning: #b7791f; --danger: #d6455d; color-scheme: light; }
   body { background-image: linear-gradient(rgba(18, 48, 42, 0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(18, 48, 42, 0.035) 1px, transparent 1px); }

@@ -3,6 +3,7 @@ import CopyButton from "./CopyButton";
 import Examples from "./Examples";
 import HeroDemo from "./HeroDemo";
 import ShellTabs from "./ShellTabs";
+import SupportPopup from "./SupportPopup";
 
 const INSTALL_COMMAND = "pipx install git+https://github.com/Waddle-io/ezShell.git";
 const GITHUB_URL = "https://github.com/Waddle-io/ezShell";
@@ -252,6 +253,7 @@ export default function Home() {
           </div>
         </div>
       </footer>
+       <SupportPopup />
     </>
   );
 }
