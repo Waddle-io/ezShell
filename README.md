@@ -11,7 +11,7 @@ Une commande échoue ? `Alt+E` explique la cause et place une correction dans to
 
 [Site](https://ezshell.vercel.app) · [Fonctionnalités](#fonctionnalités) · [Installation](#installation) · [Utilisation](#utilisation) · [Licence](#licence)
 
-<img src="docs/preview.webp" alt="Aperçu d'ezShell : après « npm run dev » qui échoue avec « vite: command not found », le panneau ezShell explique que vite n'est pas installé et propose la commande npm install -D vite" width="860">
+<img src="readme_image.jpeg" alt="Aperçu d'ezShell : après « npm run dev » qui échoue avec « vite: command not found », le panneau ezShell explique que vite n'est pas installé et propose la commande npm install -D vite" width="860">
 
 </div>
 
