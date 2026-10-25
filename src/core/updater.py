@@ -296,7 +296,16 @@ def _file_url_path(url: str) -> Optional[Path]:
         return None
     from urllib.parse import unquote, urlparse
 
-    path = unquote(urlparse(url).path)
+    parsed = urlparse(url)
+    path = unquote(parsed.path or "")
+    netloc = parsed.netloc or ""
+
+    if netloc and netloc.lower() != "localhost":
+        if re.fullmatch(r"[A-Za-z]:", netloc):
+            path = netloc + path
+        else:
+            path = f"//{netloc}{path}"
+
     if os.name == "nt" and re.match(r"^/[A-Za-z]:", path):
         path = path[1:]
     return Path(path)
