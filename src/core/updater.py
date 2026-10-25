@@ -300,6 +300,12 @@ def _file_url_path(url: str) -> Optional[Path]:
     path = unquote(parsed.path or "")
     netloc = parsed.netloc or ""
 
+    # file://C:\... (backslashes) puts the whole path in netloc on Windows.
+    if os.name == "nt" and not path and netloc:
+        drive_path = unquote(netloc)
+        if re.match(r"^[A-Za-z]:[/\\]", drive_path):
+            return Path(drive_path)
+
     if netloc and netloc.lower() != "localhost":
         if re.fullmatch(r"[A-Za-z]:", netloc):
             path = netloc + path

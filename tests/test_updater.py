@@ -2,6 +2,8 @@
 # ruff: noqa: E501
 
 import json
+import os
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -166,11 +168,19 @@ def test_install_par_script(tmp_path, monkeypatch):
     root = tmp_path / "ezshell"
     (root / ".git").mkdir(parents=True)
     monkeypatch.setenv("EZSHELL_INSTALL_DIR", str(root))
-    du = {"url": f"file://{root}", "dir_info": {"editable": True}}
+    du = {"url": root.as_uri(), "dir_info": {"editable": True}}
     plan = detect_install(direct_url=du, prefix=str(root / ".venv"), executable="/py")
     assert plan.method == "script"
     assert plan.commands[0][:4] == ["git", "-C", str(root), "pull"]
     assert plan.commands[1][:4] == ["/py", "-m", "pip", "install"]
+
+
+def test_file_url_path_windows_backslash_in_netloc(monkeypatch):
+    monkeypatch.setattr(os, "name", "nt")
+    from src.core.updater import _file_url_path
+
+    root = Path(r"C:\Users\runner\AppData\Local\ezshell")
+    assert _file_url_path("file://" + str(root)) == root
 
 
 # ---------------------------------------------------------------- flux
