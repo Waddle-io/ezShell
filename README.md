@@ -7,11 +7,11 @@ Une commande échoue ? `Alt+E` explique la cause et place une correction dans to
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![Licence](https://img.shields.io/badge/licence-MIT-green)
-![Version](https://img.shields.io/badge/version-0.1.0-orange)
+![Version](https://img.shields.io/badge/version-0.2.0-orange)
 
 [Site](https://ezshell.vercel.app) · [Fonctionnalités](#fonctionnalités) · [Installation](#installation) · [Utilisation](#utilisation) · [Licence](#licence)
 
-<img src="readme_image.jpeg" alt="Aperçu d'ezShell : après « npm run dev » qui échoue avec « vite: command not found », le panneau ezShell explique que vite n'est pas installé et propose la commande npm install -D vite" width="860">
+<img src="docs/preview.webp" alt="Aperçu d'ezShell : après « npm run dev » qui échoue avec « vite: command not found », le panneau ezShell explique que vite n'est pas installé et propose la commande npm install -D vite" width="860">
 
 </div>
 
@@ -34,7 +34,7 @@ Une commande échoue ? `Alt+E` explique la cause et place une correction dans to
 Prérequis : Python 3.10 ou plus récent.
 
 ```bash
-pipx install git+https://github.com/Waddle-io/ezShell.git
+pipx install ezshell
 ```
 
 Puis branche ezShell sur ton shell, en ajoutant la ligne correspondante à la fin de ton fichier de configuration :
@@ -50,8 +50,12 @@ Pour bash, zsh et PowerShell, `ezsh init --install` ajoute la ligne à ta place.
 
 **Windows (bêta) :** installe Python 3.10+ et [pipx](https://pipx.pypa.io/stable/), puis la même commande `pipx install` dans PowerShell (5.1 ou 7, avec PSReadLine). Si PowerShell refuse de charger ton profil, autorise les scripts locaux pour ton compte : `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`. Sous WSL, suis simplement les instructions Linux.
 
+**Mettre à jour :** lance `ezsh --update`. ezShell affiche les nouveautés, te demande confirmation (réponse par défaut : non), puis met à jour. Ajoute `--yes` pour passer la confirmation dans un script. Quand une nouvelle version existe, une ligne discrète te le rappelle au plus une fois par jour ; `EZSH_NO_UPDATE_CHECK=1` la désactive. Sous Windows, la commande à lancer dans un nouveau terminal t'est affichée (un programme ne peut pas se remplacer pendant qu'il tourne). Si tu as installé ezShell depuis l'URL git avant la version 0.2.0, réinstalle une dernière fois : `pipx install --force ezshell`.
+
 <details>
 <summary>Autres méthodes d'installation</summary>
+
+**Dernière version de développement** (pas encore publiée sur PyPI) : `pipx install git+https://github.com/Waddle-io/ezShell.git`
 
 **Installateur en une ligne** (installe dans `~/.local/share/ezshell`, commandes dans `~/.local/bin`) :
 

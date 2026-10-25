@@ -2,8 +2,19 @@ import { env } from "./env";
 import type { AskRequest } from "./schema";
 
 /** Interface abstraite (DEVELOPMENT.md §8) : changer de fournisseur ou ajouter un modèle local plus tard. */
+export interface LLMUsage {
+  promptTokens: number | null;
+  completionTokens: number | null;
+}
+
+export interface LLMResult {
+  text: string;
+  usage?: LLMUsage;
+}
+
 export interface LLMProvider {
-  complete(system: string, user: string): Promise<string>;
+  /** Une simple chaîne reste acceptée (faux fournisseurs de test) ; un objet permet de remonter la consommation. */
+  complete(system: string, user: string): Promise<string | LLMResult>;
 }
 
 export class UpstreamError extends Error {}
@@ -35,7 +46,7 @@ const TIMEOUT_MS = 10_000;
 
 /** Groq via son API compatible OpenAI. La clé n'existe que côté serveur. */
 export class GroqProvider implements LLMProvider {
-  async complete(system: string, user: string): Promise<string> {
+  async complete(system: string, user: string): Promise<LLMResult> {
     let lastErr: unknown;
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
@@ -56,8 +67,17 @@ export class GroqProvider implements LLMProvider {
         });
         if (res.status === 429 || res.status >= 500) throw new UpstreamError(`status ${res.status}`);
         if (!res.ok) throw new UpstreamError(`status ${res.status}`); // 4xx : pas de nouvel essai utile
-        const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-        return data.choices?.[0]?.message?.content ?? "";
+        const data = (await res.json()) as {
+          choices?: Array<{ message?: { content?: string } }>;
+          usage?: { prompt_tokens?: number; completion_tokens?: number };
+        };
+        return {
+          text: data.choices?.[0]?.message?.content ?? "",
+          usage: {
+            promptTokens: data.usage?.prompt_tokens ?? null,
+            completionTokens: data.usage?.completion_tokens ?? null,
+          },
+        };
       } catch (err) {
         lastErr = err;
         // Un seul essai automatique, et seulement pour une erreur réseau / 5xx / 429.

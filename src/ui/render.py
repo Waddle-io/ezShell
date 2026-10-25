@@ -13,6 +13,7 @@ from rich.table import Table
 from rich.text import Text
 from rich.theme import Theme
 
+from src import __version__
 from src.core.assistant import AskResult, DiagnosticResult
 from src.core.safety import RiskLevel, SafetyReport
 
@@ -39,7 +40,7 @@ def render_banner(model_name: str, shell_name: str) -> None:
 
     title_text = Text()
     title_text.append("ezShell ", style="bold #00E5FF")
-    title_text.append("v0.1.0", style="#94A3B8")
+    title_text.append(f"v{__version__}", style="#94A3B8")
     title_text.append("  •  ", style="#475569")
     title_text.append("Model: ", style="#94A3B8")
     title_text.append(f"{model_name}", style="bold #C084FC")

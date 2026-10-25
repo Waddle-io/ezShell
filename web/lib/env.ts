@@ -11,10 +11,17 @@ export const env = {
   get model() { return process.env.LLM_MODEL ?? ""; },
   get pepper() { return process.env.TOKEN_PEPPER ?? ""; },
   get anonDailyLimit() { return int("ANON_DAILY_LIMIT", 10); },
-  get freeDailyLimit() { return int("FREE_DAILY_LIMIT", 50); },
+  get freeDailyLimit() { return int("FREE_DAILY_LIMIT", 25); },
+  get premiumDailyLimit() { return int("PREMIUM_DAILY_LIMIT", 45); },
+  get maxDevicesPerUser() { return int("MAX_DEVICES_PER_USER", 5); },
   get burstPerMinute() { return int("BURST_PER_MINUTE", 10); },
   get registerPerIpHour() { return int("REGISTER_PER_IP_HOUR", 10); },
   get globalDailyCap() { return int("GLOBAL_DAILY_SPEND_CAP", 2000); },
+  get publicBaseUrl() { return (process.env.PUBLIC_BASE_URL ?? "").replace(/\/$/, ""); },
+  get githubClientId() { return process.env.GITHUB_CLIENT_ID ?? ""; },
+  get githubClientSecret() { return process.env.GITHUB_CLIENT_SECRET ?? ""; },
+  get resendKey() { return process.env.RESEND_API_KEY ?? ""; },
+  get emailFrom() { return process.env.EMAIL_FROM ?? ""; },
   get killSwitchEnv() { return process.env.KILL_SWITCH === "1"; },
 };
 

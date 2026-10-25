@@ -11,6 +11,7 @@ ignore = []
 "src/core/provider.py" = ["E501"]
 "src/ui/panel.py" = ["E501"]
 "src/core/redact.py" = ["E501"]
+"src/core/updater.py" = ["E501"]  # table de textes FR/EN
 # Import différé volontaire : le filtre de warnings CustomTkinter doit précéder l'import.
 "src/ui/gui_window.py" = ["E402", "E501"]
 "src/core/prompts.py" = ["E501"]

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ezshell"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Terminal assistant: explains failed commands and suggests a fix you review before running"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -27,6 +27,9 @@ dependencies = [
 [project.scripts]
 ezsh    = "src.main:main"
 ezshell = "src.main:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "src.__version__" }
 
 [tool.setuptools.packages.find]
 where = ["."]

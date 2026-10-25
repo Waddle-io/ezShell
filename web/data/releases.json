@@ -1,0 +1,26 @@
+{
+  "releases": [
+    {
+      "version": "0.1.0",
+      "status": "released",
+      "date": null,
+      "important": [],
+      "added": [
+        "Première version : Alt+E, panneau inline, TUI, fenêtre de bureau, détection de risque."
+      ],
+      "fixed": []
+    },
+    {
+      "version": "0.2.0",
+      "status": "released",
+      "date": "2026-10-25",
+      "important": [],
+      "added": [
+        "Nouvelle commande `ezsh --update` : affiche les nouveautés puis demande confirmation avant de mettre à jour.",
+        "Rappel discret (une fois par jour) quand une nouvelle version est disponible.",
+        "Installation depuis PyPI : `pipx install ezshell`."
+      ],
+      "fixed": []
+    }
+  ]
+}

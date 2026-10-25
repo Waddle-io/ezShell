@@ -41,3 +41,51 @@ CREATE TABLE IF NOT EXISTS settings (
   key   text PRIMARY KEY,
   value text NOT NULL
 );
+
+-- ---------------------------------------------------------------------------
+-- v2 : comptes, plans, mesure. Additif et idempotent : rien n'est supprimé ni modifié.
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS users (
+  id                   text PRIMARY KEY,                 -- uuid en texte (devices.user_id est de type text)
+  email                text NULL,                        -- toujours vérifié (GitHub ou lien magique)
+  github_id            text NULL,
+  github_login         text NULL,
+  plan                 text NOT NULL DEFAULT 'free' CHECK (plan IN ('free','premium','unlimited')),
+  daily_limit_override integer NULL,                     -- limite personnalisée (ignorée pour 'unlimited')
+  override_expires_at  timestamptz NULL,
+  status               text NOT NULL DEFAULT 'active' CHECK (status IN ('active','banned')),
+  created_at           timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users (lower(email)) WHERE email IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS users_github_idx ON users (github_id) WHERE github_id IS NOT NULL;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'devices_user_fk') THEN
+    ALTER TABLE devices ADD CONSTRAINT devices_user_fk FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL;
+  END IF;
+END $$;
+
+-- Liens magiques par e-mail : seul le haché du jeton est stocké, usage unique.
+CREATE TABLE IF NOT EXISTS login_tokens (
+  token_hash text PRIMARY KEY,
+  email      text NOT NULL,
+  user_code  text NULL,                                  -- code d'appareil à approuver (NULL = simple connexion web)
+  expires_at timestamptz NOT NULL,
+  used_at    timestamptz NULL
+);
+
+-- Mesure d'usage. AUCUN contenu : ni requête, ni contexte, ni commande, ni réponse.
+-- fingerprint = HMAC(pepper, forme normalisée de la demande) : sert uniquement à compter les doublons.
+CREATE TABLE IF NOT EXISTS ask_metrics (
+  id                bigserial PRIMARY KEY,
+  at                timestamptz NOT NULL DEFAULT now(),
+  tier              text NOT NULL CHECK (tier IN ('anonymous','free','premium','unlimited')),
+  mode              text NOT NULL,
+  outcome           text NOT NULL,
+  prompt_tokens     integer NULL,
+  completion_tokens integer NULL,
+  latency_ms        integer NULL,
+  fingerprint       text NULL
+);
+CREATE INDEX IF NOT EXISTS ask_metrics_at_idx ON ask_metrics (at);

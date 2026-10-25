@@ -24,6 +24,7 @@ from src.core.provider import (
     ProviderError,
     ProviderOffline,
     QuotaExceeded,
+    UpdateRequired,
     get_provider,
 )
 from src.core.schema import InvalidResponse
@@ -202,6 +203,8 @@ def _fetch(req, provider: LLMProvider, console, lang: str):
             "scope": q.scope,
             "reset": q.reset_at,
         }
+    except UpdateRequired:
+        return "update_required", {}
     except MissingKey:
         return "nokey", {}
     except InvalidResponse:
@@ -258,6 +261,7 @@ def _run_inline(out: TextIO, fd: int, ask: Optional[str], provider: Optional[LLM
     if query or read_last_run():
         last_state = ask_model(query)
     show(console, last_state, lang)
+    _update_notice(console)
 
     while True:
         kind, payload = last_state
@@ -289,6 +293,18 @@ def _run_inline(out: TextIO, fd: int, ask: Optional[str], provider: Optional[LLM
             return _emit(s.command, console, t)
         elif key == "y" and (s.risk == "high" or s.multiline):
             return _emit(s.command, console, t)
+
+
+def _update_notice(console) -> None:
+    """Une ligne discrète, au plus une fois par jour, si une nouvelle version existe."""
+    try:
+        from src.core.updater import take_notice
+
+        line = take_notice()
+        if line:
+            console.print(line, style="dim")
+    except Exception:  # le rappel ne doit jamais gêner le panneau
+        pass
 
 
 def show(console, state: Tuple[str, object], lang: str) -> None:

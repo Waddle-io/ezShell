@@ -10,6 +10,7 @@ from src.core.provider import (
     ProviderError,
     ProviderOffline,
     QuotaExceeded,
+    UpdateRequired,
     get_provider,
 )
 from src.core.proxy_client import ProxyProvider, TokenStore
@@ -23,6 +24,7 @@ class Stub:
     def __init__(self):
         self.requests = []
         self.ask_replies = [(200, GOOD)]
+        self.ask_headers = {}
         self.register_replies = [(201, json.dumps({"device_token": "ezd_" + "t" * 43}))]
         stub = self
 
@@ -37,6 +39,8 @@ class Stub:
                 status, text = queue.pop(0) if len(queue) > 1 else queue[0]
                 self.send_response(status)
                 self.send_header("content-type", "application/json")
+                for k, v in stub.ask_headers.items():
+                    self.send_header(k, v)
                 self.end_headers()
                 self.wfile.write(text.encode())
 
@@ -152,3 +156,37 @@ def test_get_provider_prefers_proxy_when_url_is_set(monkeypatch):
     assert isinstance(get_provider(), ProxyProvider)
     monkeypatch.setenv("EZSH_MOCK_LLM", "1")
     assert not isinstance(get_provider(), ProxyProvider)  # le mock reste prioritaire
+
+
+# ---------------------------------------------------------------- mises à jour (v2)
+def test_en_tete_de_derniere_version_memorise_pour_le_rappel(stub, provider, tmp_path, monkeypatch):
+    from src.core import updater
+
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    stub.ask_headers = {"x-ezsh-latest": "9.9.9"}
+    provider.ask(req())
+    assert updater.cached_latest() == "9.9.9"
+
+
+def test_en_tete_invalide_ignore(stub, provider, tmp_path, monkeypatch):
+    from src.core import updater
+
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    stub.ask_headers = {"x-ezsh-latest": "\x1b[31mpirate"}
+    provider.ask(req())
+    assert updater.cached_latest() is None
+
+
+def test_426_leve_update_required_sans_reenregistrement(stub, provider):
+    body = {"error": "update_required", "min_supported": "0.2.0", "latest": "0.3.0"}
+    stub.ask_replies = [(426, json.dumps(body))]
+    with pytest.raises(UpdateRequired) as exc:
+        provider.ask(req())
+    assert exc.value.min_supported == "0.2.0" and exc.value.latest == "0.3.0"
+    assert sum(1 for path, _, _ in stub.requests if path.endswith("register")) == 1
+
+
+def test_426_message_traduit():
+    from src.core.chat_bridge import describe_error
+
+    assert "ezsh --update" in describe_error(UpdateRequired("0.2.0", "0.3.0"))

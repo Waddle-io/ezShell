@@ -18,7 +18,7 @@ beforeAll(async () => { setupEnv(); db = await resetDb(); });
 afterAll(async () => { await closePool(); await db.end(); });
 beforeEach(async () => {
   setupEnv();
-  await db.query("TRUNCATE usage_daily, rate_hits, settings, devices CASCADE");
+  await db.query("TRUNCATE ask_metrics, login_tokens, usage_daily, rate_hits, settings, devices, users CASCADE");
 });
 
 describe("enregistrement", () => {
@@ -179,7 +179,7 @@ describe("/ask", () => {
   it("ne stocke JAMAIS le contenu des requêtes", async () => {
     const t = await newToken();
     await ask(auth(t), body({ query: "phrase-unique-xyzzy", context: { last_command: "cmd-unique-plugh", stderr_tail: "err-unique-fnord", cwd: "~", os: "linux", shell: "bash", exit_code: 1 } }), new FakeLLM());
-    for (const table of ["devices", "usage_daily", "rate_hits", "settings", "device_codes"]) {
+    for (const table of ["devices", "usage_daily", "rate_hits", "settings", "device_codes", "ask_metrics", "users", "login_tokens"]) {
       const dump = JSON.stringify((await db.query(`SELECT * FROM ${table}`)).rows);
       expect(dump).not.toMatch(/xyzzy|plugh|fnord|git pull --rebase/);
     }
@@ -196,6 +196,7 @@ describe("/me", () => {
 
   it("un appareil connecté suit la limite « compte gratuit » (M3)", async () => {
     const t = await newToken();
+    await db.query("INSERT INTO users (id, email) VALUES ('user-1', 'a@b.io')");
     await db.query("UPDATE devices SET user_id = 'user-1'");
     const r = await ask(auth(t), body(), new FakeLLM());
     expect(r.status).toBe(200);

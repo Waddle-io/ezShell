@@ -16,6 +16,7 @@ from src.core.provider import (
     ProviderError,
     ProviderOffline,
     QuotaExceeded,
+    UpdateRequired,
     get_provider,
 )
 from src.core.redact import redact_secrets
@@ -88,6 +89,8 @@ def describe_error(exc: Exception) -> str:
     t = tr(detect_lang())
     if isinstance(exc, ProviderOffline):
         return t["offline"]
+    if isinstance(exc, UpdateRequired):
+        return t["update_required"]
     if isinstance(exc, QuotaExceeded):
         if exc.scope == "anonymous":
             return t["trial"]

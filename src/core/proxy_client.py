@@ -23,6 +23,7 @@ from src.core.provider import (
     ProviderError,
     ProviderOffline,
     QuotaExceeded,
+    UpdateRequired,
 )
 
 # À renseigner après le déploiement (ex. "https://ezshell.vercel.app"). Surchargé par EZSH_API_URL.
@@ -36,12 +37,9 @@ def api_url() -> str:
 
 
 def _client_version() -> str:
-    try:
-        from importlib.metadata import version
+    from src import __version__
 
-        return version("ezshell")
-    except Exception:
-        return "0.1.0"
+    return __version__
 
 
 class TokenStore:
@@ -80,6 +78,7 @@ class ProxyProvider(LLMProvider):
     def __init__(self, base_url: Optional[str] = None, store: Optional[TokenStore] = None):
         self.base_url = (base_url or api_url()).rstrip("/")
         self.store = store or TokenStore()
+        self.last_headers: dict = {}  # en-têtes (minuscules) de la dernière réponse
 
     # -- HTTP ---------------------------------------------------------------
     def _check_url(self) -> None:
@@ -98,8 +97,10 @@ class ProxyProvider(LLMProvider):
         try:
             with urllib.request.urlopen(request, timeout=TIMEOUT_S) as resp:
                 status, text = resp.status, resp.read().decode("utf-8", errors="replace")
+                self.last_headers = {k.lower(): v for k, v in resp.headers.items()}
         except urllib.error.HTTPError as exc:
             status, text = exc.code, exc.read().decode("utf-8", errors="replace")
+            self.last_headers = {k.lower(): v for k, v in exc.headers.items()}
         except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as exc:
             raise ProviderOffline(type(exc).__name__) from exc
         try:
@@ -151,8 +152,15 @@ class ProxyProvider(LLMProvider):
             self.store.clear()
             status, text, data = self._post("/api/v1/ask", payload, self._register())
 
+        # Rappel de mise à jour : la dernière version publiée voyage dans un en-tête.
+        from src.core.updater import note_latest
+
+        note_latest(self.last_headers.get("x-ezsh-latest"))
+
         if status == 200:
             return text
+        if status == 426:
+            raise UpdateRequired(str(data.get("min_supported", "")), str(data.get("latest", "")))
         if status == 429:
             raise QuotaExceeded(str(data.get("scope", "free")), data.get("reset_at"))
         raise ProviderError(f"{status} {data.get('error', '')}".strip())

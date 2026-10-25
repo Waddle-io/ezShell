@@ -22,6 +22,8 @@ import os
 from enum import Enum
 from typing import Optional
 
+from src import __version__
+
 
 class Lang(str, Enum):
     """Supported interface languages.
@@ -172,8 +174,8 @@ _STRINGS: dict[str, dict[str, str]] = {
 
     # --- Welcome Banner ---
     "welcome_title": {
-        "en": "ezShell v0.1.0",
-        "fr": "ezShell v0.1.0",
+        "en": f"ezShell v{__version__}",
+        "fr": f"ezShell v{__version__}",
     },
     "welcome_subtitle": {
         "en": "Intelligent Terminal Assistant\nPowered by Groq AI",

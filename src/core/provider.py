@@ -34,6 +34,14 @@ class QuotaExceeded(ProviderError):
         self.scope, self.reset_at = scope, reset_at
 
 
+class UpdateRequired(ProviderError):
+    """Le serveur refuse cette version de la CLI (HTTP 426) : il faut `ezsh --update`."""
+
+    def __init__(self, min_supported: str = "", latest: str = ""):
+        super().__init__("mise à jour requise")
+        self.min_supported, self.latest = min_supported, latest
+
+
 class MissingKey(ProviderError):
     """Aucune clé Groq configurée (mode direct, avant le proxy)."""
 

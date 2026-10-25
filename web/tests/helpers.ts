@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import pg from "pg";
-import type { LLMProvider } from "@/lib/llm";
+import type { LLMProvider, LLMResult } from "@/lib/llm";
 
 export const TEST_DB = process.env.TEST_DATABASE_URL ?? "postgresql://postgres:pw@localhost:5433/ezsh_test";
 
@@ -12,6 +12,8 @@ export function setupEnv(extra: Record<string, string> = {}) {
     LLM_MODEL: "test-model",
     ANON_DAILY_LIMIT: "5",
     FREE_DAILY_LIMIT: "20",
+    PREMIUM_DAILY_LIMIT: "30",
+    MAX_DEVICES_PER_USER: "2",
     BURST_PER_MINUTE: "100",
     REGISTER_PER_IP_HOUR: "100",
     GLOBAL_DAILY_SPEND_CAP: "1000",
@@ -22,7 +24,7 @@ export function setupEnv(extra: Record<string, string> = {}) {
 
 export async function resetDb(): Promise<pg.Pool> {
   const pool = new pg.Pool({ connectionString: TEST_DB, max: 2 });
-  await pool.query("DROP TABLE IF EXISTS device_codes, usage_daily, rate_hits, settings, devices CASCADE");
+  await pool.query("DROP TABLE IF EXISTS ask_metrics, login_tokens, device_codes, usage_daily, rate_hits, settings, devices, users CASCADE");
   await pool.query(readFileSync(new URL("../db/schema.sql", import.meta.url), "utf8"));
   return pool;
 }
@@ -34,8 +36,8 @@ export const GOOD = JSON.stringify({
 
 export class FakeLLM implements LLMProvider {
   calls: Array<{ system: string; user: string }> = [];
-  constructor(private reply: string | (() => string | Promise<string>) = GOOD) {}
-  async complete(system: string, user: string): Promise<string> {
+  constructor(private reply: string | LLMResult | (() => string | LLMResult | Promise<string | LLMResult>) = GOOD) {}
+  async complete(system: string, user: string): Promise<string | LLMResult> {
     this.calls.push({ system, user });
     return typeof this.reply === "function" ? this.reply() : this.reply;
   }

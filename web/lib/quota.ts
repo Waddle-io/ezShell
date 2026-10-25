@@ -67,8 +67,14 @@ export async function takeWindow(
   return { ok: !!r.rowCount, resetAt: nextBoundary(unit) };
 }
 
-/** Ménage : les compteurs périmés n'ont aucune valeur. À appeler de temps en temps (cron). */
+/**
+ * Ménage (cron ou `npm run admin -- purge`). Les compteurs journaliers sont gardés 35 jours (mesure d'usage),
+ * les événements de mesure 90 jours ; les codes et liens expirés disparaissent au bout d'un jour.
+ */
 export async function purgeOld(pool: Pool): Promise<void> {
   await pool.query(`DELETE FROM rate_hits WHERE window_start < now() - interval '2 hours'`);
-  await pool.query(`DELETE FROM usage_daily WHERE day < (now() AT TIME ZONE 'utc')::date - 7`);
+  await pool.query(`DELETE FROM usage_daily WHERE day < (now() AT TIME ZONE 'utc')::date - 35`);
+  await pool.query(`DELETE FROM ask_metrics WHERE at < now() - interval '90 days'`);
+  await pool.query(`DELETE FROM login_tokens WHERE expires_at < now() - interval '1 day'`);
+  await pool.query(`DELETE FROM device_codes WHERE expires_at < now() - interval '1 day'`);
 }

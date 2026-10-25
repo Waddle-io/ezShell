@@ -36,6 +36,7 @@ T = {
         "offline": "Hors ligne : impossible de joindre le service. Le terminal n'est pas bloqué.",
         "quota": "Limite atteinte ({scope}). Réinitialisation : {reset}.",
         "trial": "Limite d'essai atteinte. Crée un compte gratuit pour continuer (`ezsh login`, bientôt).",
+        "update_required": "Cette version d'ezShell n'est plus prise en charge. Lance `ezsh --update`.",
         "pending": "Connexion en attente : valide le code {code} sur {url}.",
         "error": "Le service est indisponible pour le moment. Réessaie dans un instant.",
         "invalid": "Réponse du modèle illisible : rien n'est affiché ni inséré.",
@@ -66,6 +67,7 @@ T = {
         "offline": "Offline: the service is unreachable. Your terminal is not blocked.",
         "quota": "Limit reached ({scope}). Resets: {reset}.",
         "trial": "Trial limit reached. Create a free account to continue (`ezsh login`, coming soon).",
+        "update_required": "This ezShell version is no longer supported. Run `ezsh --update`.",
         "pending": "Login pending: confirm code {code} at {url}.",
         "error": "The service is unavailable right now. Try again shortly.",
         "invalid": "Unreadable model answer: nothing is shown or inserted.",
@@ -139,7 +141,7 @@ def result_panel(s, lang: str) -> Panel:
 
 
 def message_panel(kind: str, lang: str, **kw) -> Panel:
-    """États sans résultat : empty, offline, quota, trial, pending, error, invalid, nokey."""
+    """États sans résultat : empty, offline, quota, trial, pending, error, invalid, nokey, update_required."""
     t = tr(lang)
     text = {
         "empty": t["nolast"],
@@ -148,11 +150,12 @@ def message_panel(kind: str, lang: str, **kw) -> Panel:
         "error": t["error"],
         "invalid": t["invalid"],
         "nokey": t["nokey"],
+        "update_required": t["update_required"],
         "quota": t["quota"].format(scope=kw.get("scope", "?"), reset=kw.get("reset") or "?"),
         "pending": t["pending"].format(code=kw.get("code", "????"), url=kw.get("url", "")),
     }[kind]
     border = "cyan" if kind in ("empty", "pending") else "yellow"
-    footer = t["keys_none"] if kind in ("empty", "offline", "error", "invalid", "nokey") else "q"
+    footer = t["keys_none"] if kind in ("empty", "offline", "error", "invalid", "nokey", "update_required") else "q"
     return _wrap([Text(text)], t["title"], border, footer)
 
 

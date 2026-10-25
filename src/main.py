@@ -6,12 +6,9 @@ import sys
 
 
 def _version() -> str:
-    try:
-        from importlib.metadata import version
+    from src import __version__
 
-        return version("ezshell")
-    except Exception:
-        return "0.1.0"
+    return __version__
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -20,6 +17,17 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="ezshell",
         description="ezShell: An intelligent terminal assistant with real-time Groq AI diagnostics and GUI window.",
+    )
+    parser.add_argument(
+        "--update",
+        action="store_true",
+        help="Show what's new and update ezShell after confirmation (add --yes to skip the prompt).",
+    )
+    parser.add_argument(
+        "--yes",
+        "-y",
+        action="store_true",
+        help="With --update: do not ask for confirmation.",
     )
     parser.add_argument(
         "--check-key",
@@ -91,8 +99,18 @@ def _fast_dispatch(argv: list) -> "int | None":
         return None
     cmd = argv[0]
     if cmd in ("--version", "-V"):
+        from src.core.updater import version_hint
+
         print(f"ezshell {_version()}")
+        hint = version_hint()  # lit le cache local : aucun appel réseau
+        if hint:
+            print(hint)
         return 0
+    if cmd == "--update":
+        from src.core.updater import run_update
+
+        rest = set(argv[1:])
+        return run_update(yes=bool(rest & {"--yes", "-y"}))
     if cmd == "run":
         from src.core.capture import run_and_capture
 
