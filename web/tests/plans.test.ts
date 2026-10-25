@@ -117,7 +117,7 @@ describe("versions", () => {
     expect(r.status).toBe(200);
     expect(r.body).toMatchObject({ latest: "0.3.0", min_supported: "0.2.0" });
     expect((r.body.releases as Array<{ version: string }>).map((x) => x.version)).toEqual(["0.2.0", "0.3.0"]);
-    expect((await versionInfo("0.2.0")).body.releases).toEqual([]); // déjà à jour : aucune note
+    expect(((await versionInfo("0.2.0")).body.releases as Array<{ version: string }>).map((x) => x.version)).toEqual(["0.3.0"]); // seule la version suivante est nouvelle
   });
 
   it("x-ezsh-latest est renvoyé avec les réponses authentifiées", async () => {
