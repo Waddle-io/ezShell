@@ -165,7 +165,7 @@ def format_shell_trigger(trigger_key: str, shell: str) -> Tuple[str, str]:
 
     elif shell == "bash":
         if is_alt and len(letter) == 1:
-            return f'bind -x \'"\\\\e{letter}": __ezshell_widget\' 2>/dev/null || true', f"Alt+{letter.upper()}"
+            return f'bind -x \'"\\e{letter}": __ezshell_widget\' 2>/dev/null || true', f"Alt+{letter.upper()}"
         if clean == "ctrl+space":
             return 'bind -x \'"\\\\C-@": __ezshell_widget\' 2>/dev/null || true', "Ctrl+Space"
         return f'bind -x \'"\\\\e{letter}": __ezshell_widget\' 2>/dev/null || true', trigger_key

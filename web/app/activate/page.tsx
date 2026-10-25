@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
-export default function ActivatePage() {
+function ActivateContent() {
   const searchParams = useSearchParams();
   const [userCode, setUserCode] = useState("");
   const [currentUser, setCurrentUser] = useState<{ id: string; email: string | null } | null>(null);
@@ -148,5 +149,13 @@ export default function ActivatePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ActivatePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-950" />}>
+      <ActivateContent />
+    </Suspense>
   );
 }

@@ -46,7 +46,7 @@ def test_format_shell_trigger_per_shell():
     assert desc == "Alt+S"
 
     bash_stmt, _ = format_shell_trigger("Alt+S", "bash")
-    assert 'bind -x \'"\\\\es": __ezshell_widget\'' in bash_stmt
+    assert 'bind -x \'"\\es": __ezshell_widget\'' in bash_stmt
 
     fish_stmt, _ = format_shell_trigger("Alt+S", "fish")
     assert "bind \\es __ezshell_widget" in fish_stmt
