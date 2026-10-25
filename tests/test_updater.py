@@ -2,7 +2,7 @@
 # ruff: noqa: E501
 
 import json
-import os
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -175,8 +175,8 @@ def test_install_par_script(tmp_path, monkeypatch):
     assert plan.commands[1][:4] == ["/py", "-m", "pip", "install"]
 
 
-def test_file_url_path_windows_backslash_in_netloc(monkeypatch):
-    monkeypatch.setattr(os, "name", "nt")
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows file:// URLs use WindowsPath")
+def test_file_url_path_windows_backslash_in_netloc():
     from src.core.updater import _file_url_path
 
     root = Path(r"C:\Users\runner\AppData\Local\ezshell")
