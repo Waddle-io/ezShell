@@ -8,6 +8,19 @@ Comment publier : mettre à jour `src/__init__.py` et ce fichier, passer la vers
 `"status": "released"` dans `web/data/releases.json`, pousser le tag `vX.Y.Z`
 (la CI publie sur PyPI), puis déployer le site.
 
+## 0.3.0
+
+### Nouveautés
+
+- Authentification CLI et web avec activation sécurisée des appareils.
+- Comptes utilisateurs, tableau de bord, quotas et console d'administration.
+- Raccourcis clavier personnalisables avec détection des conflits.
+
+### Corrections
+
+- Compatibilité améliorée du shell hook avec Bash, PowerShell et Windows.
+- Build de production web compatible avec le prerendering Next.js.
+
 ## 0.2.0
 
 ### Nouveautés

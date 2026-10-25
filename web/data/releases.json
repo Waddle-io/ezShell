@@ -21,6 +21,21 @@
         "Installation depuis PyPI : `pipx install ezshell`."
       ],
       "fixed": []
+    },
+    {
+      "version": "0.3.0",
+      "status": "released",
+      "date": "2026-10-25",
+      "important": [],
+      "added": [
+        "Authentification CLI et web avec activation sécurisée des appareils.",
+        "Comptes utilisateurs, tableau de bord, quotas et console d'administration.",
+        "Raccourcis clavier personnalisables avec détection des conflits."
+      ],
+      "fixed": [
+        "Compatibilité améliorée du shell hook avec Bash, PowerShell et Windows.",
+        "Build de production web compatible avec le prerendering Next.js."
+      ]
     }
   ]
 }

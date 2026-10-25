@@ -7,7 +7,7 @@ Une commande échoue ? `Alt+E` explique la cause et place une correction dans to
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![Licence](https://img.shields.io/badge/licence-MIT-green)
-![Version](https://img.shields.io/badge/version-0.2.0-orange)
+![Version](https://img.shields.io/badge/version-0.3.0-orange)
 
 [Site](https://ezshell.vercel.app) · [Fonctionnalités](#fonctionnalités) · [Installation](#installation) · [Utilisation](#utilisation) · [Licence](#licence)
 
