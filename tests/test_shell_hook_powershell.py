@@ -20,7 +20,8 @@ from src.core.shell_hook import (
 def test_powershell_and_pwsh_return_the_powershell_hook():
     script = get_hook_script("powershell")
     assert script == get_hook_script("pwsh")
-    assert "Set-PSReadLineKeyHandler -Chord 'Alt+e'" in script
+    assert "Set-PSReadLineKeyHandler -Chord" in script
+    assert "'Alt+e'" in script and "'Escape,e'" in script
     assert '$env:EZSH_SHELL = "powershell"' in script
     # La commande est insérée dans la ligne, jamais exécutée
     assert "Insert(" in script and "AcceptLine" not in script

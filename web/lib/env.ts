@@ -23,6 +23,12 @@ export const env = {
   get resendKey() { return process.env.RESEND_API_KEY ?? ""; },
   get emailFrom() { return process.env.EMAIL_FROM ?? ""; },
   get killSwitchEnv() { return process.env.KILL_SWITCH === "1"; },
+  get adminEmails(): string[] {
+    return (process.env.ADMIN_EMAILS ?? "")
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean);
+  },
 };
 
 /** Variables indispensables : le serveur refuse de traiter un appel s'il en manque. */

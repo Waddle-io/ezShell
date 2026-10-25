@@ -103,6 +103,27 @@ ezsh run -- npm run build
 
 `ezsh suggest --ask "trouver les fichiers de plus de 1 Go"` ouvre le même panneau sans raccourci.
 
+### Raccourcis clavier et personnalisation (V3)
+
+ezShell propose un gestionnaire discret de raccourcis clavier pour consulter, personnaliser et détecter les conflits avec le terminal :
+
+```bash
+ezsh shortcuts                # Ouvre le menu de configuration interactif
+ezsh shortcuts --list         # Affiche la liste des raccourcis et leur statut
+ezsh shortcuts --set-trigger alt+s # Personnalise le déclencheur shell (ex: Alt+S, Alt+E, Ctrl+Space)
+ezsh shortcuts --disable      # Désactive le déclencheur shell sans toucher aux fonctions de capture
+ezsh shortcuts --enable       # Réactive le déclencheur shell
+ezsh shortcuts --reset        # Rétablit les raccourcis par défaut
+```
+
+### Authentification & Quotas (V3)
+
+```bash
+ezsh login                    # Connexion sécurisée (flux OAuth Device Authorization RFC 8628)
+ezsh logout                   # Déconnexion et révocation de session
+ezsh usage                    # Affiche le quota journalier consommé, restant et l'heure de renouvellement
+```
+
 ### Autres modes
 
 ```bash
@@ -111,6 +132,8 @@ ezsh --tui           # interface plein terminal, pratique en SSH
 ezsh --explain "docker: Error response from daemon: port is already allocated"
 ezsh --check-key     # vérifie que le service ezShell répond
 ezsh --version
+ezsh init --install  # installe automatiquement l'intégration dans votre shell
+ezsh init --uninstall # désinstalle proprement et de manière réversible l'intégration
 ```
 
 `ezsh --help` liste toutes les options.
@@ -127,6 +150,27 @@ Aucune configuration n'est nécessaire. Variables utiles :
 | `EZSH_MODEL` | Modèle en mode direct (défaut : `openai/gpt-oss-120b`) |
 | `EZSH_STATE_DIR` | Dossier d'état par terminal (défaut : `$XDG_RUNTIME_DIR/ezsh`, `%LOCALAPPDATA%\ezsh` sous Windows) |
 | `EZSH_MOCK_LLM=1` | Simule le modèle, sans réseau (développement) |
+
+### Interfaces Web (V3)
+
+- **Activation d'un terminal (`/activate`)** : saisie ou validation du code d'autorisation (RFC 8628).
+- **Dashboard utilisateur (`/dashboard`)** : consultation du compte, jauge de consommation quotidienne en direct, gestion et révocation des appareils autorisés.
+- **Console d'administration (`/admin`)** : tableau de bord réservé aux administrateurs (`ADMIN_EMAILS`) pour la gestion des utilisateurs (changement de plan, quota personnalisé, bannissement), statistiques globales d'usage, interrupteur d'urgence Kill Switch, et journal d'audit (`audit_logs`).
+
+### Configuration du serveur web (Next.js)
+
+Variables d'environnement disponibles pour le backend hébergé :
+
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | Chaîne de connexion PostgreSQL (ex: Neon) |
+| `TOKEN_PEPPER` | Clé secrète de hachage HMAC-SHA256 pour les jetons et sessions |
+| `ADMIN_EMAILS` | Liste d'adresses email d'administrateurs séparées par des virgules |
+| `GITHUB_CLIENT_ID` | Identifiant client de l'application GitHub OAuth |
+| `GITHUB_CLIENT_SECRET` | Secret client de l'application GitHub OAuth |
+| `RESEND_API_KEY` | Clé d'API Resend pour l'envoi des liens magiques |
+| `EMAIL_FROM` | Adresse d'expédition des e-mails (ex: `ezShell <auth@ezshell.dev>`) |
+| `PUBLIC_BASE_URL` | URL publique de l'application web (ex: `https://ezshell.vercel.app`) |
 
 ---
 

@@ -36,7 +36,10 @@ async def test_chat_tui_send_and_run_command():
         inp = pilot.app.query_one("#chat-input")
         inp.value = "How do I test this?"
         await pilot.press("enter")
-        await pilot.pause()
+        for _ in range(50):
+            if pilot.app.latest_command:
+                break
+            await pilot.pause(0.05)
 
         assert pilot.app.latest_command == cmd_sample
         pilot.app.run_suggested_command(pilot.app.latest_command)

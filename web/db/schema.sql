@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS users (
   email                text NULL,                        -- toujours vérifié (GitHub ou lien magique)
   github_id            text NULL,
   github_login         text NULL,
+  role                 text NOT NULL DEFAULT 'user' CHECK (role IN ('user','admin')),
   plan                 text NOT NULL DEFAULT 'free' CHECK (plan IN ('free','premium','unlimited')),
   daily_limit_override integer NULL,                     -- limite personnalisée (ignorée pour 'unlimited')
   override_expires_at  timestamptz NULL,
@@ -61,10 +62,34 @@ CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users (lower(email)) WHERE 
 CREATE UNIQUE INDEX IF NOT EXISTS users_github_idx ON users (github_id) WHERE github_id IS NOT NULL;
 
 DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='role') THEN
+    ALTER TABLE users ADD COLUMN role text NOT NULL DEFAULT 'user';
+  END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'devices_user_fk') THEN
     ALTER TABLE devices ADD CONSTRAINT devices_user_fk FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL;
   END IF;
 END $$;
+
+-- Sessions de navigation Web (dashboard utilisateur & console admin)
+CREATE TABLE IF NOT EXISTS web_sessions (
+  id         text PRIMARY KEY,               -- token_hash
+  user_id    text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  expires_at timestamptz NOT NULL
+);
+CREATE INDEX IF NOT EXISTS web_sessions_user_idx ON web_sessions (user_id);
+
+-- Journal d'audit pour la console admin (actions sensibles : ban, quota override, switch)
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id          bigserial PRIMARY KEY,
+  at          timestamptz NOT NULL DEFAULT now(),
+  actor_id    text NOT NULL,
+  actor_email text NULL,
+  action      text NOT NULL,
+  target_id   text NULL,
+  details     jsonb NOT NULL DEFAULT '{}'::jsonb
+);
+CREATE INDEX IF NOT EXISTS audit_logs_at_idx ON audit_logs (at);
 
 -- Liens magiques par e-mail : seul le haché du jeton est stocké, usage unique.
 CREATE TABLE IF NOT EXISTS login_tokens (

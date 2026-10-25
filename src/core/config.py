@@ -34,7 +34,8 @@ from __future__ import annotations
 
 import json
 import os
-from dataclasses import asdict, dataclass
+import tempfile
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Optional
 
@@ -44,11 +45,21 @@ from dotenv import load_dotenv
 # Module-level constants
 # ---------------------------------------------------------------------------
 
+def get_default_config_path() -> Path:
+    override = os.environ.get("EZSHELL_CONFIG_PATH")
+    if override:
+        return Path(override)
+    xdg = os.environ.get("XDG_CONFIG_HOME")
+    if xdg:
+        return Path(xdg) / "ezshell" / "config.json"
+    return Path.home() / ".ezshell" / "config.json"
+
+
 #: Default directory where ezShell stores its persistent configuration.
 DEFAULT_CONFIG_DIR = Path.home() / ".ezshell"
 
 #: Full path to the default JSON configuration file.
-DEFAULT_CONFIG_PATH = DEFAULT_CONFIG_DIR / "config.json"
+DEFAULT_CONFIG_PATH = get_default_config_path()
 
 #: Groq model identifier used when no model is specified by the user.
 DEFAULT_MODEL = "openai/gpt-oss-120b"
@@ -107,6 +118,14 @@ class EzShellConfig:
     openai_api_key: Optional[str] = None
     anthropic_api_key: Optional[str] = None
     ollama_base_url: str = "http://localhost:11434"
+    keybindings: dict = field(default_factory=dict)
+
+    def get_keybindings(self):
+        from src.core.keybindings import KeybindingConfig
+        return KeybindingConfig.from_dict(self.keybindings)
+
+    def set_keybindings(self, kb) -> None:
+        self.keybindings = kb.to_dict() if hasattr(kb, "to_dict") else dict(kb)
 
     @classmethod
     def load(cls, cwd: Optional[Path] = None, config_path: Optional[Path] = None) -> EzShellConfig:
@@ -144,17 +163,23 @@ class EzShellConfig:
 
         # 2. Base dict from user config JSON file if it exists
         data: dict = {}
-        target_config = config_path or DEFAULT_CONFIG_PATH
-        if target_config.is_file():
-            try:
-                with open(target_config, "r", encoding="utf-8") as f:
-                    file_data = json.load(f)
-                    if isinstance(file_data, dict):
-                        data.update(file_data)
-            except Exception:
-                # Silently ignore malformed or unreadable config files so that
-                # a corrupted file never prevents ezShell from starting.
-                pass
+        target_config = config_path or get_default_config_path()
+        candidates = [target_config]
+        if config_path is None:
+            candidates.extend([
+                Path.home() / ".config" / "ezshell" / "config.json",
+                Path(tempfile.gettempdir()) / "ezshell" / "config.json",
+            ])
+        for cand in candidates:
+            if cand.is_file():
+                try:
+                    with open(cand, "r", encoding="utf-8") as f:
+                        file_data = json.load(f)
+                        if isinstance(file_data, dict):
+                            data.update(file_data)
+                            break
+                except Exception:
+                    pass
 
         # 3. Environment variables take precedence over config file
         env_map = {
@@ -174,6 +199,7 @@ class EzShellConfig:
             "groq_api_key", "model", "temperature", "max_tokens",
             "auto_suggest_fix", "stream_explanation", "max_history_items",
             "provider", "openai_api_key", "anthropic_api_key", "ollama_base_url",
+            "keybindings",
         }
         filtered_data = {k: v for k, v in data.items() if k in valid_keys}
 
@@ -188,10 +214,24 @@ class EzShellConfig:
         Raises:
             OSError: If the file cannot be created or written.
         """
-        target_path = path or DEFAULT_CONFIG_PATH
-        target_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(target_path, "w", encoding="utf-8") as f:
-            json.dump(asdict(self), f, indent=2)
+        target_path = path or get_default_config_path()
+        candidates = [target_path]
+        if path is None:
+            candidates.extend([
+                Path.home() / ".config" / "ezshell" / "config.json",
+                Path(tempfile.gettempdir()) / "ezshell" / "config.json",
+            ])
+        last_err = None
+        for p in candidates:
+            try:
+                p.parent.mkdir(parents=True, exist_ok=True)
+                with open(p, "w", encoding="utf-8") as f:
+                    json.dump(asdict(self), f, indent=2)
+                return
+            except OSError as e:
+                last_err = e
+        if last_err:
+            raise last_err
 
     def get_effective_api_key(self) -> Optional[str]:
         """Return the API key for the currently active provider.

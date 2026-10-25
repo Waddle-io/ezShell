@@ -32,22 +32,33 @@ IS_WINDOWS = os.name == "nt"
 
 def state_dir() -> Path:
     """Dossier d'état par utilisateur (0700), identique à celui calculé par les hooks."""
+    candidates = []
     override = os.environ.get("EZSH_STATE_DIR")
     if override:
-        base = Path(override)
-    elif IS_WINDOWS:
+        candidates.append(Path(override))
+
+    if IS_WINDOWS:
         # Même chemin que le hook PowerShell : %LOCALAPPDATA%\ezsh (privé à l'utilisateur).
         local = os.environ.get("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")
-        base = Path(local) / "ezsh"
+        candidates.append(Path(local) / "ezsh")
     else:
         runtime = os.environ.get("XDG_RUNTIME_DIR")
-        base = (
-            Path(runtime) / "ezsh"
-            if runtime
-            else Path(tempfile.gettempdir()) / f"ezsh-{os.getuid()}"
-        )
-    base.mkdir(mode=0o700, parents=True, exist_ok=True)
-    return base
+        if runtime:
+            candidates.append(Path(runtime) / "ezsh")
+        candidates.append(Path(tempfile.gettempdir()) / f"ezsh-{os.getuid()}")
+        candidates.append(Path.home() / ".ezshell" / "state")
+
+    for candidate in candidates:
+        try:
+            candidate.mkdir(mode=0o700, parents=True, exist_ok=True)
+            return candidate
+        except OSError:
+            continue
+
+    # Dernier recours
+    fallback = Path(tempfile.gettempdir()) / "ezsh"
+    fallback.mkdir(mode=0o700, parents=True, exist_ok=True)
+    return fallback
 
 
 def session_key() -> str:

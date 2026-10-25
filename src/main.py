@@ -118,7 +118,7 @@ def _fast_dispatch(argv: list) -> "int | None":
         if rest and rest[0] == "--":
             rest = rest[1:]
         return run_and_capture(rest)
-    if cmd == "init" and not ({"--install", "-i"} & set(argv[1:])):
+    if cmd == "init" and not ({"--install", "-i", "--uninstall", "-u"} & set(argv[1:])):
         # Exécuté à chaque ouverture de terminal : aucun import lourd.
         from src.core.shell_hook import detect_current_shell, get_hook_script
 
@@ -126,6 +126,15 @@ def _fast_dispatch(argv: list) -> "int | None":
         sys.stdout.write(get_hook_script(shells[0] if shells else detect_current_shell()))
         sys.stdout.flush()
         return 0
+    if cmd == "login":
+        from src.core.auth_client import AuthClient
+        return AuthClient().login()
+    if cmd == "logout":
+        from src.core.auth_client import AuthClient
+        return AuthClient().logout()
+    if cmd in ("usage", "quota"):
+        from src.core.auth_client import AuthClient
+        return AuthClient().usage()
     if cmd == "suggest":
         ask, free, it = None, [], iter(argv[1:])
         for a in it:
@@ -184,6 +193,20 @@ def main() -> int:
         )
 
         remaining = sys.argv[2:]
+        if "--uninstall" in remaining or "-u" in remaining:
+            from src.core.shell_hook import uninstall_hook
+            target_shells = [arg for arg in remaining if not arg.startswith("-")]
+            shell_name = target_shells[0] if target_shells else None
+            ok, msg, rc_path = uninstall_hook(shell_name)
+            if ok:
+                render_success(msg)
+                shell = (shell_name or detect_current_shell()).lower()
+                render_info(f"Reload your shell with: {reload_hint(shell, rc_path)}")
+                return 0
+            else:
+                render_error(msg)
+                return 1
+
         if "--install" in remaining or "-i" in remaining:
             target_shells = [arg for arg in remaining if not arg.startswith("-")]
             shell_name = target_shells[0] if target_shells else None
@@ -200,6 +223,61 @@ def main() -> int:
         shell_name = remaining[0] if remaining else detect_current_shell()
         sys.stdout.write(get_hook_script(shell_name))
         sys.stdout.flush()
+        return 0
+
+    # Subcommand: shortcuts / keybindings
+    if len(sys.argv) > 1 and sys.argv[1] in ("shortcuts", "keybindings"):
+        from src.core.keybindings import KeybindingConfig
+        from src.ui.shortcuts_menu import (
+            display_shortcuts_table,
+            run_interactive_shortcuts_menu,
+            set_trigger_key,
+        )
+
+        config = EzShellConfig.load()
+        remaining = sys.argv[2:]
+        if not remaining:
+            if sys.stdin.isatty():
+                return run_interactive_shortcuts_menu(config)
+            display_shortcuts_table(config.get_keybindings())
+            return 0
+
+        if "--list" in remaining:
+            display_shortcuts_table(config.get_keybindings())
+            return 0
+
+        if "--enable" in remaining:
+            kb = config.get_keybindings()
+            kb.trigger_enabled = True
+            config.set_keybindings(kb)
+            config.save()
+            render_success("✔ Raccourci déclencheur shell activé !")
+            return 0
+
+        if "--disable" in remaining:
+            kb = config.get_keybindings()
+            kb.trigger_enabled = False
+            config.set_keybindings(kb)
+            config.save()
+            render_success("✔ Raccourci déclencheur shell désactivé !")
+            return 0
+
+        if "--reset" in remaining:
+            config.set_keybindings(KeybindingConfig())
+            config.save()
+            render_success("✔ Raccourcis réinitialisés aux valeurs par défaut !")
+            return 0
+
+        if "--set-trigger" in remaining:
+            idx = remaining.index("--set-trigger")
+            if idx + 1 < len(remaining):
+                key = remaining[idx + 1]
+                return set_trigger_key(key, config)
+            else:
+                render_error("Argument manquant pour --set-trigger (ex: ezsh shortcuts --set-trigger Alt+S)")
+                return 1
+
+        display_shortcuts_table(config.get_keybindings())
         return 0
 
     parser = build_arg_parser()
