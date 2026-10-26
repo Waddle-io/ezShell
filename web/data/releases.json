@@ -36,6 +36,18 @@
         "Compatibilité améliorée du shell hook avec Bash, PowerShell et Windows.",
         "Build de production web compatible avec le prerendering Next.js."
       ]
+    },
+    {
+      "version": "0.3.1",
+      "status": "released",
+      "date": "2026-10-26",
+      "important": [],
+      "added": [],
+      "fixed": [
+        "Correction du flux de connexion CLI et des liens d'activation qui pouvaient pointer vers `localhost`.",
+        "Correction de l'affichage des pages `/login` et `/activate`.",
+        "Renforcement de la validation des connexions GitHub et des liens magiques."
+      ]
     }
   ]
 }

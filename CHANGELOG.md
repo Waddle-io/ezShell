@@ -8,6 +8,14 @@ Comment publier : mettre à jour `src/__init__.py` et ce fichier, passer la vers
 `"status": "released"` dans `web/data/releases.json`, pousser le tag `vX.Y.Z`
 (la CI publie sur PyPI), puis déployer le site.
 
+## 0.3.1
+
+### Corrections
+
+- Correction du flux de connexion CLI et des liens d'activation qui pouvaient pointer vers `localhost`.
+- Correction de l'affichage des pages `/login` et `/activate`.
+- Renforcement de la validation des connexions GitHub et des liens magiques.
+
 ## 0.3.0
 
 ### Nouveautés
