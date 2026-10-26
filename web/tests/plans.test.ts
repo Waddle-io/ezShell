@@ -106,24 +106,24 @@ describe("versions", () => {
   });
 
   it("annonce la dernière version publiée (et seulement elle)", () => {
-    expect(latestReleased()).toBe("0.3.0");
+    expect(latestReleased()).toBe("0.3.1");
     expect(latestReleased("0.9.0")).toBe("0.9.0"); // surcharge explicite (réglage en base)
-    expect(latestReleased("pas-une-version")).toBe("0.3.0");
+    expect(latestReleased("pas-une-version")).toBe("0.3.1");
   });
 
   it("GET /version : dernière version, minimale, notes cumulées", async () => {
     await db.query("INSERT INTO settings (key, value) VALUES ('min_client_version', '0.2.0')");
     const r = await versionInfo("0.1.0");
     expect(r.status).toBe(200);
-    expect(r.body).toMatchObject({ latest: "0.3.0", min_supported: "0.2.0" });
-    expect((r.body.releases as Array<{ version: string }>).map((x) => x.version)).toEqual(["0.2.0", "0.3.0"]);
-    expect(((await versionInfo("0.2.0")).body.releases as Array<{ version: string }>).map((x) => x.version)).toEqual(["0.3.0"]); // seule la version suivante est nouvelle
+    expect(r.body).toMatchObject({ latest: "0.3.1", min_supported: "0.2.0" });
+    expect((r.body.releases as Array<{ version: string }>).map((x) => x.version)).toEqual(["0.2.0", "0.3.0", "0.3.1"]);
+    expect(((await versionInfo("0.2.0")).body.releases as Array<{ version: string }>).map((x) => x.version)).toEqual(["0.3.0", "0.3.1"]); // seules les versions suivantes sont nouvelles
   });
 
   it("x-ezsh-latest est renvoyé avec les réponses authentifiées", async () => {
     const t = await newToken();
-    expect((await ask(auth(t), body(), new FakeLLM())).headers?.["x-ezsh-latest"]).toBe("0.3.0");
-    expect((await me(auth(t))).headers?.["x-ezsh-latest"]).toBe("0.3.0");
+    expect((await ask(auth(t), body(), new FakeLLM())).headers?.["x-ezsh-latest"]).toBe("0.3.1");
+    expect((await me(auth(t))).headers?.["x-ezsh-latest"]).toBe("0.3.1");
   });
 
   it("426 pour un client sous la version minimale, sans consommer de quota", async () => {
