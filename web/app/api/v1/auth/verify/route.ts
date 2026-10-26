@@ -67,7 +67,10 @@ export async function GET(req: Request) {
 
   // Si un user_code d'appareil était fourni : lier immédiatement l'appareil
   if (loginRow.user_code) {
-    await approveDeviceAuthorization(loginRow.user_code, userId);
+    const approval = await approveDeviceAuthorization(loginRow.user_code, userId);
+    if (!approval.ok) {
+      return NextResponse.redirect(`${base}/login?error=device_approval_failed`);
+    }
   }
 
   // Création de la session web

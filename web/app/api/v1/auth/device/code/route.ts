@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     const authHeader = req.headers.get("authorization");
     const deviceToken = bearer(authHeader);
 
-    const result = await requestDeviceAuthorization(deviceToken, hashIp(ip));
+    const result = await requestDeviceAuthorization(deviceToken, hashIp(ip), new URL(req.url).origin);
     return send({ status: 200, body: result });
   } catch (err) {
     console.error("[auth/device/code] Erreur :", err);

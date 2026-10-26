@@ -27,13 +27,14 @@ export async function POST(req: Request) {
       [tokenHash, email, userCode],
     );
 
-    const base = env.publicBaseUrl || "http://localhost:3000";
+    const base = env.publicBaseUrl || new URL(req.url).origin;
     const verifyUrl = `${base}/api/v1/auth/verify?token=${token}`;
 
     // Si Resend est configuré, envoyer l'email
-    if (env.resendKey && env.emailFrom) {
+    const emailConfigured = Boolean(env.resendKey && env.emailFrom);
+    if (emailConfigured) {
       try {
-        await fetch("https://api.resend.com/emails", {
+        const resendResponse = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${env.resendKey}`,
@@ -57,9 +58,16 @@ export async function POST(req: Request) {
             `,
           }),
         });
+        if (!resendResponse.ok) {
+          console.error("[auth/magic-link] Resend a refusé l'envoi :", resendResponse.status);
+          return send({ status: 502, body: { error: "email_delivery_failed", message: "Impossible d'envoyer le lien de connexion." } });
+        }
       } catch (err) {
         console.error("[auth/magic-link] Erreur envoi Resend :", err);
+        return send({ status: 502, body: { error: "email_delivery_failed", message: "Impossible d'envoyer le lien de connexion." } });
       }
+    } else if (process.env.NODE_ENV === "production") {
+      return send({ status: 503, body: { error: "email_not_configured", message: "Le service de connexion par e-mail n'est pas configuré." } });
     }
 
     const responseBody: Record<string, unknown> = {
@@ -68,7 +76,7 @@ export async function POST(req: Request) {
     };
 
     // Pour le développement local ou l'absence de clé Resend : exposer debug_url
-    if (!env.resendKey) {
+    if (!emailConfigured && process.env.NODE_ENV !== "production") {
       responseBody.debug_url = verifyUrl;
     }
 

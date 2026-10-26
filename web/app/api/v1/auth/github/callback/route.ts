@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { getPool } from "@/lib/db";
 import { approveDeviceAuthorization, createWebSession, recordAuditLog } from "@/lib/auth";
@@ -6,22 +7,43 @@ import { env } from "@/lib/env";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function redirectToLogin(base: string, error: string, clearState = true): NextResponse {
+  const response = NextResponse.redirect(`${base}/login?error=${encodeURIComponent(error)}`);
+  if (clearState) {
+    response.cookies.set({ name: "ezsh_github_state", value: "", expires: new Date(0), path: "/api/v1/auth/github/callback" });
+  }
+  return response;
+}
+
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
   const base = env.publicBaseUrl || url.origin;
+  const stateCookie = req.headers.get("cookie")?.match(/(?:^|;\s*)ezsh_github_state=([^;]+)/)?.[1] ?? "";
 
   if (!code) {
-    return NextResponse.redirect(`${base}/login?error=github_code_missing`);
+      return redirectToLogin(base, "github_code_missing");
   }
 
   let userCode: string | null = null;
+  let stateNonce: string | null = null;
   if (state) {
-    try {
+      try {
       const decoded = JSON.parse(Buffer.from(state, "base64url").toString("utf8"));
-      userCode = decoded.user_code || null;
-    } catch { }
+        userCode = decoded.user_code || null;
+        stateNonce = typeof decoded.nonce === "string" ? decoded.nonce : null;
+      } catch {
+        return redirectToLogin(base, "github_state_invalid");
+      }
+  }
+  if (
+      !stateNonce ||
+      !stateCookie ||
+      stateNonce.length !== stateCookie.length ||
+      !timingSafeEqual(Buffer.from(stateNonce), Buffer.from(stateCookie))
+  ) {
+      return redirectToLogin(base, "github_state_invalid");
   }
 
   try {
@@ -42,7 +64,7 @@ export async function GET(req: Request) {
     const tokenData = await tokenRes.json();
     if (!tokenData.access_token) {
       console.error("[github/callback] Pas d'access_token :", tokenData);
-      return NextResponse.redirect(`${base}/login?error=github_token_exchange_failed`);
+      return redirectToLogin(base, "github_token_exchange_failed");
     }
 
     const accessToken = tokenData.access_token;
@@ -87,7 +109,7 @@ export async function GET(req: Request) {
     if (byGh.rowCount) {
       userId = byGh.rows[0].id;
       if (byGh.rows[0].status === "banned") {
-        return NextResponse.redirect(`${base}/login?error=user_banned`);
+        return redirectToLogin(base, "user_banned");
       }
       // Mise à jour éventuelle de l'email ou du login GitHub
       await pool.query(
@@ -99,7 +121,7 @@ export async function GET(req: Request) {
       if (byEmail.rowCount) {
         userId = byEmail.rows[0].id;
         if (byEmail.rows[0].status === "banned") {
-          return NextResponse.redirect(`${base}/login?error=user_banned`);
+          return redirectToLogin(base, "user_banned");
         }
         await pool.query(`UPDATE users SET github_id = $1, github_login = $2 WHERE id = $3`, [githubId, githubLogin, userId]);
       } else {
@@ -125,7 +147,10 @@ export async function GET(req: Request) {
 
     // 4. Si un user_code d'appareil est présent, approuver l'appareil
     if (userCode) {
-      await approveDeviceAuthorization(userCode, userId);
+      const approval = await approveDeviceAuthorization(userCode, userId);
+      if (!approval.ok) {
+        return redirectToLogin(base, "device_approval_failed");
+      }
     }
 
     // 5. Création de session web
@@ -134,6 +159,7 @@ export async function GET(req: Request) {
 
     const targetUrl = userCode ? `${base}/activate?approved=1` : `${base}/dashboard`;
     const response = NextResponse.redirect(targetUrl);
+    response.cookies.set({ name: "ezsh_github_state", value: "", expires: new Date(0), path: "/api/v1/auth/github/callback" });
 
     response.cookies.set({
       name: "ezsh_session",
@@ -148,6 +174,6 @@ export async function GET(req: Request) {
     return response;
   } catch (err) {
     console.error("[github/callback] Erreur inattendue :", err);
-    return NextResponse.redirect(`${base}/login?error=github_internal_error`);
+    return redirectToLogin(base, "github_internal_error");
   }
 }

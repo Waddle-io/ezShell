@@ -29,7 +29,7 @@ export interface UserRecord {
   created_at: Date;
 }
 
-export async function requestDeviceAuthorization(clientDeviceToken: string | null, ipHash: string) {
+export async function requestDeviceAuthorization(clientDeviceToken: string | null, ipHash: string, origin?: string) {
   const pool = getPool();
   let deviceId: string;
   let rawDeviceToken = clientDeviceToken;
@@ -69,7 +69,10 @@ export async function requestDeviceAuthorization(clientDeviceToken: string | nul
     [hashToken(deviceCode), userCode, deviceId],
   );
 
-  const base = env.publicBaseUrl || "http://localhost:3000";
+  const base = (env.publicBaseUrl || origin || "").replace(/\/$/, "");
+  if (!base) {
+    throw new Error("PUBLIC_BASE_URL ou l'origine de la requête est requis pour créer un lien d'activation");
+  }
   const verificationUri = `${base}/activate`;
   const verificationUriComplete = `${base}/activate?user_code=${userCode}`;
 

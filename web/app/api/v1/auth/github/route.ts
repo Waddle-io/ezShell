@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 import { env } from "@/lib/env";
 
@@ -9,11 +10,12 @@ export async function GET(req: Request) {
   const userCode = url.searchParams.get("user_code") || "";
   const base = env.publicBaseUrl || url.origin;
 
-  if (!env.githubClientId) {
+  if (!env.githubClientId || !env.githubClientSecret) {
     return NextResponse.redirect(`${base}/login?error=github_not_configured`);
   }
 
-  const state = Buffer.from(JSON.stringify({ user_code: userCode, rand: Math.random().toString(36) })).toString("base64url");
+  const nonce = randomBytes(32).toString("base64url");
+  const state = Buffer.from(JSON.stringify({ user_code: userCode, nonce })).toString("base64url");
   const redirectUri = `${base}/api/v1/auth/github/callback`;
 
   const githubAuthUrl = new URL("https://github.com/login/oauth/authorize");
@@ -22,5 +24,15 @@ export async function GET(req: Request) {
   githubAuthUrl.searchParams.set("scope", "read:user user:email");
   githubAuthUrl.searchParams.set("state", state);
 
-  return NextResponse.redirect(githubAuthUrl.toString());
+  const response = NextResponse.redirect(githubAuthUrl.toString());
+  response.cookies.set({
+    name: "ezsh_github_state",
+    value: nonce,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/api/v1/auth/github/callback",
+    maxAge: 10 * 60,
+  });
+  return response;
 }
