@@ -7,7 +7,7 @@ Une commande échoue ? `Alt+E` explique la cause et place une correction dans to
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![Licence](https://img.shields.io/badge/licence-MIT-green)
-![Version](https://img.shields.io/badge/version-0.3.1-orange)
+![Version](https://img.shields.io/badge/version-0.3.2-orange)
 
 [Site](https://ezshell.vercel.app) · [Fonctionnalités](#fonctionnalités) · [Installation](#installation) · [Utilisation](#utilisation) · [Licence](#licence)
 
@@ -164,10 +164,11 @@ Variables d'environnement disponibles pour le backend hébergé :
 | Variable | Description |
 |---|---|
 | `DATABASE_URL` | Chaîne de connexion PostgreSQL (ex: Neon) |
-| `TOKEN_PEPPER` | Clé secrète de hachage HMAC-SHA256 pour les jetons et sessions |
+| `TOKEN_PEPPER` | Clé secrète de hachage HMAC-SHA256 pour les jetons d'appareil |
+| `BETTER_AUTH_SECRET` | Secret de Better Auth (≥ 32 caractères, `openssl rand -hex 32`), distinct de `TOKEN_PEPPER` ; signe les cookies de session |
 | `ADMIN_EMAILS` | Liste d'adresses email d'administrateurs séparées par des virgules |
 | `GITHUB_CLIENT_ID` | Identifiant client de l'application GitHub OAuth |
-| `GITHUB_CLIENT_SECRET` | Secret client de l'application GitHub OAuth |
+| `GITHUB_CLIENT_SECRET` | Secret client de l'application GitHub OAuth (URL de callback : `<PUBLIC_BASE_URL>/api/auth/callback/github`) |
 | `RESEND_API_KEY` | Clé d'API Resend pour l'envoi des liens magiques |
 | `EMAIL_FROM` | Adresse d'expédition des e-mails (ex: `ezShell <auth@ezshell.dev>`) |
 | `PUBLIC_BASE_URL` | URL publique de l'application web (ex: `https://ezshell.vercel.app`) |
