@@ -48,6 +48,21 @@
         "Correction de l'affichage des pages `/login` et `/activate`.",
         "Renforcement de la validation des connexions GitHub et des liens magiques."
       ]
+    },
+    {
+      "version": "0.3.2",
+      "status": "released",
+      "date": "2026-10-31",
+      "important": [
+        "La connexion au site change : vous serez déconnecté une seule fois et devrez vous reconnecter. Vos terminaux déjà connectés avec `ezsh login` continuent de fonctionner, sans rien refaire."
+      ],
+      "added": [
+        "Nouveau système de connexion web (lien magique par e-mail ou GitHub), plus sûr et plus fiable.",
+        "Connexion d'un terminal : après vous être connecté sur la page d'activation, vous approuvez explicitement le code affiché, ce qui évite qu'un lien piégé connecte l'appareil d'un tiers."
+      ],
+      "fixed": [
+        "Les liens de connexion envoyés par e-mail pointent toujours vers l'adresse officielle du site."
+      ]
     }
   ]
 }
