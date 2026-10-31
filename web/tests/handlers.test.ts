@@ -18,7 +18,7 @@ beforeAll(async () => { setupEnv(); db = await resetDb(); });
 afterAll(async () => { await closePool(); await db.end(); });
 beforeEach(async () => {
   setupEnv();
-  await db.query("TRUNCATE ask_metrics, login_tokens, usage_daily, rate_hits, settings, devices, users CASCADE");
+  await db.query("TRUNCATE ask_metrics, usage_daily, rate_hits, settings, devices, users CASCADE");
 });
 
 describe("enregistrement", () => {
@@ -179,7 +179,7 @@ describe("/ask", () => {
   it("ne stocke JAMAIS le contenu des requêtes", async () => {
     const t = await newToken();
     await ask(auth(t), body({ query: "phrase-unique-xyzzy", context: { last_command: "cmd-unique-plugh", stderr_tail: "err-unique-fnord", cwd: "~", os: "linux", shell: "bash", exit_code: 1 } }), new FakeLLM());
-    for (const table of ["devices", "usage_daily", "rate_hits", "settings", "device_codes", "ask_metrics", "users", "login_tokens"]) {
+    for (const table of ["devices", "usage_daily", "rate_hits", "settings", "device_codes", "ask_metrics", "users", "session", "account", "verification"]) {
       const dump = JSON.stringify((await db.query(`SELECT * FROM ${table}`)).rows);
       expect(dump).not.toMatch(/xyzzy|plugh|fnord|git pull --rebase/);
     }

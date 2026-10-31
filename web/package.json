@@ -12,6 +12,7 @@
     "admin": "node scripts/admin.mjs"
   },
   "dependencies": {
+    "better-auth": "^1.7.14",
     "next": "^15.1.0",
     "pg": "^8.13.0",
     "react": "^19.0.0",

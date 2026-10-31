@@ -1,7 +1,12 @@
 import { randomBytes } from "node:crypto";
+import { recordAuditLog } from "./audit";
+import { getAuth } from "./better-auth";
 import { getPool } from "./db";
 import { env } from "./env";
 import { hashToken, newDeviceToken } from "./tokens";
+
+// Conservé ici pour ne pas toucher aux imports existants (admin/*, github/callback, verify…).
+export { recordAuditLog };
 
 const CODE_CHARS = "BCDFGHJKLMNPQRSTVWXZ23456789";
 
@@ -190,38 +195,26 @@ export async function approveDeviceAuthorization(userCode: string, userId: strin
   return { ok: true };
 }
 
-export async function createWebSession(userId: string): Promise<string> {
-  const pool = getPool();
-  const token = "ezs_" + randomBytes(32).toString("base64url");
-  const tokenHash = hashToken(token);
+const USER_COLUMNS = `u.id, u.email, u.github_id, u.github_login, u.role, u.plan,
+            u.daily_limit_override, u.override_expires_at, u.status, u.created_at`;
 
-  await pool.query(
-    `INSERT INTO web_sessions (id, user_id, expires_at)
-     VALUES ($1, $2, now() + interval '30 days')`,
-    [tokenHash, userId],
-  );
+/** Cookie de session Better Auth (préfixe « ezsh », préfixé par __Secure- en HTTPS). */
+const BETTER_AUTH_COOKIE = /(?:^|;\s*)(?:__Secure-)?ezsh\.session_token=/;
 
-  return token;
+async function betterAuthUserId(cookieHeader: string): Promise<string | null> {
+  if (!BETTER_AUTH_COOKIE.test(cookieHeader)) return null;
+  try {
+    const session = await getAuth().api.getSession({ headers: new Headers({ cookie: cookieHeader }) });
+    return session?.user.id ?? null;
+  } catch (e) {
+    console.error("[auth] Lecture de la session Better Auth impossible :", e);
+    return null;
+  }
 }
 
-export async function getWebSessionUser(cookieHeader: string | null): Promise<UserRecord | null> {
-  if (!cookieHeader) return null;
-  const match = /ezsh_session=([A-Za-z0-9_-]+)/.exec(cookieHeader);
-  if (!match) return null;
-
-  const sessionToken = match[1];
-  const tokenHash = hashToken(sessionToken);
+async function loadUserRecord(userId: string): Promise<UserRecord | null> {
   const pool = getPool();
-
-  const res = await pool.query(
-    `SELECT u.id, u.email, u.github_id, u.github_login, u.role, u.plan,
-            u.daily_limit_override, u.override_expires_at, u.status, u.created_at
-     FROM web_sessions s
-     JOIN users u ON u.id = s.user_id
-     WHERE s.id = $1 AND s.expires_at > now()`,
-    [tokenHash],
-  );
-
+  const res = await pool.query(`SELECT ${USER_COLUMNS} FROM users u WHERE u.id = $1`, [userId]);
   if (!res.rowCount) return null;
   const user = res.rows[0] as UserRecord;
 
@@ -230,33 +223,12 @@ export async function getWebSessionUser(cookieHeader: string | null): Promise<Us
     user.role = "admin";
     await pool.query(`UPDATE users SET role = 'admin' WHERE id = $1`, [user.id]);
   }
-
   return user;
 }
 
-export async function destroyWebSession(cookieHeader: string | null): Promise<void> {
-  if (!cookieHeader) return;
-  const match = /ezsh_session=([A-Za-z0-9_-]+)/.exec(cookieHeader);
-  if (!match) return;
-
-  const tokenHash = hashToken(match[1]);
-  await getPool().query(`DELETE FROM web_sessions WHERE id = $1`, [tokenHash]);
-}
-
-export async function recordAuditLog(
-  actorId: string,
-  action: string,
-  targetId: string | null = null,
-  details: Record<string, unknown> = {},
-  actorEmail: string | null = null,
-): Promise<void> {
-  try {
-    await getPool().query(
-      `INSERT INTO audit_logs (actor_id, actor_email, action, target_id, details)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [actorId, actorEmail, action, targetId, JSON.stringify(details)],
-    );
-  } catch (e) {
-    console.error("[audit_log] Erreur enregistrement :", e);
-  }
+/** Utilisateur de la session web (cookie), ou null. Même forme de retour qu'avant la migration. */
+export async function getWebSessionUser(cookieHeader: string | null): Promise<UserRecord | null> {
+  if (!cookieHeader) return null;
+  const userId = await betterAuthUserId(cookieHeader);
+  return userId ? loadUserRecord(userId) : null;
 }

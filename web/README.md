@@ -13,7 +13,7 @@ CLI ──HTTPS──▶  /api/v1/me                (statut, requêtes restantes
 1. **Neon** : crée un projet, copie la chaîne de connexion **pooled** (host avec `-pooler`, `?sslmode=require`).
 2. **Schéma** : `cd web && npm install && DATABASE_URL='…' npm run db:migrate` (idempotent).
 3. **Vercel** : importe le dépôt, *Root Directory* = `web`. Variables d'environnement (voir `.env.example`) :
-   `DATABASE_URL`, `GROQ_API_KEY`, `LLM_MODEL`, `TOKEN_PEPPER` (`openssl rand -hex 32`), puis les limites.
+   `DATABASE_URL`, `GROQ_API_KEY`, `LLM_MODEL`, `TOKEN_PEPPER` et `BETTER_AUTH_SECRET` (chacun : `openssl rand -hex 32`), puis les limites.
    Ne jamais préfixer par `NEXT_PUBLIC_`. Ne jamais commiter `.env.local`.
 4. **Vérifier** :
    ```bash

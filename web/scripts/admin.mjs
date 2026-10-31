@@ -169,7 +169,8 @@ async function purge() {
   await db.query(`DELETE FROM rate_hits WHERE window_start < now() - interval '2 hours'`);
   await db.query(`DELETE FROM usage_daily WHERE day < (now() AT TIME ZONE 'utc')::date - 35`);
   await db.query(`DELETE FROM ask_metrics WHERE at < now() - interval '90 days'`);
-  await db.query(`DELETE FROM login_tokens WHERE expires_at < now() - interval '1 day'`);
+  await db.query(`DELETE FROM verification WHERE expires_at < now() - interval '1 day'`);
+  await db.query(`DELETE FROM session WHERE expires_at < now()`);
   await db.query(`DELETE FROM device_codes WHERE expires_at < now() - interval '1 day'`);
   console.log("ménage effectué");
 }

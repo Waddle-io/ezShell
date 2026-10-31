@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { authClient } from "@/lib/auth-client";
 
 interface UsageData {
   account_type: "anonymous" | "registered";
@@ -80,7 +81,7 @@ export default function DashboardPage() {
   }
 
   async function handleLogout() {
-    await fetch("/api/v1/auth/logout", { method: "POST" });
+    await authClient.signOut();
     router.push("/login");
   }
 

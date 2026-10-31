@@ -26,7 +26,7 @@ beforeAll(async () => { setupEnv(); db = await resetDb(); });
 afterAll(async () => { await closePool(); await db.end(); });
 beforeEach(async () => {
   setupEnv();
-  await db.query("TRUNCATE ask_metrics, login_tokens, usage_daily, rate_hits, settings, devices, users CASCADE");
+  await db.query("TRUNCATE ask_metrics, usage_daily, rate_hits, settings, devices, users CASCADE");
 });
 
 describe("plans et limites", () => {

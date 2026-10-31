@@ -16,9 +16,6 @@ function ActivateContent() {
   useEffect(() => {
     const code = searchParams.get("user_code");
     if (code) setUserCode(code);
-    if (searchParams.get("approved")) {
-      setMessage({ type: "success", text: "Votre terminal a été connecté avec succès ! Vous pouvez revenir à votre invite de commande." });
-    }
 
     // Vérifier si une session web est déjà active
     fetch("/api/v1/usage")

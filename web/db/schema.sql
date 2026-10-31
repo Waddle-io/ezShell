@@ -70,15 +70,6 @@ DO $$ BEGIN
   END IF;
 END $$;
 
--- Sessions de navigation Web (dashboard utilisateur & console admin)
-CREATE TABLE IF NOT EXISTS web_sessions (
-  id         text PRIMARY KEY,               -- token_hash
-  user_id    text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  expires_at timestamptz NOT NULL
-);
-CREATE INDEX IF NOT EXISTS web_sessions_user_idx ON web_sessions (user_id);
-
 -- Journal d'audit pour la console admin (actions sensibles : ban, quota override, switch)
 CREATE TABLE IF NOT EXISTS audit_logs (
   id          bigserial PRIMARY KEY,
@@ -91,14 +82,79 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 );
 CREATE INDEX IF NOT EXISTS audit_logs_at_idx ON audit_logs (at);
 
--- Liens magiques par e-mail : seul le haché du jeton est stocké, usage unique.
-CREATE TABLE IF NOT EXISTS login_tokens (
-  token_hash text PRIMARY KEY,
-  email      text NOT NULL,
-  user_code  text NULL,                                  -- code d'appareil à approuver (NULL = simple connexion web)
+-- ─── Better Auth ────────────────────────────────────────────────────────────
+-- Better Auth réutilise la table `users` existante (mêmes ids, donc devices.user_id,
+-- quotas et plans restent liés). Colonnes ajoutées une seule fois ; le rattrapage des
+-- comptes existants ne s'exécute qu'à la création de `email_verified`.
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                 WHERE table_schema = current_schema() AND table_name = 'users' AND column_name = 'email_verified') THEN
+    ALTER TABLE users ADD COLUMN name text NOT NULL DEFAULT '';
+    ALTER TABLE users ADD COLUMN email_verified boolean NOT NULL DEFAULT false;
+    ALTER TABLE users ADD COLUMN image text NULL;
+    ALTER TABLE users ADD COLUMN updated_at timestamptz NOT NULL DEFAULT now();
+    -- Ancien système : e-mail « toujours vérifié » (GitHub ou lien magique).
+    UPDATE users SET email_verified = true WHERE email IS NOT NULL;
+    -- Better Auth exige un e-mail : comptes GitHub sans e-mail → adresse noreply GitHub (non vérifiée).
+    UPDATE users
+       SET email = github_id || '+' || coalesce(github_login, 'user') || '@users.noreply.github.com'
+     WHERE email IS NULL AND github_id IS NOT NULL;
+    UPDATE users SET name = coalesce(nullif(github_login, ''), split_part(email, '@', 1), '');
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS session (
+  id         text PRIMARY KEY,
   expires_at timestamptz NOT NULL,
-  used_at    timestamptz NULL
+  token      text NOT NULL UNIQUE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  ip_address text NULL,
+  user_agent text NULL,
+  user_id    text NOT NULL REFERENCES users(id) ON DELETE CASCADE
 );
+CREATE INDEX IF NOT EXISTS session_user_idx ON session (user_id);
+
+CREATE TABLE IF NOT EXISTS account (
+  id                       text PRIMARY KEY,
+  account_id               text NOT NULL,                 -- id du compte chez le fournisseur (GitHub : github_id)
+  provider_id              text NOT NULL,                 -- 'github', ...
+  user_id                  text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  access_token             text NULL,
+  refresh_token            text NULL,
+  id_token                 text NULL,
+  access_token_expires_at  timestamptz NULL,
+  refresh_token_expires_at timestamptz NULL,
+  scope                    text NULL,
+  password                 text NULL,
+  created_at               timestamptz NOT NULL DEFAULT now(),
+  updated_at               timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS account_provider_idx ON account (provider_id, account_id);
+CREATE INDEX IF NOT EXISTS account_user_idx ON account (user_id);
+
+CREATE TABLE IF NOT EXISTS verification (
+  id         text PRIMARY KEY,
+  identifier text NOT NULL,
+  value      text NOT NULL,
+  expires_at timestamptz NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS verification_identifier_idx ON verification (identifier);
+
+-- Les utilisateurs GitHub existants gardent leur identité : une ligne `account` par github_id.
+INSERT INTO account (id, account_id, provider_id, user_id)
+SELECT gen_random_uuid()::text, u.github_id, 'github', u.id
+  FROM users u
+ WHERE u.github_id IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM account a WHERE a.provider_id = 'github' AND a.user_id = u.id);
+
+-- Ancien système d'auth maison, remplacé par Better Auth (session / account / verification).
+-- Ces tables ne contenaient que des sessions et des liens éphémères : les anciennes sessions web
+-- sont perdues (les utilisateurs se reconnectent une fois). Les appareils (devices) ne sont pas touchés.
+DROP TABLE IF EXISTS web_sessions;
+DROP TABLE IF EXISTS login_tokens;
 
 -- Mesure d'usage. AUCUN contenu : ni requête, ni contexte, ni commande, ni réponse.
 -- fingerprint = HMAC(pepper, forme normalisée de la demande) : sert uniquement à compter les doublons.

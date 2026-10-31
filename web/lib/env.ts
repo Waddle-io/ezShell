@@ -18,6 +18,7 @@ export const env = {
   get registerPerIpHour() { return int("REGISTER_PER_IP_HOUR", 10); },
   get globalDailyCap() { return int("GLOBAL_DAILY_SPEND_CAP", 2000); },
   get publicBaseUrl() { return (process.env.PUBLIC_BASE_URL ?? "").replace(/\/$/, ""); },
+  get betterAuthSecret() { return process.env.BETTER_AUTH_SECRET ?? ""; },
   get githubClientId() { return process.env.GITHUB_CLIENT_ID ?? ""; },
   get githubClientSecret() { return process.env.GITHUB_CLIENT_SECRET ?? ""; },
   get resendKey() { return process.env.RESEND_API_KEY ?? ""; },

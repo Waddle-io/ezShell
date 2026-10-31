@@ -24,7 +24,7 @@ export function setupEnv(extra: Record<string, string> = {}) {
 
 export async function resetDb(): Promise<pg.Pool> {
   const pool = new pg.Pool({ connectionString: TEST_DB, max: 2 });
-  await pool.query("DROP TABLE IF EXISTS ask_metrics, login_tokens, device_codes, usage_daily, rate_hits, settings, devices, users CASCADE");
+  await pool.query("DROP TABLE IF EXISTS ask_metrics, device_codes, usage_daily, rate_hits, settings, devices, session, account, verification, audit_logs, users CASCADE");
   await pool.query(readFileSync(new URL("../db/schema.sql", import.meta.url), "utf8"));
   return pool;
 }
