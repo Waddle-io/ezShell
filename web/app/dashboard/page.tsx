@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import styles from "./dashboard.module.css";
 
 interface UsageData {
   account_type: "anonymous" | "registered";
@@ -87,8 +88,8 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center">
-        <p className="text-slate-400">Chargement de votre tableau de bord...</p>
+      <div className={styles.loading}>
+        <p className={styles.loadingText}>Chargement de votre tableau de bord...</p>
       </div>
     );
   }
@@ -101,31 +102,31 @@ export default function DashboardPage() {
   const percentage = isUnlimited ? 0 : Math.min(100, Math.round((used / (limit || 1)) * 100));
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
+    <div className={styles.page}>
       {/* Header */}
-      <header className="border-b border-slate-800 bg-slate-900/60 backdrop-blur sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <Link href="/" className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+      <header className={styles.header}>
+        <div className={styles.headerInner}>
+          <div className={styles.brandGroup}>
+            <Link href="/" className={styles.brand}>
               ezShell
             </Link>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+            <span className={styles.badge}>
               Dashboard
             </span>
             {user?.role === "admin" && (
               <Link
                 href="/admin"
-                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-purple-950 text-purple-300 border border-purple-800 hover:bg-purple-900 transition"
+                className={styles.adminLink}
               >
                 ★ Console Admin
               </Link>
             )}
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-slate-400 hidden sm:inline">{user?.email || user?.github_login}</span>
+          <div className={styles.userActions}>
+            <span className={styles.email}>{user?.email || user?.github_login}</span>
             <button
               onClick={handleLogout}
-              className="text-xs px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-800 text-slate-300 transition"
+              className={styles.logoutButton}
             >
               Déconnexion
             </button>
@@ -133,13 +134,13 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+      <main className={styles.main}>
         {message && (
           <div
-            className={`p-4 rounded-xl text-sm border ${
+            className={`${styles.alert} ${
               message.type === "success"
-                ? "bg-emerald-950/60 border-emerald-800 text-emerald-300"
-                : "bg-red-950/60 border-red-800 text-red-300"
+                ? styles.alertSuccess
+                : styles.alertError
             }`}
           >
             {message.text}
@@ -147,52 +148,52 @@ export default function DashboardPage() {
         )}
 
         {/* Section Quota & Consommation */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-2 bg-slate-900/70 border border-slate-800 rounded-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between">
+        <section className={styles.sectionGrid}>
+          <div className={styles.quotaCard}>
+            <div className={styles.sectionHeader}>
               <div>
-                <h2 className="text-lg font-semibold text-white">Consommation journalière</h2>
-                <p className="text-xs text-slate-400">Réinitialisation automatique chaque jour à minuit UTC</p>
+                <h2 className={styles.sectionTitle}>Consommation journalière</h2>
+                <p className={styles.sectionDescription}>Réinitialisation automatique chaque jour à minuit UTC</p>
               </div>
-              <span className="text-xs font-semibold px-3 py-1 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 capitalize">
+              <span className={styles.planBadge}>
                 Plan {quota?.tier}
               </span>
             </div>
 
-            <div className="space-y-2 pt-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-400">Requêtes utilisées aujourd&apos;hui :</span>
-                <span className="font-bold text-white">
+            <div className={styles.quotaDetails}>
+              <div className={styles.quotaRow}>
+                <span>Requêtes utilisées aujourd&apos;hui :</span>
+                <span className={styles.quotaValue}>
                   {used} {isUnlimited ? "(Illimité)" : `/ ${limit}`}
                 </span>
               </div>
               {!isUnlimited && (
-                <div className="w-full bg-slate-800 rounded-full h-3 overflow-hidden">
+                <div className={styles.progressTrack}>
                   <div
-                    className={`h-full transition-all duration-500 rounded-full ${
-                      percentage > 85 ? "bg-red-500" : percentage > 60 ? "bg-amber-500" : "bg-cyan-500"
+                    className={`${styles.progressFill} ${
+                      percentage > 85 ? styles.progressDanger : percentage > 60 ? styles.progressWarning : ""
                     }`}
                     style={{ width: `${percentage}%` }}
                   ></div>
                 </div>
               )}
-              <div className="flex justify-between text-xs text-slate-500 pt-1">
+              <div className={styles.quotaMeta}>
                 <span>Restantes : {isUnlimited ? "∞" : quota?.remaining_today}</span>
                 <span>Reset UTC : {quota?.reset_at ? new Date(quota.reset_at).toLocaleTimeString() : "--"}</span>
               </div>
             </div>
           </div>
 
-          <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between">
+          <div className={styles.connectCard}>
             <div>
-              <h3 className="text-sm font-semibold text-white mb-2">Connecter un terminal</h3>
-              <p className="text-xs text-slate-400">
-                Lancez <code className="text-cyan-400 font-mono bg-slate-950 px-1.5 py-0.5 rounded">ezsh login</code> dans votre terminal pour lier votre machine à ce compte.
+              <h3 className={styles.connectTitle}>Connecter un terminal</h3>
+              <p className={styles.connectDescription}>
+                Lancez <code className={styles.code}>ezsh login</code> dans votre terminal pour lier votre machine à ce compte.
               </p>
             </div>
             <Link
               href="/activate"
-              className="mt-4 block text-center py-2 px-4 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-900 rounded-xl text-xs font-semibold transition"
+              className={styles.activateLink}
             >
               Saisir un code d&apos;activation ›
             </Link>
@@ -200,57 +201,57 @@ export default function DashboardPage() {
         </section>
 
         {/* Section Appareils connectés */}
-        <section className="bg-slate-900/70 border border-slate-800 rounded-2xl p-6 space-y-4">
-          <div className="flex items-center justify-between">
+        <section className={styles.card}>
+          <div className={styles.sectionHeader}>
             <div>
-              <h2 className="text-lg font-semibold text-white">Appareils et terminaux autorisés</h2>
-              <p className="text-xs text-slate-400">Gérez les sessions de vos machines connectées</p>
+              <h2 className={styles.sectionTitle}>Appareils et terminaux autorisés</h2>
+              <p className={styles.sectionDescription}>Gérez les sessions de vos machines connectées</p>
             </div>
-            <span className="text-xs text-slate-500">
+            <span className={styles.sectionDescription}>
               {data?.devices?.length || 0} appareil(s) actif(s)
             </span>
           </div>
 
-          <div className="divide-y divide-slate-800/60">
+          <div className={styles.devicesList}>
             {data?.devices && data.devices.length > 0 ? (
               data.devices.map((dev) => (
-                <div key={dev.id} className="py-3.5 flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <p className="text-sm font-mono text-slate-200">ID : {dev.id}</p>
-                    <p className="text-xs text-slate-500">
+                <div key={dev.id} className={styles.deviceRow}>
+                  <div className={styles.deviceInfo}>
+                    <p className={styles.deviceId}>ID : {dev.id}</p>
+                    <p className={styles.deviceMeta}>
                       Connecté le {new Date(dev.created_at).toLocaleDateString()} • Vu pour la dernière fois : {new Date(dev.last_seen_at).toLocaleTimeString()}
                     </p>
                   </div>
                   <button
                     onClick={() => handleRevokeDevice(dev.id)}
                     disabled={revoking === dev.id}
-                    className="text-xs px-3 py-1.5 rounded-lg border border-red-900/50 hover:bg-red-950/40 text-red-400 transition disabled:opacity-50"
+                    className={styles.revokeButton}
                   >
                     {revoking === dev.id ? "Révocation..." : "Révoquer"}
                   </button>
                 </div>
               ))
             ) : (
-              <p className="py-4 text-xs text-slate-500">Aucun appareil lié pour le moment.</p>
+              <p className={styles.emptyState}>Aucun appareil lié pour le moment.</p>
             )}
           </div>
         </section>
 
         {/* Section Détails du compte */}
-        <section className="bg-slate-900/70 border border-slate-800 rounded-2xl p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-white">Détails du compte</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-            <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
-              <span className="text-slate-500 block">Identifiant :</span>
-              <span className="font-mono text-slate-300 break-all">{user?.id}</span>
+        <section className={styles.card}>
+          <h2 className={styles.sectionTitle}>Détails du compte</h2>
+          <div className={styles.accountGrid}>
+            <div className={styles.detailItem}>
+              <span className={styles.detailLabel}>Identifiant :</span>
+              <span className={`${styles.detailValue} ${styles.detailValueMono}`}>{user?.id}</span>
             </div>
-            <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
-              <span className="text-slate-500 block">E-mail :</span>
-              <span className="text-slate-300">{user?.email || "Non renseigné"}</span>
+            <div className={styles.detailItem}>
+              <span className={styles.detailLabel}>E-mail :</span>
+              <span className={styles.detailValue}>{user?.email || "Non renseigné"}</span>
             </div>
-            <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
-              <span className="text-slate-500 block">GitHub :</span>
-              <span className="text-slate-300">{user?.github_login ? `@${user.github_login}` : "Non lié"}</span>
+            <div className={styles.detailItem}>
+              <span className={styles.detailLabel}>GitHub :</span>
+              <span className={styles.detailValue}>{user?.github_login ? `@${user.github_login}` : "Non lié"}</span>
             </div>
           </div>
         </section>
