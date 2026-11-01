@@ -4,8 +4,12 @@ import Examples from "./Examples";
 import HeroDemo from "./HeroDemo";
 import ShellTabs from "./ShellTabs";
 import SupportPopup from "./SupportPopup";
+import AccountSection from "./_landing/AccountSection";
+import FinalCta from "./_landing/FinalCta";
+import WhatsNew from "./_landing/WhatsNew";
+import landing from "./_landing/landing.module.css";
 
-const INSTALL_COMMAND = "pipx install git+https://github.com/Waddle-io/ezShell.git";
+const INSTALL_COMMAND = "pipx install ezshell";
 const GITHUB_URL = "https://github.com/Waddle-io/ezShell";
 
 const SITE_URL = "https://ezshell.vercel.app";
@@ -71,7 +75,7 @@ const SENT = [
 const NEVER = [
   "tes mots de passe, clés API, jetons et clés privées : masqués avant l'envoi, puis une seconde fois sur le serveur",
   "ton historique, tes fichiers, tes variables d'environnement",
-  "le contenu de tes requêtes : le service ne garde qu'un jeton d'appareil haché et des compteurs de quota",
+  "le contenu de tes requêtes : le service ne garde qu'un identifiant d'appareil anonyme et des compteurs de quota",
 ];
 
 const FAQ = [
@@ -84,12 +88,20 @@ const FAQ = [
     "Non. ezShell passe par son propre service, qui détient la clé. Ton appareil reçoit un jeton anonyme au premier usage, avec un quota quotidien gratuit.",
   ],
   [
+    "Faut-il créer un compte ?",
+    "Non. ezShell fonctionne dès l'installation, avec un identifiant d'appareil anonyme et un quota quotidien gratuit. Le compte sert à suivre ce quota et à gérer tes appareils depuis le site.",
+  ],
+  [
     "Et si je pose une question au lieu d'avoir une erreur ?",
     "Tape ta demande dans la ligne de saisie (« trouver les fichiers de plus de 1 Go »), puis Alt+E : ezShell la traduit en commande.",
   ],
   [
     "Comment avoir un diagnostic plus précis ?",
     "Lance la commande via ezsh run -- <commande>. La fin de sa sortie d'erreur est alors gardée (et masquée) pour le diagnostic.",
+  ],
+  [
+    "Comment mettre à jour ezShell ?",
+    "Lance ezsh --update. ezShell affiche les nouveautés, demande confirmation (la réponse par défaut est non), puis met à jour.",
   ],
   [
     "Comment le désinstaller ?",
@@ -108,8 +120,10 @@ export default function Home() {
           </a>
           <nav aria-label="Navigation principale">
             <a href="#exemples">Exemples</a>
+            <a href="#nouveautes">Nouveautés</a>
             <a href="#confidentialite">Confidentialité</a>
             <a href="#installation">Installation</a>
+            <a className={landing.navLogin} href="/login">Se connecter</a>
             <a className="nav-github" href={GITHUB_URL} target="_blank" rel="noreferrer">
               GitHub <ArrowIcon />
             </a>
@@ -182,6 +196,10 @@ export default function Home() {
           </ol>
         </section>
 
+        <WhatsNew />
+
+        <AccountSection />
+
         <section className="section shell" id="confidentialite" aria-labelledby="privacy-title">
           <div className="section-intro">
             <p className="eyebrow">confidentialité</p>
@@ -235,6 +253,8 @@ export default function Home() {
             ))}
           </div>
         </section>
+
+        <FinalCta installCommand={INSTALL_COMMAND} />
       </main>
 
       <footer className="site-footer">

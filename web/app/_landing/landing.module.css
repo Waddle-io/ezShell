@@ -1,0 +1,35 @@
+/* Styles propres à la page d'accueil (CSS Module : rien ne fuit vers les autres pages).
+   Les couleurs viennent des variables de globals.css (--bg, --muted, --accent…). */
+
+/* Lien « Se connecter » du menu : reste visible sur mobile, où globals.css masque les autres liens. */
+header nav a.navLogin {
+  padding: 6px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  color: var(--text);
+}
+header nav a.navLogin:hover { border-color: var(--accent); }
+
+/* Nouveautés : liste à filets, comme un journal des modifications. */
+.news { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--border); }
+.newsItem { display: grid; gap: 6px; padding: 20px 0; border-bottom: 1px solid var(--border); }
+.newsTitle { margin: 0; font-size: 17px; font-weight: 600; line-height: 1.35; }
+.newsText { margin: 0; max-width: 68ch; color: var(--muted); font-size: 15px; }
+.newsText code { padding: 1px 5px; border-radius: 4px; background: var(--surface-raised); color: var(--text); font-size: 0.9em; }
+
+/* Compte : bouton d'action sous les deux colonnes. */
+.accountActions { margin-top: 24px; }
+
+/* Appel à l'action final. */
+.cta { display: grid; gap: 24px; padding: 28px 20px; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--surface); }
+.cta h2 { margin: 0 0 8px; font-size: clamp(24px, 4.5vw, 32px); line-height: 1.2; letter-spacing: -0.02em; }
+.cta p { margin: 0; color: var(--muted); }
+.ctaAction { display: grid; gap: 12px; min-width: 0; }
+.ctaAction a { color: var(--muted); font-size: 14px; }
+
+@media (min-width: 760px) {
+  .newsItem { grid-template-columns: 260px 1fr; gap: 32px; }
+}
+@media (min-width: 900px) {
+  .cta { grid-template-columns: 1fr minmax(0, 480px); align-items: center; gap: 40px; padding: 40px; }
+}
