@@ -8,6 +8,21 @@ Comment publier : mettre à jour `src/__init__.py` et ce fichier, passer la vers
 `"status": "released"` dans `web/data/releases.json`, pousser le tag `vX.Y.Z`
 (la CI publie sur PyPI), puis déployer le site.
 
+## 0.3.3
+
+### À noter en premier
+
+- La connexion au site change : vous serez déconnecté une seule fois et devrez vous reconnecter. Vos terminaux déjà connectés avec `ezsh login` continuent de fonctionner, sans rien refaire.
+
+### Nouveautés
+
+- Nouveau système de connexion web (lien magique par e-mail ou GitHub), plus sûr et plus fiable.
+- Connexion d'un terminal : après vous être connecté sur la page d'activation, vous approuvez explicitement le code affiché, ce qui évite qu'un lien piégé connecte l'appareil d'un tiers.
+
+### Corrections
+
+- Les liens de connexion envoyés par e-mail pointent toujours vers l'adresse officielle du site.
+
 ## 0.3.2
 
 ### À noter en premier
