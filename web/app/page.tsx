@@ -6,6 +6,7 @@ import ShellTabs from "./ShellTabs";
 import SupportPopup from "./SupportPopup";
 import AccountSection from "./_landing/AccountSection";
 import FinalCta from "./_landing/FinalCta";
+import PipxHelp from "./_landing/PipxHelp";
 import WhatsNew from "./_landing/WhatsNew";
 import landing from "./_landing/landing.module.css";
 
@@ -143,6 +144,7 @@ export default function Home() {
               <code><span className="prompt">$</span> {INSTALL_COMMAND}</code>
               <CopyButton value={INSTALL_COMMAND} label="Copier la commande d'installation" />
             </div>
+            <PipxHelp />
             <div className="hero-links">
               <a className="button-link" href="#installation">Installer en 2 minutes <ArrowIcon /></a>
               <a className="text-link" href={GITHUB_URL} target="_blank" rel="noreferrer">Code source sur GitHub</a>
@@ -230,6 +232,7 @@ export default function Home() {
                 <code>{INSTALL_COMMAND}</code>
                 <CopyButton value={INSTALL_COMMAND} label="Copier la commande d'installation" compact />
               </div>
+              <PipxHelp />
             </div>
             <div className="install-step">
               <span className="step-number">2 · brancher sur ton shell</span>

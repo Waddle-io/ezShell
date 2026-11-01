@@ -33,3 +33,12 @@ header nav a.navLogin:hover { border-color: var(--accent); }
 @media (min-width: 900px) {
   .cta { grid-template-columns: 1fr minmax(0, 480px); align-items: center; gap: 40px; padding: 40px; }
 }
+
+/* Aide « pipx n'est pas installé ? » : repliée par défaut. */
+.pipx { margin-top: 14px; max-width: 100%; color: var(--muted); font-size: 14px; }
+.pipx summary { width: fit-content; padding: 4px 0; cursor: pointer; }
+.pipx summary:hover, .pipx[open] summary { color: var(--text); }
+.pipxList { display: grid; gap: 14px; margin: 10px 0 0; padding: 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.pipxList dt { margin-bottom: 6px; color: var(--text); font-size: 13px; font-weight: 600; }
+.pipxList dd { margin: 0; }
+.pipxNote { margin: 12px 0 8px; }
