@@ -28,21 +28,19 @@ from src.core.safety import RiskLevel, SafetyReport
 CHAT_CSS = """
 Screen {
     align: center middle;
-    background: #060913 85%;
+    background: #0B0F17 80%;
 }
 
 #dialog-container {
-    width: 88%;
-    max-width: 108;
-    height: 86%;
-    max-height: 38;
-    background: #0B0F19;
-    border: round #00E5FF;
-    border-title-color: #00E5FF;
+    width: 90%;
+    max-width: 104;
+    height: 84%;
+    max-height: 36;
+    background: #0D1117;
+    border: round #3B82F6;
+    border-title-color: #F8FAFC;
     border-title-style: bold;
     border-title-align: left;
-    border-subtitle-color: #94A3B8;
-    border-subtitle-align: right;
     padding: 0 1;
 }
 
@@ -50,86 +48,86 @@ Screen {
     height: 1;
     margin: 0;
     padding: 0 1;
-    color: #94A3B8;
+    color: #64748B;
     border-bottom: solid #1E293B;
 }
 
 #chat-scroll {
     height: 1fr;
-    scrollbar-color: #00E5FF #0F172A;
+    scrollbar-color: #3B82F6 #111827;
     scrollbar-size: 1 1;
     padding: 1 0;
 }
 
 .welcome-card {
-    background: #0D1527;
-    border: round #00E5FF;
-    border-title-color: #00E5FF;
+    background: #111827;
+    border: round #1E293B;
+    border-title-color: #3B82F6;
     border-title-style: bold;
     padding: 1;
     margin-bottom: 1;
 }
 
 .welcome-desc {
-    color: #FFFFFF;
+    color: #94A3B8;
 }
 
 .welcome-examples {
-    color: #FACC15;
+    color: #93C5FD;
     margin-top: 1;
 }
 
 .user-bubble {
-    background: #111A2E;
-    border: round #00E5FF;
-    border-title-color: #00E5FF;
+    background: #111827;
+    border: round #1E293B;
+    border-title-color: #94A3B8;
     border-title-style: bold;
     padding: 0 1;
     margin-bottom: 1;
 }
 
 .user-text {
-    color: #FFFFFF;
+    color: #F8FAFC;
     padding: 0;
 }
 
 .ai-bubble {
-    background: #0C1222;
-    border: round #C084FC;
-    border-title-color: #C084FC;
+    background: #0E172A;
+    border: round #2563EB;
+    border-title-color: #3B82F6;
     border-title-style: bold;
     padding: 0 1;
     margin-bottom: 1;
 }
 
 .loading-tag {
-    color: #C084FC;
+    color: #3B82F6;
     text-style: bold;
     margin: 0 1;
 }
 
 .cmd-container {
-    background: #020617;
-    border: round #00FF88;
-    border-title-color: #00FF88;
+    background: #090D14;
+    border: round #1E293B;
+    border-title-color: #3B82F6;
     border-title-style: bold;
     padding: 0 1;
     margin-top: 1;
 }
 
 .cmd-container-danger {
-    background: #020617;
-    border: round #FF2A6D;
-    border-title-color: #FF2A6D;
+    background: #170A0F;
+    border: round #EF4444;
+    border-title-color: #EF4444;
     border-title-style: bold;
     padding: 0 1;
     margin-top: 1;
 }
 
 .cmd-code {
-    color: #00FF88;
+    color: #93C5FD;
     text-style: bold;
-    background: #0F172A;
+    background: #090D14;
     padding: 0 1;
     margin: 1 0;
 }
@@ -141,40 +139,53 @@ Screen {
 }
 
 .run-btn {
-    background: #00FF88;
-    color: #0B0F19;
+    background: #3B82F6;
+    color: #FFFFFF;
     text-style: bold;
-    border: round #00FF88;
+    border: none;
     margin-right: 1;
 }
 
+.run-btn:hover {
+    background: #2563EB;
+}
+
 .run-btn-danger {
-    background: #FF2A6D;
+    background: #EF4444;
     color: #FFFFFF;
     text-style: bold;
-    border: round #FF2A6D;
+    border: none;
     margin-right: 1;
+}
+
+.run-btn-danger:hover {
+    background: #DC2626;
 }
 
 .copy-btn {
     background: #1E293B;
     color: #94A3B8;
-    border: round #334155;
+    border: none;
+}
+
+.copy-btn:hover {
+    background: #334155;
+    color: #F8FAFC;
 }
 
 .exec-result {
-    background: #050D1A;
-    border: round #00FF88;
-    border-title-color: #00FF88;
+    background: #090D14;
+    border: round #10B981;
+    border-title-color: #10B981;
     border-title-style: bold;
     padding: 0 1;
     margin-top: 1;
 }
 
 .exec-result-err {
-    background: #14070D;
-    border: round #FF2A6D;
-    border-title-color: #FF2A6D;
+    background: #170A0F;
+    border: round #EF4444;
+    border-title-color: #EF4444;
     border-title-style: bold;
     padding: 0 1;
     margin-top: 1;
@@ -193,35 +204,42 @@ Screen {
 
 #chat-input {
     width: 1fr;
-    background: #111A2E;
-    color: #FFFFFF;
-    border: round #00E5FF;
+    background: #0F172A;
+    color: #F8FAFC;
+    border: round #1E293B;
 }
 
 #chat-input:focus {
-    border: round #C084FC;
+    border: round #3B82F6;
 }
 
 #send-btn {
     width: 12;
-    background: #00E5FF;
-    color: #0B0F19;
+    background: #1E293B;
+    color: #CBD5E1;
     text-style: bold;
-    border: round #00E5FF;
+    border: round #334155;
     margin-left: 1;
+}
+
+#send-btn:hover {
+    background: #3B82F6;
+    color: #FFFFFF;
+    border: round #3B82F6;
 }
 
 #shortcuts-bar {
     height: 1;
-    color: #94A3B8;
+    color: #64748B;
     padding: 0 1;
-    margin-top: 1;
+    margin-top: 0;
+    margin-bottom: 0;
 }
 
 .api-key-box {
-    background: #111A2E;
-    border: round #FFB800;
-    border-title-color: #FFB800;
+    background: #111827;
+    border: round #F59E0B;
+    border-title-color: #F59E0B;
     border-title-style: bold;
     padding: 1;
     margin: 1 0;
@@ -301,11 +319,11 @@ class CommandBox(Static):
 
         with Container(classes=box_class) as c:
             c.border_title = box_title
-            yield Static(f"  {self.command}", classes="cmd-code")
+            yield Static(f"  $ {self.command}", classes="cmd-code")
 
             with Horizontal(classes="cmd-btn-row"):
                 btn_class = "run-btn-danger" if is_dangerous else "run-btn"
-                btn_label = "Confirm & Run" if is_dangerous else "Run Command"
+                btn_label = "Confirm & Run" if is_dangerous else "↵ Run Command"
                 yield Button(btn_label, classes=f"{btn_class} cmd-action-run")
                 yield Button("Copy to Input", classes="copy-btn cmd-action-copy")
 
@@ -417,9 +435,8 @@ class EzShellChatApp(App):
 
     def compose(self) -> ComposeResult:
         with DraggableDialog(id="dialog-container") as dlg:
-            # 1. Embedded rounded border title and movable hints
-            dlg.border_title = f" {chat_bridge.provider_label(self.provider, self.config)} "
-            dlg.border_subtitle = " [Drag / Alt+Arrows] Move  •  [Esc] Close "
+            # 1. Clean window header without clashing border subtitle
+            dlg.border_title = " ezShell v0.1.0 "
 
             # 2. Context line
             cwd = self.context.current_directory
@@ -427,8 +444,9 @@ class EzShellChatApp(App):
             if cwd.startswith(home):
                 cwd = "~" + cwd[len(home) :]
             branch_info = f" • ⎇ {self.context.git_branch}" if self.context.git_branch else ""
+            prov_str = chat_bridge.provider_label(self.provider, self.config)
             yield Static(
-                f"cwd: {cwd}{branch_info} • shell: {self.context.shell_name}",
+                f"cwd: {cwd}{branch_info} • shell: {self.context.shell_name} • {prov_str}",
                 id="context-bar",
             )
 
@@ -451,17 +469,17 @@ class EzShellChatApp(App):
                             yield Button("Save Key", id="save-key-btn", classes="run-btn")
                 else:
                     with Container(classes="welcome-card") as wc:
-                        wc.border_title = " ezShell AI Terminal Assistant "
+                        wc.border_title = " › ezShell AI Terminal Assistant "
                         yield Static(
                             "Ask questions, explain code or errors, or describe any task you need executed.",
                             classes="welcome-desc",
                         )
                         yield Static(
-                            "Examples:\n"
-                            ' › "How do I find all processes using port 8000?"\n'
-                            ' › "Show disk usage for current folder in human-readable format"\n'
-                            ' › "Revert last commit but keep modified files"\n'
-                            ' › "Clean up unused docker containers and dangling images"',
+                            "Quick Suggestions:\n"
+                            '  • "How do I find all processes using port 8000?"\n'
+                            '  • "Show disk space usage for current folder"\n'
+                            '  • "Safely undo last git commit while keeping local changes"\n'
+                            '  • "Clean up unused docker containers and images"',
                             classes="welcome-examples",
                         )
 
@@ -471,12 +489,12 @@ class EzShellChatApp(App):
                     placeholder="Ask ezShell anything, or describe a command to run... (Enter to send)",
                     id="chat-input",
                 )
-                yield Button("Send ›", id="send-btn")
+                yield Button("↵ Send", id="send-btn")
 
-            # 5. Shortcuts footer
+            # 5. Shortcuts footer (clean single status line, no overlapping border text)
             with Horizontal(id="shortcuts-bar"):
                 yield Static(
-                    " [Enter] Send   [Ctrl+R] Run Latest   [Alt+Arrows / Drag] Move   [Ctrl+L] Clear   [Esc] Close ",
+                    " [bold #94A3B8][↵ Enter][/] Send   [bold #94A3B8][Ctrl+R][/] Run Latest   [bold #94A3B8][Alt+Arrows][/] Move   [bold #94A3B8][Ctrl+L][/] Clear   [bold #94A3B8][Esc][/] Close",
                 )
 
     def on_mount(self) -> None:
