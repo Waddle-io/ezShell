@@ -140,26 +140,30 @@ _STRINGS: dict[str, dict[str, str]] = {
 
     # --- Action Pills ---
     "action_run": {
-        "en": "run",
-        "fr": "executer",
+        "en": "Run",
+        "fr": "Exécuter",
     },
     "action_copy": {
-        "en": "copy",
-        "fr": "copier",
+        "en": "Copy",
+        "fr": "Copier",
     },
     "action_edit": {
-        "en": "edit",
-        "fr": "modifier",
+        "en": "Edit",
+        "fr": "Modifier",
     },
     "action_close": {
-        "en": "close",
-        "fr": "fermer",
+        "en": "Close",
+        "fr": "Fermer",
+    },
+    "action_back": {
+        "en": "Back",
+        "fr": "Retour",
     },
 
     # --- Input Placeholder ---
     "input_placeholder": {
-        "en": "Type a question or error to diagnose... (Enter to ask)",
-        "fr": "Tapez une question ou une erreur à diagnostiquer... (Entrée pour envoyer)",
+        "en": "Ask anything, diagnose an error or describe a task...",
+        "fr": "Posez une question, diagnostiquez une erreur ou décrivez une tâche...",
     },
 
     # --- Command Execution ---

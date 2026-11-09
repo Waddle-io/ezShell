@@ -396,7 +396,7 @@ def main() -> int:
     # Default Mode: Desktop Graphical Window (with fallback to TUI)
     has_display = bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
     if has_display or args.gui:
-        if "DISPLAY" not in os.environ and "WAYLAND_DISPLAY" in os.environ:
+        if not os.environ.get("DISPLAY") and os.environ.get("WAYLAND_DISPLAY"):
             os.environ["DISPLAY"] = ":0"
         try:
             import warnings
@@ -411,7 +411,10 @@ def main() -> int:
             )
             gui_app.mainloop()
             return 0
-        except Exception:
+        except Exception as e:
+            if args.gui:
+                render_error(f"Failed to open GUI window: {e}")
+                return 1
             # If GUI fails to open (e.g. headless or X connection refused), fallback to TUI
             pass
 
