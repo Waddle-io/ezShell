@@ -89,7 +89,7 @@ class MenuPopover(ctk.CTkFrame):
             border_color="#222632",
             border_width=1,
             corner_radius=12,
-            width=268,
+            width=240,
             **kwargs,
         )
         self.app = app
@@ -99,22 +99,7 @@ class MenuPopover(ctk.CTkFrame):
         container = ctk.CTkFrame(self, fg_color="transparent")
         container.pack(fill="both", expand=True, padx=12, pady=12)
 
-        # 1. Rangée Thèmes : Système (Auto), Clair, Sombre avec libellés explicites
-        themes_row = ctk.CTkFrame(container, fg_color="transparent")
-        themes_row.pack(fill="x", pady=(0, 10))
-
-        self.btn_theme_sys = self._create_theme_btn(themes_row, mode="system", label="Système", symbol="◐")
-        self.btn_theme_sys.pack(side="left", expand=True, fill="x", padx=2)
-
-        self.btn_theme_light = self._create_theme_btn(themes_row, mode="light", label="Clair", symbol="☀")
-        self.btn_theme_light.pack(side="left", expand=True, fill="x", padx=2)
-
-        self.btn_theme_dark = self._create_theme_btn(themes_row, mode="dark", label="Sombre", symbol="🌙")
-        self.btn_theme_dark.pack(side="left", expand=True, fill="x", padx=2)
-
-        self._refresh_theme_selection()
-
-        # 2. Rangée Zoom / Échelle : [-] [100%] [+] avec pas de 10% et désactivation aux limites
+        # 1. Rangée Zoom / Échelle : [-] [100%] [+] avec pas de 10% et désactivation aux limites
         zoom_row = ctk.CTkFrame(
             container,
             fg_color="#151821",
@@ -168,43 +153,11 @@ class MenuPopover(ctk.CTkFrame):
         # Séparateur fin
         ctk.CTkFrame(container, fg_color="#1E232E", height=1).pack(fill="x", pady=(0, 8))
 
-        # 3. Liste des options avec raccourcis
+        # 2. Liste des options avec raccourcis
         self._add_menu_item(container, "⚙  Préférences", "Ctrl+,", self.app.open_preferences)
         self._add_menu_item(container, "⌨  Raccourcis clavier", "Ctrl+?", self.app.open_shortcuts)
         self._add_menu_item(container, "↻  Vérifier les mises à jour", "", self.app.check_updates)
         self._add_menu_item(container, "ℹ  À propos d'ezShell", f"v{__version__}", self.app.open_about)
-
-    def _create_theme_btn(self, parent, mode: str, label: str, symbol: str) -> ctk.CTkButton:
-        btn = ctk.CTkButton(
-            parent,
-            text=f"{symbol} {label}",
-            height=28,
-            corner_radius=6,
-            fg_color="#151821",
-            hover_color="#252A36",
-            border_color="#222632",
-            border_width=1,
-            text_color="#94A3B8",
-            font=ctk.CTkFont(family=EzShellDesktopApp.FONT_UI, size=10, weight="bold"),
-            command=lambda: self._select_theme(mode),
-        )
-        return btn
-
-    def _select_theme(self, mode: str) -> None:
-        self.app.set_theme(mode)
-        self._refresh_theme_selection()
-
-    def _refresh_theme_selection(self) -> None:
-        mode = self.app.current_theme
-        for btn, btn_mode in (
-            (self.btn_theme_sys, "system"),
-            (self.btn_theme_light, "light"),
-            (self.btn_theme_dark, "dark"),
-        ):
-            if btn_mode == mode:
-                btn.configure(border_color="#38BDF8", border_width=1.5, fg_color="#1E293B", text_color="#FFFFFF")
-            else:
-                btn.configure(border_color="#222632", border_width=1, fg_color="#151821", text_color="#94A3B8")
 
     def _refresh_zoom_state(self) -> None:
         percent = int(round(self.app.scale_factor * 100))
