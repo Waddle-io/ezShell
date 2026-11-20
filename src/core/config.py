@@ -119,6 +119,8 @@ class EzShellConfig:
     anthropic_api_key: Optional[str] = None
     ollama_base_url: str = "http://localhost:11434"
     keybindings: dict = field(default_factory=dict)
+    theme: str = "dark"
+    gui_scale: float = 1.0
 
     def get_keybindings(self):
         from src.core.keybindings import KeybindingConfig
@@ -199,7 +201,7 @@ class EzShellConfig:
             "groq_api_key", "model", "temperature", "max_tokens",
             "auto_suggest_fix", "stream_explanation", "max_history_items",
             "provider", "openai_api_key", "anthropic_api_key", "ollama_base_url",
-            "keybindings",
+            "keybindings", "theme", "gui_scale",
         }
         filtered_data = {k: v for k, v in data.items() if k in valid_keys}
 

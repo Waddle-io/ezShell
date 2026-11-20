@@ -34,7 +34,13 @@ except ImportError:
 from src import __version__
 from src.core import chat_bridge
 from src.core.assistant import ChatMessageResult
-from src.core.config import EzShellConfig
+from src.core.config import EzShellConfig, PROVIDER_DEFAULT_MODELS, SUPPORTED_PROVIDERS
+from src.core.keybindings import (
+    KeybindingConfig,
+    RESERVED_SYSTEM_KEYS,
+    check_key_conflict,
+    normalize_key,
+)
 from src.core.context import SystemContext, get_last_exit_code, get_last_shell_command
 from src.core.provider import get_provider
 from src.core.pty_shell import PTYExecutor
@@ -83,7 +89,7 @@ class MenuPopover(ctk.CTkFrame):
             border_color="#222632",
             border_width=1,
             corner_radius=12,
-            width=240,
+            width=268,
             **kwargs,
         )
         self.app = app
@@ -91,91 +97,95 @@ class MenuPopover(ctk.CTkFrame):
 
     def _build_content(self) -> None:
         container = ctk.CTkFrame(self, fg_color="transparent")
-        container.pack(fill="both", expand=True, padx=14, pady=14)
+        container.pack(fill="both", expand=True, padx=12, pady=12)
 
-        # 1. Rangée Thèmes : Système (Auto), Clair, Sombre
+        # 1. Rangée Thèmes : Système (Auto), Clair, Sombre avec libellés explicites
         themes_row = ctk.CTkFrame(container, fg_color="transparent")
-        themes_row.pack(fill="x", pady=(0, 12))
+        themes_row.pack(fill="x", pady=(0, 10))
 
-        self.btn_theme_sys = self._create_theme_circle(themes_row, mode="system", label="Auto", symbol="🌓")
-        self.btn_theme_sys.pack(side="left", expand=True, padx=4)
+        self.btn_theme_sys = self._create_theme_btn(themes_row, mode="system", label="Système", symbol="◐")
+        self.btn_theme_sys.pack(side="left", expand=True, fill="x", padx=2)
 
-        self.btn_theme_light = self._create_theme_circle(themes_row, mode="light", label="Clair", symbol="☀️")
-        self.btn_theme_light.pack(side="left", expand=True, padx=4)
+        self.btn_theme_light = self._create_theme_btn(themes_row, mode="light", label="Clair", symbol="☀")
+        self.btn_theme_light.pack(side="left", expand=True, fill="x", padx=2)
 
-        self.btn_theme_dark = self._create_theme_circle(themes_row, mode="dark", label="Sombre", symbol="🌙")
-        self.btn_theme_dark.pack(side="left", expand=True, padx=4)
+        self.btn_theme_dark = self._create_theme_btn(themes_row, mode="dark", label="Sombre", symbol="🌙")
+        self.btn_theme_dark.pack(side="left", expand=True, fill="x", padx=2)
 
         self._refresh_theme_selection()
 
-        # 2. Rangée Zoom / Échelle : [-] [100%] [+]
+        # 2. Rangée Zoom / Échelle : [-] [100%] [+] avec pas de 10% et désactivation aux limites
         zoom_row = ctk.CTkFrame(
             container,
             fg_color="#151821",
             border_color="#222632",
             border_width=1,
             corner_radius=8,
-            height=34,
+            height=32,
         )
-        zoom_row.pack(fill="x", pady=(0, 12))
+        zoom_row.pack(fill="x", pady=(0, 10))
         zoom_row.pack_propagate(False)
 
-        btn_minus = ctk.CTkButton(
+        self.btn_minus = ctk.CTkButton(
             zoom_row,
             text="−",
-            width=32,
-            height=28,
+            width=28,
+            height=26,
             fg_color="transparent",
             hover_color="#232734",
             text_color="#CBD5E1",
             font=ctk.CTkFont(family=EzShellDesktopApp.FONT_UI, size=15, weight="bold"),
             command=self.app.zoom_out,
         )
-        btn_minus.pack(side="left", padx=3, pady=3)
+        self.btn_minus.pack(side="left", padx=2, pady=3)
 
-        self.zoom_lbl = ctk.CTkLabel(
+        self.zoom_btn = ctk.CTkButton(
             zoom_row,
-            text=f"{int(self.app.scale_factor * 100)}%",
+            text=f"{int(round(self.app.scale_factor * 100))}%",
+            fg_color="transparent",
+            hover_color="#232734",
             text_color="#CBD5E1",
             font=ctk.CTkFont(family=EzShellDesktopApp.FONT_UI, size=11, weight="bold"),
+            command=self.app.reset_zoom,
         )
-        self.zoom_lbl.pack(side="left", fill="x", expand=True)
+        self.zoom_btn.pack(side="left", fill="both", expand=True)
 
-        btn_plus = ctk.CTkButton(
+        self.btn_plus = ctk.CTkButton(
             zoom_row,
             text="+",
-            width=32,
-            height=28,
+            width=28,
+            height=26,
             fg_color="transparent",
             hover_color="#232734",
             text_color="#CBD5E1",
             font=ctk.CTkFont(family=EzShellDesktopApp.FONT_UI, size=15, weight="bold"),
             command=self.app.zoom_in,
         )
-        btn_plus.pack(side="right", padx=3, pady=3)
+        self.btn_plus.pack(side="right", padx=2, pady=3)
+
+        self._refresh_zoom_state()
 
         # Séparateur fin
-        ctk.CTkFrame(container, fg_color="#1E232E", height=1).pack(fill="x", pady=(0, 10))
+        ctk.CTkFrame(container, fg_color="#1E232E", height=1).pack(fill="x", pady=(0, 8))
 
         # 3. Liste des options avec raccourcis
         self._add_menu_item(container, "⚙  Préférences", "Ctrl+,", self.app.open_preferences)
         self._add_menu_item(container, "⌨  Raccourcis clavier", "Ctrl+?", self.app.open_shortcuts)
-        self._add_menu_item(container, "↻  Vérifier les MàJ", "", self.app.check_updates)
+        self._add_menu_item(container, "↻  Vérifier les mises à jour", "", self.app.check_updates)
         self._add_menu_item(container, "ℹ  À propos d'ezShell", f"v{__version__}", self.app.open_about)
 
-    def _create_theme_circle(self, parent, mode: str, label: str, symbol: str) -> ctk.CTkButton:
+    def _create_theme_btn(self, parent, mode: str, label: str, symbol: str) -> ctk.CTkButton:
         btn = ctk.CTkButton(
             parent,
-            text=symbol,
-            width=40,
-            height=40,
-            corner_radius=20,
+            text=f"{symbol} {label}",
+            height=28,
+            corner_radius=6,
             fg_color="#151821",
             hover_color="#252A36",
             border_color="#222632",
             border_width=1,
-            text_color="#F8FAFC",
-            font=ctk.CTkFont(family=EzShellDesktopApp.FONT_UI, size=14),
+            text_color="#94A3B8",
+            font=ctk.CTkFont(family=EzShellDesktopApp.FONT_UI, size=10, weight="bold"),
             command=lambda: self._select_theme(mode),
         )
         return btn
@@ -192,9 +202,21 @@ class MenuPopover(ctk.CTkFrame):
             (self.btn_theme_dark, "dark"),
         ):
             if btn_mode == mode:
-                btn.configure(border_color="#94A3B8", border_width=1.5, fg_color="#1E232E")
+                btn.configure(border_color="#38BDF8", border_width=1.5, fg_color="#1E293B", text_color="#FFFFFF")
             else:
-                btn.configure(border_color="#222632", border_width=1, fg_color="#151821")
+                btn.configure(border_color="#222632", border_width=1, fg_color="#151821", text_color="#94A3B8")
+
+    def _refresh_zoom_state(self) -> None:
+        percent = int(round(self.app.scale_factor * 100))
+        self.zoom_btn.configure(text=f"{percent}%")
+        if self.app.scale_factor <= 0.7:
+            self.btn_minus.configure(state="disabled", text_color="#475569")
+        else:
+            self.btn_minus.configure(state="normal", text_color="#CBD5E1")
+        if self.app.scale_factor >= 1.5:
+            self.btn_plus.configure(state="disabled", text_color="#475569")
+        else:
+            self.btn_plus.configure(state="normal", text_color="#CBD5E1")
 
     def _add_menu_item(self, parent, label: str, shortcut: str, command) -> None:
         item = ctk.CTkFrame(parent, fg_color="transparent", height=28, corner_radius=6)
@@ -283,13 +305,24 @@ class EzShellDesktopApp(ctk.CTk):
         initial_query: Optional[str] = None,
         error_context: Optional[str] = None,
     ):
-        ctk.set_appearance_mode("dark")
-        ctk.set_default_color_theme("blue")
-        super().__init__()
-
         self.config = config or EzShellConfig.load()
         self.context = SystemContext.collect()
         self.provider = get_provider(self.config)
+
+        # Thème et Échelle mémorisés
+        self.current_theme = getattr(self.config, "theme", "dark") or "dark"
+        raw_scale = getattr(self.config, "gui_scale", 1.0) or 1.0
+        self.scale_factor = raw_scale if (0.7 <= raw_scale <= 1.5) else 1.0
+
+        ctk.set_appearance_mode(self.current_theme)
+        ctk.set_default_color_theme("blue")
+        if self.scale_factor != 1.0:
+            try:
+                ctk.set_widget_scaling(self.scale_factor)
+            except Exception:
+                pass
+
+        super().__init__()
 
         # État
         self.current_query = initial_query or ""
@@ -309,10 +342,6 @@ class EzShellDesktopApp(ctk.CTk):
             self.last_exit_code = None
 
         self.is_loading = False
-
-        # Thème et Échelle
-        self.current_theme = "dark"
-        self.scale_factor = 1.0
 
         # Menu Popover instance
         self.menu_popover: Optional[MenuPopover] = None
@@ -337,6 +366,9 @@ class EzShellDesktopApp(ctk.CTk):
 
         # Raccourcis globaux
         self.bind("<Escape>", lambda e: self.destroy())
+        self.bind("<Control-comma>", lambda e: self.open_preferences())
+        self.bind("<Control-question>", lambda e: self.open_shortcuts())
+        self.bind("<Control-slash>", lambda e: self.open_shortcuts())
         self.bind("<KeyPress>", self._handle_global_key)
         self.bind("<Button-1>", self._on_global_click, add="+")
 
@@ -1088,162 +1120,572 @@ class EzShellDesktopApp(ctk.CTk):
     # -----------------------------------------------------------------------
 
     def set_theme(self, mode: str) -> None:
-        """Change le thème de l'application (system, light, dark)."""
+        """Change le thème de l'application et mémorise le choix entre les sessions."""
         self.current_theme = mode
+        self.config.theme = mode
+        try:
+            self.config.save()
+        except Exception:
+            pass
         ctk.set_appearance_mode(mode)
 
     def zoom_in(self) -> None:
-        """Agrandit l'échelle d'affichage."""
-        if self.scale_factor < 1.4:
+        """Agrandit l'échelle d'affichage jusqu'à 150% maximum."""
+        if self.scale_factor < 1.45:
             self.scale_factor = round(self.scale_factor + 0.1, 1)
-            ctk.set_widget_scaling(self.scale_factor)
-            if hasattr(self, "menu_popover") and self.menu_popover:
-                self.menu_popover.zoom_lbl.configure(text=f"{int(self.scale_factor * 100)}%")
+            self._apply_scaling()
 
     def zoom_out(self) -> None:
-        """Réduit l'échelle d'affichage."""
-        if self.scale_factor > 0.7:
+        """Réduit l'échelle d'affichage jusqu'à 70% minimum."""
+        if self.scale_factor > 0.75:
             self.scale_factor = round(self.scale_factor - 0.1, 1)
+            self._apply_scaling()
+
+    def reset_zoom(self) -> None:
+        """Remet l'échelle par défaut (100%)."""
+        self.scale_factor = 1.0
+        self._apply_scaling()
+
+    def _apply_scaling(self) -> None:
+        try:
             ctk.set_widget_scaling(self.scale_factor)
-            if hasattr(self, "menu_popover") and self.menu_popover:
-                self.menu_popover.zoom_lbl.configure(text=f"{int(self.scale_factor * 100)}%")
+        except Exception:
+            pass
+        self.config.gui_scale = self.scale_factor
+        try:
+            self.config.save()
+        except Exception:
+            pass
+        if hasattr(self, "menu_popover") and self.menu_popover is not None:
+            self.menu_popover._refresh_zoom_state()
 
     def open_preferences(self) -> None:
-        """Affiche un panneau de préférences propre et structuré style Hyprland."""
-        from src.core.suggest import detect_lang
-        lang = detect_lang()
-        lang_str = "Français (FR)" if lang == "fr" else "English (US)"
-        prov_str = chat_bridge.provider_label(self.provider, self.config)
-        model_str = self.config.get_effective_model()
-        shell_str = self.context.shell_name or "sh"
-
-        modal = self._create_modal_frame("⚙  Préférences", width=540, height=360)
+        """Affiche un panneau de préférences interactif et soigné (Ctrl+,)."""
+        modal = self._create_modal_frame("⚙  Préférences", width=560, height=430)
 
         content = ctk.CTkFrame(modal, fg_color="transparent")
-        content.pack(fill="both", expand=True, padx=18, pady=(2, 14))
+        content.pack(fill="both", expand=True, padx=20, pady=(4, 14))
 
         # Section 1 : Fournisseur & Modèle
         self._add_pref_section_header(content, "FOURNISSEUR & MODÈLE IA")
         card1 = ctk.CTkFrame(content, fg_color="#141724", border_color=self.COLOR_BORDER, border_width=1, corner_radius=8)
         card1.pack(fill="x", pady=(0, 10))
 
-        self._add_pref_row(card1, "Fournisseur actif", prov_str, badge_color=self.COLOR_SUCCESS, badge_prefix="● ")
-        self._add_pref_divider(card1)
-        self._add_pref_row(card1, "Modèle d'inférence", model_str, badge_color=self.COLOR_PRIMARY)
+        row1 = ctk.CTkFrame(card1, fg_color="transparent", height=32)
+        row1.pack(fill="x", padx=12, pady=5)
+        ctk.CTkLabel(row1, text="Fournisseur IA actif", text_color="#CBD5E1", font=ctk.CTkFont(family=self.FONT_UI, size=11)).pack(side="left")
 
-        # Section 2 : Système & Langue
-        self._add_pref_section_header(content, "ENVIRONNEMENT SYSTÈME")
+        provider_var = ctk.StringVar(value=self.config.provider)
+        opt_provider = ctk.CTkOptionMenu(
+            row1,
+            values=SUPPORTED_PROVIDERS,
+            variable=provider_var,
+            width=130,
+            height=26,
+            fg_color="#1F2433",
+            button_color="#2B3247",
+            button_hover_color="#3B4663",
+            font=ctk.CTkFont(family=self.FONT_UI, size=11),
+        )
+        opt_provider.pack(side="right")
+
+        self._add_pref_divider(card1)
+
+        row2 = ctk.CTkFrame(card1, fg_color="transparent", height=32)
+        row2.pack(fill="x", padx=12, pady=5)
+        ctk.CTkLabel(row2, text="Modèle d'inférence", text_color="#CBD5E1", font=ctk.CTkFont(family=self.FONT_UI, size=11)).pack(side="left")
+
+        model_entry = ctk.CTkEntry(
+            row2,
+            width=220,
+            height=26,
+            fg_color="#0F121C",
+            border_color="#2B3247",
+            text_color="#FFFFFF",
+            font=ctk.CTkFont(family=self.FONT_CODE, size=10),
+        )
+        model_entry.insert(0, self.config.get_effective_model())
+        model_entry.pack(side="right")
+
+        def _on_provider_change(val):
+            default_mod = PROVIDER_DEFAULT_MODELS.get(val, "openai/gpt-oss-120b")
+            model_entry.delete(0, "end")
+            model_entry.insert(0, default_mod)
+
+        opt_provider.configure(command=_on_provider_change)
+
+        # Section 2 : Comportement & Télémétrie
+        self._add_pref_section_header(content, "COMPORTEMENT & ASSISTANCE")
         card2 = ctk.CTkFrame(content, fg_color="#141724", border_color=self.COLOR_BORDER, border_width=1, corner_radius=8)
         card2.pack(fill="x", pady=(0, 10))
 
-        self._add_pref_row(card2, "Langue d'interface", lang_str)
-        self._add_pref_divider(card2)
-        self._add_pref_row(card2, "Shell détecté", shell_str)
+        row3 = ctk.CTkFrame(card2, fg_color="transparent", height=30)
+        row3.pack(fill="x", padx=12, pady=4)
+        ctk.CTkLabel(row3, text="Correction automatique après erreur", text_color="#CBD5E1", font=ctk.CTkFont(family=self.FONT_UI, size=11)).pack(side="left")
+        switch_auto = ctk.CTkSwitch(
+            row3,
+            text="",
+            width=42,
+            progress_color=self.COLOR_PRIMARY,
+        )
+        if self.config.auto_suggest_fix:
+            switch_auto.select()
+        else:
+            switch_auto.deselect()
+        switch_auto.pack(side="right")
 
-        # Section 3 : Astuces CLI
-        self._add_pref_section_header(content, "COMMANDES CLI RAPIDES")
-        tip_box = ctk.CTkFrame(content, fg_color=self.COLOR_CODE, border_color="#1C2132", border_width=1, corner_radius=6)
-        tip_box.pack(fill="x")
-        ctk.CTkLabel(
-            tip_box,
-            text="$ ezsh --set-key <clé>     # Configurer la clé Groq\n"
-                 "$ ezsh --model <modèle>      # Changer de modèle LLM\n"
-                 "$ ezsh shortcuts             # Personnaliser le raccourci Alt+E",
-            text_color="#94A3B8",
-            font=ctk.CTkFont(family=self.FONT_CODE, size=10),
-            justify="left",
+        self._add_pref_divider(card2)
+
+        row4 = ctk.CTkFrame(card2, fg_color="transparent", height=30)
+        row4.pack(fill="x", padx=12, pady=4)
+        ctk.CTkLabel(row4, text="Streaming en direct des explications", text_color="#CBD5E1", font=ctk.CTkFont(family=self.FONT_UI, size=11)).pack(side="left")
+        switch_stream = ctk.CTkSwitch(
+            row4,
+            text="",
+            width=42,
+            progress_color=self.COLOR_PRIMARY,
+        )
+        if self.config.stream_explanation:
+            switch_stream.select()
+        else:
+            switch_stream.deselect()
+        switch_stream.pack(side="right")
+
+        self._add_pref_divider(card2)
+
+        row5 = ctk.CTkFrame(card2, fg_color="transparent", height=30)
+        row5.pack(fill="x", padx=12, pady=4)
+        ctk.CTkLabel(row5, text="Masquage automatique des secrets", text_color="#CBD5E1", font=ctk.CTkFont(family=self.FONT_UI, size=11)).pack(side="left")
+        sec_badge = ctk.CTkLabel(
+            row5,
+            text="● Actif (zero-leak)",
+            text_color=self.COLOR_SUCCESS,
+            font=ctk.CTkFont(family=self.FONT_CODE, size=10, weight="bold"),
+        )
+        sec_badge.pack(side="right")
+
+        # Statut & Actions
+        bottom_bar = ctk.CTkFrame(content, fg_color="transparent")
+        bottom_bar.pack(fill="x", pady=(6, 0))
+
+        status_lbl = ctk.CTkLabel(
+            bottom_bar,
+            text="",
+            font=ctk.CTkFont(family=self.FONT_UI, size=11),
             anchor="w",
-        ).pack(fill="x", padx=12, pady=6)
+        )
+        status_lbl.pack(side="left", fill="x", expand=True)
+
+        def _save_prefs():
+            new_prov = provider_var.get().strip()
+            new_model = model_entry.get().strip()
+            self.config.provider = new_prov
+            if new_model:
+                self.config.model = new_model
+            self.config.auto_suggest_fix = bool(switch_auto.get())
+            self.config.stream_explanation = bool(switch_stream.get())
+            try:
+                self.config.save()
+                self.provider = get_provider(self.config)
+                status_lbl.configure(text="✓ Préférences enregistrées !", text_color=self.COLOR_SUCCESS)
+            except Exception as e:
+                status_lbl.configure(text=f"Erreur : {e}", text_color=self.COLOR_DANGER)
+
+        btn_save = ctk.CTkButton(
+            bottom_bar,
+            text="Enregistrer",
+            width=100,
+            height=28,
+            corner_radius=6,
+            fg_color=self.COLOR_PRIMARY,
+            hover_color=self.COLOR_PRIMARY_HOVER,
+            text_color="#FFFFFF",
+            font=ctk.CTkFont(family=self.FONT_UI, size=11, weight="bold"),
+            command=_save_prefs,
+        )
+        btn_save.pack(side="right", padx=(8, 0))
+
+        btn_close = ctk.CTkButton(
+            bottom_bar,
+            text="Fermer",
+            width=76,
+            height=28,
+            corner_radius=6,
+            fg_color="#181B26",
+            hover_color="#252A3C",
+            border_color="#2B334B",
+            border_width=1,
+            text_color="#CBD5E1",
+            font=ctk.CTkFont(family=self.FONT_UI, size=11),
+            command=modal.destroy,
+        )
+        btn_close.pack(side="right")
 
     def open_shortcuts(self) -> None:
-        """Affiche la liste des raccourcis clavier dans une grille élégante."""
-        modal = self._create_modal_frame("⌨  Raccourcis clavier", width=540, height=350)
+        """Affiche et permet de personnaliser les raccourcis clavier (Ctrl+?)."""
+        modal = self._create_modal_frame("⌨  Raccourcis clavier", width=620, height=480)
 
-        content = ctk.CTkFrame(modal, fg_color="transparent")
-        content.pack(fill="both", expand=True, padx=18, pady=(2, 14))
+        body = ctk.CTkFrame(modal, fg_color="transparent")
+        body.pack(fill="both", expand=True, padx=20, pady=(2, 14))
 
-        card = ctk.CTkFrame(content, fg_color="#141724", border_color=self.COLOR_BORDER, border_width=1, corner_radius=8)
-        card.pack(fill="both", expand=True)
+        current_kb = self.config.get_keybindings()
+        selected_field = ["trigger_key"]
 
-        shortcuts = [
-            ("↵  Entrée", "Valider la question ou exécuter la commande proposée"),
-            ("Esc", "Fermer la fenêtre ezShell ou revenir à l'accueil"),
-            ("Alt + E", "Déclencheur shell interactif inline dans le terminal"),
-            ("c", "Copier la commande recommandée dans le presse-papiers"),
-            ("e", "Placer la commande dans le champ pour la modifier"),
-            ("q", "Quitter immédiatement la fenêtre"),
-        ]
+        # Barre supérieure : Bouton Stylo ✏️ Personnaliser + Bouton Rétablir par défaut
+        top_bar = ctk.CTkFrame(body, fg_color="transparent", height=32)
+        top_bar.pack(fill="x", pady=(0, 10))
 
-        for i, (key, desc) in enumerate(shortcuts):
-            if i > 0:
-                self._add_pref_divider(card)
-            row = ctk.CTkFrame(card, fg_color="transparent", height=28)
-            row.pack(fill="x", padx=12, pady=4)
+        lbl_info = ctk.CTkLabel(
+            top_bar,
+            text="Sélectionnez un raccourci puis cliquez sur le stylo ✏️ pour le modifier",
+            text_color="#94A3B8",
+            font=ctk.CTkFont(family=self.FONT_UI, size=11),
+            anchor="w",
+        )
+        lbl_info.pack(side="left")
 
-            cap = ctk.CTkFrame(row, fg_color="#1A1E2D", border_color="#283045", border_width=1, corner_radius=4)
-            cap.pack(side="left", padx=(0, 10))
+        btn_reset_all = ctk.CTkButton(
+            top_bar,
+            text="↺  Par défaut",
+            width=90,
+            height=26,
+            corner_radius=6,
+            fg_color="#181B26",
+            hover_color="#252A3C",
+            border_color="#2B334B",
+            border_width=1,
+            text_color="#CBD5E1",
+            font=ctk.CTkFont(family=self.FONT_UI, size=10),
+        )
+        btn_reset_all.pack(side="right", padx=(8, 0))
+
+        btn_pen = ctk.CTkButton(
+            top_bar,
+            text="✏️  Personnaliser",
+            width=110,
+            height=26,
+            corner_radius=6,
+            fg_color=self.COLOR_PRIMARY,
+            hover_color=self.COLOR_PRIMARY_HOVER,
+            text_color="#FFFFFF",
+            font=ctk.CTkFont(family=self.FONT_UI, size=10, weight="bold"),
+        )
+        btn_pen.pack(side="right")
+
+        # Conteneur des vues (Liste ou Panneau de modification)
+        view_container = ctk.CTkFrame(body, fg_color="transparent")
+        view_container.pack(fill="both", expand=True)
+
+        desc_map = {
+            "trigger_key": "Déclencheur shell interactif inline",
+            "inline_confirm": "Valider la commande proposée",
+            "inline_edit": "Éditer la commande avant exécution",
+            "inline_copy": "Copier la commande dans le presse-papiers",
+            "inline_ask": "Poser une question en langage naturel",
+            "inline_quit": "Quitter l'assistant ou annuler",
+        }
+
+        def _render_list_view():
+            try:
+                modal.unbind("<KeyPress>")
+            except Exception:
+                pass
+
+            for w in view_container.winfo_children():
+                w.destroy()
+
+            card = ctk.CTkFrame(view_container, fg_color="#141724", border_color=self.COLOR_BORDER, border_width=1, corner_radius=8)
+            card.pack(fill="both", expand=True)
+
+            kb_live = self.config.get_keybindings()
+            rows_data = [
+                ("trigger_key", desc_map["trigger_key"], kb_live.trigger_key),
+                ("inline_confirm", desc_map["inline_confirm"], kb_live.inline_confirm),
+                ("inline_edit", desc_map["inline_edit"], kb_live.inline_edit),
+                ("inline_copy", desc_map["inline_copy"], kb_live.inline_copy),
+                ("inline_ask", desc_map["inline_ask"], kb_live.inline_ask),
+                ("inline_quit", desc_map["inline_quit"], kb_live.inline_quit),
+            ]
+
+            for i, (f_key, desc, key_val) in enumerate(rows_data):
+                if i > 0:
+                    self._add_pref_divider(card)
+                is_sel = (f_key == selected_field[0])
+                bg = "#1E2638" if is_sel else "transparent"
+                border_col = self.COLOR_ACCENT if is_sel else "#141724"
+
+                row = ctk.CTkFrame(card, fg_color=bg, border_color=border_col, border_width=1 if is_sel else 0, corner_radius=6, height=36)
+                row.pack(fill="x", padx=8, pady=3)
+
+                cap = ctk.CTkFrame(row, fg_color="#1A1E2D", border_color="#283045", border_width=1, corner_radius=4)
+                cap.pack(side="left", padx=8, pady=4)
+                ctk.CTkLabel(
+                    cap,
+                    text=key_val,
+                    text_color=self.COLOR_TEXT_KEY,
+                    font=ctk.CTkFont(family=self.FONT_CODE, size=10, weight="bold"),
+                ).pack(padx=8, pady=2)
+
+                lbl_d = ctk.CTkLabel(
+                    row,
+                    text=desc,
+                    text_color="#FFFFFF" if is_sel else self.COLOR_TEXT_MUTED,
+                    font=ctk.CTkFont(family=self.FONT_UI, size=11, weight="bold" if is_sel else "normal"),
+                    anchor="w",
+                )
+                lbl_d.pack(side="left", fill="x", expand=True, padx=6)
+
+                def _make_select(target_key):
+                    def _handler(e):
+                        selected_field[0] = target_key
+                        _render_list_view()
+                    return _handler
+
+                for w in (row, cap, lbl_d):
+                    w.bind("<Button-1>", _make_select(f_key))
+
+        def _open_customizer():
+            f_key = selected_field[0]
+            kb_live = self.config.get_keybindings()
+            current_val = getattr(kb_live, f_key, "")
+            action_desc = desc_map.get(f_key, f_key)
+
+            for w in view_container.winfo_children():
+                w.destroy()
+
+            panel = ctk.CTkFrame(view_container, fg_color="#141724", border_color=self.COLOR_BORDER, border_width=1, corner_radius=10)
+            panel.pack(fill="both", expand=True, padx=4, pady=4)
+
             ctk.CTkLabel(
-                cap,
-                text=key,
-                text_color=self.COLOR_TEXT_KEY,
-                font=ctk.CTkFont(family=self.FONT_UI, size=9, weight="bold"),
-            ).pack(padx=7, pady=1)
-
-            ctk.CTkLabel(
-                row,
-                text=desc,
-                text_color=self.COLOR_TEXT,
-                font=ctk.CTkFont(family=self.FONT_UI, size=10),
+                panel,
+                text=f"Modifier le raccourci : {action_desc}",
+                text_color="#FFFFFF",
+                font=ctk.CTkFont(family=self.FONT_TITLE, size=13, weight="bold"),
                 anchor="w",
-            ).pack(side="left", fill="x", expand=True)
+            ).pack(fill="x", padx=16, pady=(16, 6))
+
+            ctk.CTkLabel(
+                panel,
+                text="Appuyez sur la nouvelle combinaison de touches au clavier (ex : Alt+S, Ctrl+H)...",
+                text_color="#94A3B8",
+                font=ctk.CTkFont(family=self.FONT_UI, size=11),
+                anchor="w",
+            ).pack(fill="x", padx=16, pady=(0, 14))
+
+            captured_key = [current_val]
+            is_valid = [True]
+
+            badge_frame = ctk.CTkFrame(panel, fg_color="#0F121C", border_color="#2A334A", border_width=1, corner_radius=8, height=54)
+            badge_frame.pack(fill="x", padx=16, pady=(0, 12))
+            badge_frame.pack_propagate(False)
+
+            key_display = ctk.CTkLabel(
+                badge_frame,
+                text=current_val,
+                text_color=self.COLOR_ACCENT,
+                font=ctk.CTkFont(family=self.FONT_CODE, size=16, weight="bold"),
+            )
+            key_display.pack(expand=True)
+
+            feedback_lbl = ctk.CTkLabel(
+                panel,
+                text="Prêt à enregistrer.",
+                text_color="#94A3B8",
+                font=ctk.CTkFont(family=self.FONT_UI, size=11),
+                anchor="w",
+            )
+            feedback_lbl.pack(fill="x", padx=16, pady=(0, 16))
+
+            btn_box = ctk.CTkFrame(panel, fg_color="transparent")
+            btn_box.pack(fill="x", padx=16, pady=(0, 16))
+
+            btn_apply = ctk.CTkButton(
+                btn_box,
+                text="Apply",
+                width=100,
+                height=30,
+                corner_radius=6,
+                fg_color=self.COLOR_PRIMARY,
+                hover_color=self.COLOR_PRIMARY_HOVER,
+                text_color="#FFFFFF",
+                font=ctk.CTkFont(family=self.FONT_UI, size=11, weight="bold"),
+            )
+            btn_apply.pack(side="left", padx=(0, 10))
+
+            btn_cancel = ctk.CTkButton(
+                btn_box,
+                text="Annuler",
+                width=80,
+                height=30,
+                corner_radius=6,
+                fg_color="#181B26",
+                hover_color="#252A3C",
+                border_color="#2B334B",
+                border_width=1,
+                text_color="#CBD5E1",
+                font=ctk.CTkFont(family=self.FONT_UI, size=11),
+                command=_render_list_view,
+            )
+            btn_cancel.pack(side="left")
+
+            def _on_key_captured(e):
+                parts = []
+                if e.state & 4 or e.state & 8:
+                    parts.append("Ctrl")
+                if e.state & 8 or e.state & 64:
+                    parts.append("Alt")
+                if e.state & 1:
+                    parts.append("Shift")
+
+                k = e.keysym.lower()
+                if k in ("control_l", "control_r", "alt_l", "alt_r", "shift_l", "shift_r", "caps_lock"):
+                    return
+
+                if k in ("return", "enter"):
+                    clean_k = "Enter"
+                elif k == "escape":
+                    clean_k = "Esc"
+                elif k == "space":
+                    clean_k = "Space"
+                else:
+                    clean_k = k.upper() if len(k) == 1 else k.capitalize()
+
+                if clean_k not in parts:
+                    parts.append(clean_k)
+
+                combo = "+".join(parts)
+                captured_key[0] = combo
+                key_display.configure(text=combo)
+
+                combo_lower = combo.lower()
+                if combo_lower in RESERVED_SYSTEM_KEYS:
+                    feedback_lbl.configure(
+                        text=f"❌ Raccourci réservé : {RESERVED_SYSTEM_KEYS[combo_lower]}",
+                        text_color=self.COLOR_DANGER,
+                    )
+                    btn_apply.configure(state="disabled")
+                    is_valid[0] = False
+                    return
+
+                conflict = None
+                for k_f, desc_text in desc_map.items():
+                    if k_f != f_key and getattr(kb_live, k_f, "").lower() == combo_lower:
+                        conflict = desc_text
+                        break
+
+                if conflict:
+                    feedback_lbl.configure(
+                        text=f"⚠️ Avertissement : déjà utilisé pour '{conflict}'. Il sera remplacé.",
+                        text_color=self.COLOR_WARNING,
+                    )
+                    btn_apply.configure(state="normal")
+                    is_valid[0] = True
+                else:
+                    feedback_lbl.configure(
+                        text="✓ Raccourci valide. Cliquez sur 'Apply' pour enregistrer.",
+                        text_color=self.COLOR_SUCCESS,
+                    )
+                    btn_apply.configure(state="normal")
+                    is_valid[0] = True
+
+            def _apply_new_shortcut():
+                if not is_valid[0] or not captured_key[0]:
+                    return
+                new_key = captured_key[0]
+                setattr(kb_live, f_key, new_key)
+                self.config.set_keybindings(kb_live)
+                try:
+                    self.config.save()
+                except Exception:
+                    pass
+                _render_list_view()
+
+            btn_apply.configure(command=_apply_new_shortcut)
+            modal.bind("<KeyPress>", _on_key_captured)
+
+        def _reset_defaults():
+            default_kb = KeybindingConfig()
+            self.config.set_keybindings(default_kb)
+            try:
+                self.config.save()
+            except Exception:
+                pass
+            _render_list_view()
+
+        btn_pen.configure(command=_open_customizer)
+        btn_reset_all.configure(command=_reset_defaults)
+
+        _render_list_view()
 
     def check_updates(self) -> None:
-        """Vérifie l'état des mises à jour."""
-        try:
-            from src.core.updater import version_hint
-
-            hint = version_hint()
-            msg = hint or f"ezShell v{__version__} est à jour !"
-        except Exception:
-            msg = f"ezShell v{__version__} (version actuelle)"
-
-        modal = self._create_modal_frame("🔄  Mises à jour", width=420, height=220)
+        """Vérifie l'état des mises à jour en toutes lettres avec retour d'état."""
+        modal = self._create_modal_frame("↻  Vérifier les mises à jour", width=460, height=240)
         content = ctk.CTkFrame(modal, fg_color="transparent")
-        content.pack(fill="both", expand=True, padx=20, pady=(10, 16))
+        content.pack(fill="both", expand=True, padx=20, pady=(12, 16))
 
-        card = ctk.CTkFrame(content, fg_color="#141724", border_color=self.COLOR_BORDER, border_width=1, corner_radius=8)
+        card = ctk.CTkFrame(content, fg_color="#141724", border_color=self.COLOR_BORDER, border_width=1, corner_radius=10)
         card.pack(fill="both", expand=True)
 
-        ctk.CTkLabel(
+        icon_lbl = ctk.CTkLabel(
             card,
-            text=f"Version installée : v{__version__}",
-            text_color="#CBD5E1",
-            font=ctk.CTkFont(family=self.FONT_UI, size=11, weight="bold"),
-        ).pack(pady=(16, 6))
+            text="↻",
+            text_color=self.COLOR_ACCENT,
+            font=ctk.CTkFont(family=self.FONT_TITLE, size=24, weight="bold"),
+        )
+        icon_lbl.pack(pady=(20, 6))
 
-        ctk.CTkLabel(
+        status_lbl = ctk.CTkLabel(
             card,
-            text=msg,
-            text_color=self.COLOR_SUCCESS if "à jour" in msg else self.COLOR_ACCENT,
-            font=ctk.CTkFont(family=self.FONT_CODE, size=11),
-        ).pack(pady=(0, 16))
+            text="Vérification en cours...",
+            text_color="#FFFFFF",
+            font=ctk.CTkFont(family=self.FONT_TITLE, size=14, weight="bold"),
+        )
+        status_lbl.pack(pady=(0, 4))
+
+        detail_lbl = ctk.CTkLabel(
+            card,
+            text=f"Version installée : v{__version__}  •  Interrogation des dépôts...",
+            text_color="#94A3B8",
+            font=ctk.CTkFont(family=self.FONT_UI, size=11),
+        )
+        detail_lbl.pack(pady=(0, 16))
+
+        def _do_check():
+            try:
+                from src.core.updater import version_hint
+                hint = version_hint()
+            except Exception:
+                hint = None
+
+            if hint and ("mise à jour" in hint.lower() or "version" in hint.lower()):
+                icon_lbl.configure(text="⬆", text_color=self.COLOR_ACCENT)
+                status_lbl.configure(text="Nouvelle version disponible !")
+                detail_lbl.configure(text=f"{hint}\nExécutez : pipx upgrade ezshell")
+            else:
+                icon_lbl.configure(text="✓", text_color=self.COLOR_SUCCESS)
+                status_lbl.configure(text="Vous êtes à jour")
+                detail_lbl.configure(
+                    text=f"ezShell v{__version__} est la version la plus récente.\nAucune mise à jour nécessaire."
+                )
+
+        self.after(500, _do_check)
 
     def open_about(self) -> None:
         """Affiche les informations À propos d'ezShell façon carte moderne."""
         modal = self._create_modal_frame("ℹ  À propos d'ezShell", width=520, height=360)
 
         content = ctk.CTkFrame(modal, fg_color="transparent")
-        content.pack(fill="both", expand=True, padx=18, pady=(2, 14))
+        content.pack(fill="both", expand=True, padx=20, pady=(4, 16))
 
-        # En-tête avec logo et version
+        # En-tête avec logo, nom et version
         top = ctk.CTkFrame(content, fg_color="transparent")
-        top.pack(fill="x", pady=(0, 6))
+        top.pack(fill="x", pady=(0, 4))
 
         ctk.CTkLabel(
             top,
             text="❯_ ezShell",
             text_color="#FFFFFF",
-            font=ctk.CTkFont(family=self.FONT_TITLE, size=17, weight="bold"),
+            font=ctk.CTkFont(family=self.FONT_TITLE, size=18, weight="bold"),
         ).pack(side="left")
 
         ctk.CTkLabel(
@@ -1253,21 +1695,29 @@ class EzShellDesktopApp(ctk.CTk):
             fg_color="#142233",
             corner_radius=4,
             font=ctk.CTkFont(family=self.FONT_CODE, size=10, weight="bold"),
-            padx=6,
-            pady=1,
-        ).pack(side="left", padx=(8, 0))
+            padx=8,
+            pady=2,
+        ).pack(side="left", padx=(10, 0))
+
+        ctk.CTkLabel(
+            content,
+            text="Made by Waddle Corp",
+            text_color=self.COLOR_ACCENT,
+            font=ctk.CTkFont(family=self.FONT_UI, size=11, weight="bold"),
+            anchor="w",
+        ).pack(fill="x", pady=(0, 6))
 
         ctk.CTkLabel(
             content,
             text="Ton terminal t'explique ses erreurs.",
             text_color=self.COLOR_TEXT_MUTED,
-            font=ctk.CTkFont(family=self.FONT_UI, size=11, weight="bold"),
+            font=ctk.CTkFont(family=self.FONT_UI, size=11),
             anchor="w",
         ).pack(fill="x", pady=(0, 8))
 
         # Tuile de fonctionnalités
         card = ctk.CTkFrame(content, fg_color="#141724", border_color=self.COLOR_BORDER, border_width=1, corner_radius=8)
-        card.pack(fill="x", pady=(0, 8))
+        card.pack(fill="x", pady=(0, 10))
 
         bullets = [
             "Diagnostic immédiat des commandes échouées (FR / EN)",
@@ -1295,7 +1745,7 @@ class EzShellDesktopApp(ctk.CTk):
 
         ctk.CTkLabel(
             foot,
-            text="Licence MIT  •  © 2026 Waddle",
+            text="Licence MIT  •  © 2026 Waddle Corp",
             text_color=self.COLOR_TEXT_DIM,
             font=ctk.CTkFont(family=self.FONT_UI, size=9),
             anchor="w",
@@ -1303,6 +1753,12 @@ class EzShellDesktopApp(ctk.CTk):
 
     def _create_modal_frame(self, title: str, width: int = 540, height: int = 360) -> ctk.CTkFrame:
         """Crée un conteneur modal centré et bien dimensionné style Hyprland."""
+        if hasattr(self, "_active_modal") and self._active_modal is not None and self._active_modal.winfo_exists():
+            try:
+                self._active_modal.destroy()
+            except Exception:
+                pass
+
         modal = ctk.CTkFrame(
             self.main_container,
             fg_color="#0F121C",
@@ -1312,6 +1768,7 @@ class EzShellDesktopApp(ctk.CTk):
             width=width,
             height=height,
         )
+        self._active_modal = modal
         modal.place(relx=0.5, rely=0.5, anchor="center")
         modal.pack_propagate(False)
         modal.lift()
@@ -1328,6 +1785,10 @@ class EzShellDesktopApp(ctk.CTk):
             anchor="w",
         ).pack(side="left")
 
+        def _close_modal():
+            self._active_modal = None
+            modal.destroy()
+
         close_btn = ctk.CTkButton(
             top,
             text="✕",
@@ -1340,12 +1801,12 @@ class EzShellDesktopApp(ctk.CTk):
             border_width=1,
             text_color="#CBD5E1",
             font=ctk.CTkFont(family=self.FONT_UI, size=10, weight="bold"),
-            command=modal.destroy,
+            command=_close_modal,
         )
         close_btn.pack(side="right")
 
         ctk.CTkFrame(modal, fg_color=self.COLOR_BORDER, height=1).pack(fill="x", padx=14, pady=(0, 6))
-        modal.bind("<Escape>", lambda e: modal.destroy())
+        modal.bind("<Escape>", lambda e: _close_modal())
         return modal
 
     def _add_pref_section_header(self, parent, text: str) -> None:

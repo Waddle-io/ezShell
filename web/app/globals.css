@@ -1294,10 +1294,16 @@ nav a:hover {
 }
 
 .login-card {
-  width: min(100%, 380px);
+  width: min(100%, 370px);
   display: flex;
   flex-direction: column;
-  gap: 0;
+  padding: 34px 28px;
+  background: rgba(14, 16, 22, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 14px;
+  box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.03);
 }
 
 /* Logo + wordmark */
@@ -1305,13 +1311,13 @@ nav a:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  margin-bottom: 36px;
+  gap: 10px;
+  margin-bottom: 22px;
 }
 
 .login-wordmark {
   font-family: var(--heading);
-  font-size: 20px;
+  font-size: 19px;
   font-weight: 700;
   letter-spacing: -0.03em;
   color: #ffffff;
@@ -1325,21 +1331,21 @@ nav a:hover {
 
 /* Titre */
 .login-heading {
-  margin-bottom: 28px;
+  margin-bottom: 22px;
   text-align: center;
 }
 
 .login-title {
   font-family: var(--heading);
-  font-size: clamp(22px, 4vw, 28px);
+  font-size: 21px;
   font-weight: 700;
   letter-spacing: -0.03em;
   color: #ffffff;
-  margin: 0 0 8px;
+  margin: 0 0 6px;
 }
 
 .login-subtitle {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-muted);
   margin: 0;
   line-height: 1.5;
@@ -1363,11 +1369,11 @@ nav a:hover {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  padding: 12px 14px;
-  border-radius: 8px;
-  font-size: 13px;
-  line-height: 1.5;
-  margin-bottom: 20px;
+  padding: 10px 12px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin-bottom: 16px;
   border: 1px solid;
 }
 
@@ -1393,32 +1399,37 @@ nav a:hover {
 .login-options {
   display: flex;
   flex-direction: column;
-  gap: 12px;
 }
 
-/* GitHub */
+/* GitHub - bouton plus compact et propre */
 .login-github-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   width: 100%;
-  height: 44px;
-  padding: 0 16px;
-  border-radius: 8px;
-  border: 1px solid var(--border-strong);
-  background: var(--surface-raised);
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
   color: #ffffff;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.15s ease;
   letter-spacing: -0.01em;
 }
 
+.login-github-btn svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
 .login-github-btn:hover {
-  background: var(--surface-hover);
-  border-color: var(--border-focus);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.22);
   transform: translateY(-1px);
 }
 
@@ -1431,9 +1442,9 @@ nav a:hover {
   position: relative;
   display: flex;
   align-items: center;
-  margin: 4px 0;
+  margin: 16px 0;
   color: var(--text-dim);
-  font-size: 11px;
+  font-size: 10.5px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -1442,7 +1453,7 @@ nav a:hover {
 .login-divider::after {
   content: "";
   flex: 1;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .login-divider span {
@@ -1453,17 +1464,17 @@ nav a:hover {
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .login-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 .login-label {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 500;
   color: var(--text-muted);
   letter-spacing: 0.01em;
@@ -1471,13 +1482,13 @@ nav a:hover {
 
 .login-input {
   width: 100%;
-  height: 44px;
-  padding: 0 14px;
-  border-radius: 8px;
-  border: 1px solid var(--border-strong);
-  background: rgba(255, 255, 255, 0.03);
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.02);
   color: #ffffff;
-  font-size: 14px;
+  font-size: 13.5px;
   font-family: var(--sans);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
   box-sizing: border-box;
@@ -1485,11 +1496,12 @@ nav a:hover {
 
 .login-input::placeholder {
   color: var(--text-dim);
+  font-size: 13px;
 }
 
 .login-input:focus {
   outline: none;
-  border-color: rgba(255, 255, 255, 0.28);
+  border-color: rgba(255, 255, 255, 0.32);
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.08);
 }
 
@@ -1500,17 +1512,18 @@ nav a:hover {
   justify-content: center;
   gap: 8px;
   width: 100%;
-  height: 44px;
-  padding: 0 16px;
-  border-radius: 8px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 7px;
   border: none;
   background: #ffffff;
   color: #000000;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   letter-spacing: -0.01em;
-  transition: background 0.15s ease, transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease;
+  margin-top: 2px;
+  transition: all 0.15s ease;
 }
 
 .login-submit-btn:hover:not(:disabled) {
@@ -1543,17 +1556,17 @@ nav a:hover {
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  padding: 32px 0 8px;
+  padding: 24px 0 6px;
   text-align: center;
 }
 
 .login-sent-icon {
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: 10px;
   border: 1px solid var(--border-strong);
   background: var(--surface);
   color: var(--accent);
@@ -1561,7 +1574,7 @@ nav a:hover {
 
 .login-sent-title {
   font-family: var(--heading);
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
   letter-spacing: -0.02em;
   color: #ffffff;
@@ -1569,9 +1582,9 @@ nav a:hover {
 }
 
 .login-sent-desc {
-  font-size: 13.5px;
+  font-size: 13px;
   color: var(--text-muted);
-  line-height: 1.55;
+  line-height: 1.5;
   margin: 0;
   max-width: 280px;
 }
@@ -1581,12 +1594,12 @@ nav a:hover {
 }
 
 .login-back-btn {
-  margin-top: 8px;
+  margin-top: 6px;
   padding: 0;
   border: none;
   background: none;
   color: var(--text-dim);
-  font-size: 12.5px;
+  font-size: 12px;
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -1599,22 +1612,22 @@ nav a:hover {
 
 /* Footnote */
 .login-footnote {
-  margin-top: 32px;
-  font-size: 11.5px;
+  margin-top: 24px;
+  font-size: 11px;
   color: var(--text-dim);
   text-align: center;
-  line-height: 1.6;
+  line-height: 1.55;
 }
 
 .login-footnote a {
-  color: var(--text-dim);
+  color: var(--text-muted);
   text-underline-offset: 2px;
   text-decoration: underline;
   transition: color 0.15s;
 }
 
 .login-footnote a:hover {
-  color: var(--text-muted);
+  color: #ffffff;
 }
 
 /* Legacy auth-* classes preserved for activate & dashboard pages */

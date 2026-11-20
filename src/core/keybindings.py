@@ -14,13 +14,18 @@ import re
 from dataclasses import asdict, dataclass
 from typing import Dict, Optional, Tuple
 
-# Raccourcis réservés au fonctionnement vital du terminal / shell
+# Raccourcis réservés au fonctionnement vital du terminal / shell et du système
 RESERVED_SYSTEM_KEYS = {
     "ctrl+c": "Signal d'interruption système (SIGINT)",
     "ctrl+d": "Fin de fichier / Déconnexion shell (EOF)",
     "ctrl+z": "Suspension de tâche en arrière-plan (SIGTSTP)",
     "ctrl+\\": "Arrêt forcé avec core dump (SIGQUIT)",
     "ctrl+l": "Effacer l'écran du terminal (Clear screen)",
+    "ctrl+t": "Raccourci réservé système / navigateur (Nouvel onglet)",
+    "ctrl+w": "Raccourci réservé système / navigateur (Fermer)",
+    "ctrl+r": "Raccourci réservé système / terminal (Recherche historique / Actualiser)",
+    "ctrl+n": "Raccourci réservé système (Nouvelle fenêtre)",
+    "ctrl+q": "Raccourci réservé système (Quitter)",
     "enter": "Validation de la ligne de commande",
     "return": "Validation de la ligne de commande",
     "tab": "Complétion automatique native du shell",
