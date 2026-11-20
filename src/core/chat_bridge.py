@@ -48,6 +48,8 @@ def ask(
         req.mode = "explain_command"
     else:
         req = build_request(query)
+        if command and not req.last_command:
+            req.last_command = command
 
     s = get_suggestion(req, provider or get_provider())
     parts = [s.response.explanation]

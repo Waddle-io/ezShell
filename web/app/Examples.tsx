@@ -1,95 +1,134 @@
 "use client";
 
 import { useState } from "react";
+import CopyButton from "./CopyButton";
 
-type Risk = "low" | "medium" | "high";
-
-const EXAMPLES: Array<{
+type ExampleItem = {
   id: string;
-  tab: string;
+  tabLabel: string;
   command: string;
   error: string;
   cause: string;
   fix: string;
-  risk: Risk;
+  risk: "low" | "medium" | "high";
+  riskLabel: string;
   note: string;
-}> = [
+};
+
+const EXAMPLES: ExampleItem[] = [
   {
     id: "docker",
-    tab: "Port occupé",
+    tabLabel: "Port alloué",
     command: "docker run -p 8080:80 nginx",
-    error: "Bind for 0.0.0.0:8080 failed: port is already allocated.",
-    cause: "Un autre conteneur écoute déjà sur le port 8080 de ta machine.",
+    error: "docker: Error response from daemon: driver failed programming external connectivity on endpoint: Bind for 0.0.0.0:8080 failed: port is already allocated.",
+    cause: "Un autre processus ou conteneur local est déjà en écoute sur le port 8080.",
     fix: "docker ps --filter publish=8080",
     risk: "low",
-    note: "Commence par identifier le conteneur : ezShell ne propose pas de l'arrêter à l'aveugle.",
+    riskLabel: "Risque faible",
+    note: "ezShell cible le conteneur en conflit plutôt que de forcer un kill aveugle.",
   },
   {
     id: "perm",
-    tab: "Permission refusée",
+    tabLabel: "Permission refusée",
     command: "npm install -g typescript",
-    error: "EACCES: permission denied, mkdir '/usr/lib/node_modules/typescript'",
-    cause: "npm essaie d'écrire dans un dossier système qui appartient à root.",
+    error: "npm ERR! code EACCES\nnpm ERR! syscall mkdir\nnpm ERR! path /usr/lib/node_modules/typescript\nnpm ERR! errno -13\nnpm ERR! Error: EACCES: permission denied",
+    cause: "npm essaie d'écrire dans un répertoire système appartenant à root.",
     fix: "npm config set prefix ~/.npm-global",
     risk: "low",
-    note: "Plutôt que sudo, un préfixe dans ton dossier personnel : rien de système n'est modifié.",
+    riskLabel: "Risque faible",
+    note: "Configure un préfixe dans ton dossier utilisateur sans jamais polluer le système avec sudo.",
   },
   {
-    id: "force",
-    tab: "Push refusé",
-    command: "git push origin feature",
-    error: "! [rejected] feature -> feature (non-fast-forward)",
-    cause: "Après ton rebase, l'historique local ne suit plus celui du serveur.",
-    fix: "git push --force origin feature",
-    risk: "high",
-    note: "Réécrit l'historique distant : ezShell le classe en risque élevé et exige une confirmation (y).",
+    id: "git",
+    tabLabel: "Push rejeté (force)",
+    command: "git push origin main",
+    error: "To github.com:Waddle-io/ezShell.git\n ! [rejected]        main -> main (non-fast-forward)\nerror: failed to push some refs to 'github.com:Waddle-io/ezShell.git'",
+    cause: "L'historique distant a divergé suite à un rebase local.",
+    fix: "git push --force-with-lease origin main",
+    risk: "medium",
+    riskLabel: "Risque moyen",
+    note: "--force-with-lease protège les commits distants créés par d'autres collègues.",
+  },
+  {
+    id: "python",
+    tabLabel: "Module introuvable",
+    command: "python3 app.py",
+    error: "ModuleNotFoundError: No module named 'fastapi'\nTraceback (most recent call last):\n  File \"/home/user/app.py\", line 1, in <module>",
+    cause: "La dépendance fastapi n'est pas installée dans l'environnement virtuel actif.",
+    fix: "pip install fastapi uvicorn",
+    risk: "low",
+    riskLabel: "Risque faible",
+    note: "Détecte automatiquement l'arborescence Python et propose l'installation adéquate.",
   },
 ];
 
-const RISK_LABEL: Record<Risk, string> = { low: "risque faible", medium: "risque moyen", high: "risque élevé" };
-
 export default function Examples() {
-  const [active, setActive] = useState(EXAMPLES[0].id);
-  const ex = EXAMPLES.find((e) => e.id === active) ?? EXAMPLES[0];
+  const [activeId, setActiveId] = useState(EXAMPLES[0].id);
+  const activeEx = EXAMPLES.find((e) => e.id === activeId) ?? EXAMPLES[0];
 
   return (
-    <div className="examples">
-      <div className="tabs" role="tablist" aria-label="Exemples d'erreurs">
-        {EXAMPLES.map((e) => (
+    <div className="examples-wrapper">
+      {/* Onglets épurés style Vercel */}
+      <div className="examples-tabs" role="tablist" aria-label="Cas d'usage concrets">
+        {EXAMPLES.map((ex) => (
           <button
-            key={e.id}
+            key={ex.id}
             role="tab"
+            aria-selected={ex.id === activeId}
+            className={`examples-tab ${ex.id === activeId ? "active" : ""}`}
+            onClick={() => setActiveId(ex.id)}
             type="button"
-            id={`tab-${e.id}`}
-            aria-selected={e.id === active}
-            aria-controls="example-panel"
-            className={e.id === active ? "tab active" : "tab"}
-            onClick={() => setActive(e.id)}
           >
-            <span className={`dot risk-dot-${e.risk}`} />
-            {e.tab}
+            <span>{ex.tabLabel}</span>
           </button>
         ))}
       </div>
-      <div className="example-card" role="tabpanel" id="example-panel" aria-labelledby={`tab-${ex.id}`}>
-        <div className="example-terminal">
-          <div className="line"><span className="t-prompt">$</span> {ex.command}</div>
-          <div className="line t-error">{ex.error}</div>
-        </div>
-        <div className="example-answer">
-          <div className="panel-head">
-            <span>Cause</span>
-            <span className={`risk risk-${ex.risk}`}>{RISK_LABEL[ex.risk]}</span>
+
+      {/* Conteneur terminal split : Erreur à gauche / Diagnostic à droite */}
+      <div className="examples-container">
+        {/* Volet gauche : Commande et sortie d'erreur brute */}
+        <div className="examples-terminal">
+          <div style={{ color: "var(--text-dim)", fontSize: "11px", marginBottom: "12px", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            Terminal brut
           </div>
-          <p className="example-cause">{ex.cause}</p>
-          <div className="panel-command"><span>$</span> {ex.fix}</div>
-          <p className="example-note">{ex.note}</p>
-          <div className="panel-keys">
-            {ex.risk === "high" ? (
-              <><kbd>y</kbd> insérer quand même <kbd>e</kbd> modifier <kbd>q</kbd> fermer</>
-            ) : (
-              <><kbd>Entrée</kbd> insérer <kbd>e</kbd> modifier <kbd>q</kbd> fermer</>
-            )}
+          <div className="term-line">
+            <span className="term-prompt">❯</span> {activeEx.command}
+          </div>
+          <div className="term-line term-error" style={{ marginTop: "10px", whiteSpace: "pre-wrap" }}>
+            {activeEx.error}
+          </div>
+        </div>
+
+        {/* Volet droit : Analyse ezShell et commande recommandée */}
+        <div className="examples-analysis">
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+              <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                Diagnostic ezShell
+              </span>
+              <span className={`diagnostic-risk ${activeEx.risk}`}>
+                {activeEx.riskLabel}
+              </span>
+            </div>
+
+            <p style={{ margin: "0 0 16px", color: "var(--text)", fontSize: "14px", lineHeight: "1.55" }}>
+              {activeEx.cause}
+            </p>
+
+            <div className="diagnostic-cmd-box" style={{ marginBottom: "12px" }}>
+              <code><span style={{ color: "var(--accent)" }}>$</span> {activeEx.fix}</code>
+              <CopyButton value={activeEx.fix} compact label="Copier la commande recommandée" />
+            </div>
+
+            <p style={{ margin: "0", color: "var(--text-muted)", fontSize: "12.5px", lineHeight: "1.5" }}>
+              {activeEx.note}
+            </p>
+          </div>
+
+          <div style={{ marginTop: "24px", paddingTop: "14px", borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", gap: "10px", fontSize: "11px", color: "var(--text-dim)" }}>
+            <span><kbd>Alt+E</kbd> déclencher</span>
+            <span><kbd>↵</kbd> insérer dans le prompt</span>
+            <span><kbd>Esc</kbd> annuler</span>
           </div>
         </div>
       </div>

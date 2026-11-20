@@ -1,20 +1,33 @@
+"use client";
+
 import CopyButton from "../CopyButton";
-import styles from "./landing.module.css";
 
 export default function FinalCta({ installCommand }: { installCommand: string }) {
   return (
     <section className="section shell" aria-labelledby="cta-title">
-      <div className={styles.cta}>
-        <div>
-          <h2 id="cta-title">Essaie-le sur ta prochaine erreur.</h2>
-          <p>L'installation prend deux minutes et ne demande aucun compte.</p>
-        </div>
-        <div className={styles.ctaAction}>
-          <div className="install-box" aria-label="Commande d'installation">
-            <code><span className="prompt">$</span> {installCommand}</code>
-            <CopyButton value={installCommand} label="Copier la commande d'installation" />
+      <div className="cta-box">
+        <h2 id="cta-title" className="cta-title">
+          Reprenez le contrôle de votre terminal.
+        </h2>
+        <p className="cta-desc">
+          L'installation prend 30 secondes. Sans clé d'API obligatoire, sans compte requis et sans télémétrie intrusive.
+        </p>
+
+        <div className="cta-actions">
+          <div className="command-box">
+            <span className="command-box-prompt">$</span>
+            <code className="command-box-code">{installCommand}</code>
+            <CopyButton value={installCommand} label="Copier la commande" />
           </div>
-          <a href="#installation">Voir les étapes d'installation</a>
+
+          <a
+            className="btn-secondary"
+            href="https://github.com/Waddle-io/ezShell"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Explorer sur GitHub
+          </a>
         </div>
       </div>
     </section>

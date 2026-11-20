@@ -1,12 +1,12 @@
-import CopyButton from "../CopyButton";
-import styles from "./landing.module.css";
+"use client";
 
-// Une commande par système : installe pipx puis ajoute son dossier au PATH.
+import CopyButton from "../CopyButton";
+
 const PIPX_COMMANDS = [
-  ["Debian, Ubuntu, Parrot", "sudo apt install pipx && pipx ensurepath"],
-  ["macOS", "brew install pipx && pipx ensurepath"],
+  ["Debian / Ubuntu", "sudo apt install pipx && pipx ensurepath"],
+  ["macOS (Homebrew)", "brew install pipx && pipx ensurepath"],
   ["Fedora", "sudo dnf install pipx && pipx ensurepath"],
-  ["Arch", "sudo pacman -S python-pipx && pipx ensurepath"],
+  ["Arch Linux", "sudo pacman -S python-pipx && pipx ensurepath"],
   ["Windows (PowerShell)", "py -m pip install --user pipx; py -m pipx ensurepath"],
 ] as const;
 
@@ -14,29 +14,35 @@ const ONE_LINE_INSTALLER = "curl -fsSL https://raw.githubusercontent.com/Waddle-
 
 export default function PipxHelp() {
   return (
-    <details className={styles.pipx}>
-      <summary>pipx n'est pas installé ?</summary>
-      <dl className={styles.pipxList}>
-        {PIPX_COMMANDS.map(([system, command]) => (
-          <div key={system}>
-            <dt>{system}</dt>
-            <dd>
-              <div className="code-line">
-                <code>{command}</code>
-                <CopyButton value={command} label={`Copier la commande d'installation de pipx (${system})`} compact />
-              </div>
-            </dd>
+    <details style={{ marginTop: "16px", fontSize: "13px", color: "var(--text-muted)" }}>
+      <summary style={{ cursor: "pointer", color: "var(--text-dim)", userSelect: "none" }}>
+        <span>pipx n'est pas encore installé ?</span>
+      </summary>
+
+      <div style={{ marginTop: "12px", padding: "16px", borderRadius: "8px", background: "var(--surface)", border: "1px solid var(--border)" }}>
+        <p style={{ margin: "0 0 12px", fontSize: "13px" }}>
+          Installez pipx sur votre système en une commande :
+        </p>
+
+        <div style={{ display: "grid", gap: "8px" }}>
+          {PIPX_COMMANDS.map(([sys, cmd]) => (
+            <div key={sys} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", padding: "6px 10px", background: "var(--code)", border: "1px solid var(--border)", borderRadius: "6px" }}>
+              <span style={{ fontSize: "12px", color: "var(--text-dim)", minWidth: "140px" }}>{sys}</span>
+              <code style={{ fontSize: "12px", color: "var(--code-text)", flex: 1, overflowX: "auto" }}>{cmd}</code>
+              <CopyButton value={cmd} compact label={`Copier pour ${sys}`} />
+            </div>
+          ))}
+        </div>
+
+        <div style={{ marginTop: "14px", paddingTop: "12px", borderTop: "1px solid var(--border)" }}>
+          <p style={{ margin: "0 0 8px", fontSize: "12.5px" }}>
+            Option alternative sous Linux & macOS : l'installateur autonome sans pipx :
+          </p>
+          <div className="install-code-line">
+            <code>{ONE_LINE_INSTALLER}</code>
+            <CopyButton value={ONE_LINE_INSTALLER} compact label="Copier l'installateur autonome" />
           </div>
-        ))}
-      </dl>
-      <p className={styles.pipxNote}>Ferme et rouvre ton terminal, puis lance la commande d'installation d'ezShell.</p>
-      <p className={styles.pipxNote}>
-        Autre option sous Linux et macOS : l'installateur en une ligne, qui n'a pas besoin de pipx. Il installe la version
-        de développement depuis GitHub et demande Python 3.10 ou plus récent, ainsi que git.
-      </p>
-      <div className="code-line">
-        <code>{ONE_LINE_INSTALLER}</code>
-        <CopyButton value={ONE_LINE_INSTALLER} label="Copier la commande de l'installateur en une ligne" compact />
+        </div>
       </div>
     </details>
   );
