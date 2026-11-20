@@ -20,9 +20,8 @@ from typing import Optional
 # Suppress spurious CustomTkinter HighDPI warning when using native tk.PhotoImage
 warnings.filterwarnings("ignore", message=".*Given image is not CTkImage.*")
 
+
 import customtkinter as ctk
-import tkinter as tk
-from PIL import Image
 
 try:
     from PIL import ImageTk
@@ -34,19 +33,16 @@ except ImportError:
 from src import __version__
 from src.core import chat_bridge
 from src.core.assistant import ChatMessageResult
-from src.core.config import EzShellConfig, PROVIDER_DEFAULT_MODELS, SUPPORTED_PROVIDERS
+from src.core.config import PROVIDER_DEFAULT_MODELS, SUPPORTED_PROVIDERS, EzShellConfig
+from src.core.context import SystemContext, get_last_shell_command
 from src.core.keybindings import (
-    KeybindingConfig,
     RESERVED_SYSTEM_KEYS,
-    check_key_conflict,
-    normalize_key,
+    KeybindingConfig,
 )
-from src.core.context import SystemContext, get_last_exit_code, get_last_shell_command
 from src.core.provider import get_provider
 from src.core.pty_shell import PTYExecutor
 from src.core.safety import RiskLevel
 from src.i18n import t
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -1281,7 +1277,6 @@ class EzShellDesktopApp(ctk.CTk):
         body = ctk.CTkFrame(modal, fg_color="transparent")
         body.pack(fill="both", expand=True, padx=20, pady=(2, 14))
 
-        current_kb = self.config.get_keybindings()
         selected_field = ["trigger_key"]
 
         # Barre supérieure : Bouton Stylo ✏️ Personnaliser + Bouton Rétablir par défaut
