@@ -3,10 +3,10 @@
 Fenêtre de bureau moderne, concise et épurée pour ezShell.
 Design inspiré des standards de Raycast, Warp et macOS Spotlight :
 - Bouton '···' dans le coin supérieur droit ouvrant le menu popover
-- Menu popover avec sélecteur de thème (Auto/Clair/Sombre), zoom (- / +) et options (Préférences, Raccourcis, À propos)
-- Barre de saisie épurée avec prompt chevron, placeholder persistant et badge keycap [↵]
-- Carte de contexte avec boutons en pilules (🩺 Diagnostiquer l'erreur, 📄 Expliquer la commande)
-- Footer avec badges de touches keycaps dédiés ([↵], [Esc], [Alt+E])
+- Menu popover : Préférences, Raccourcis, Mises à jour, À propos
+- Barre de saisie épurée avec prompt chevron et badge keycap [↵]
+- Carte de contexte (🩺 Diagnostiquer / 📄 Expliquer)
+- Footer dynamique avec badges keycaps ([↵], [Esc], [Alt+E])
 """
 from __future__ import annotations
 
@@ -22,13 +22,6 @@ warnings.filterwarnings("ignore", message=".*Given image is not CTkImage.*")
 
 
 import customtkinter as ctk
-
-try:
-    from PIL import ImageTk
-    HAS_IMAGETK = True
-except ImportError:
-    ImageTk = None
-    HAS_IMAGETK = False
 
 from src import __version__
 from src.core import chat_bridge
@@ -139,7 +132,6 @@ class MenuPopover(ctk.CTkFrame):
             lbl_sc.bind("<Enter>", _hover_enter)
             lbl_sc.bind("<Leave>", _hover_leave)
             lbl_sc.bind("<Button-1>", _click)
-            lbl_sc.bind("<Button-1>", _click)
 
 
 # ---------------------------------------------------------------------------
@@ -189,18 +181,9 @@ class EzShellDesktopApp(ctk.CTk):
         self.context = SystemContext.collect()
         self.provider = get_provider(self.config)
 
-        # Thème et Échelle mémorisés
-        self.current_theme = getattr(self.config, "theme", "dark") or "dark"
-        raw_scale = getattr(self.config, "gui_scale", 1.0) or 1.0
-        self.scale_factor = raw_scale if (0.7 <= raw_scale <= 1.5) else 1.0
-
-        ctk.set_appearance_mode(self.current_theme)
+        # Thème sombre par défaut
+        ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("blue")
-        if self.scale_factor != 1.0:
-            try:
-                ctk.set_widget_scaling(self.scale_factor)
-            except Exception:
-                pass
 
         super().__init__()
 
@@ -304,9 +287,8 @@ class EzShellDesktopApp(ctk.CTk):
         hdr = ctk.CTkFrame(self.main_container, fg_color="transparent", height=30)
         hdr.pack(fill="x", pady=(0, 6))
 
-        for w in (hdr,):
-            w.bind("<ButtonPress-1>", self._start_drag)
-            w.bind("<B1-Motion>", self._on_drag)
+        hdr.bind("<ButtonPress-1>", self._start_drag)
+        hdr.bind("<B1-Motion>", self._on_drag)
 
         # Gauche : Logo '>_' en gras blanc + ezShell
         left = ctk.CTkFrame(hdr, fg_color="transparent")
@@ -999,16 +981,6 @@ class EzShellDesktopApp(ctk.CTk):
     # Fonctions du Menu Popover
     # -----------------------------------------------------------------------
 
-    def set_theme(self, mode: str) -> None:
-        """Change le thème de l'application et mémorise le choix entre les sessions."""
-        self.current_theme = mode
-        self.config.theme = mode
-        try:
-            self.config.save()
-        except Exception:
-            pass
-        ctk.set_appearance_mode(mode)
-
     def open_preferences(self) -> None:
         """Affiche un panneau de préférences épuré et structuré (Ctrl+,)."""
         modal = self._create_modal_frame("⚙  Préférences", width=520, height=330)
@@ -1414,7 +1386,6 @@ class EzShellDesktopApp(ctk.CTk):
             except Exception:
                 pass
 
-
     def _on_submit_input(self) -> None:
         query = self.input_entry.get().strip() if hasattr(self, "input_entry") else ""
         if not query:
@@ -1438,8 +1409,8 @@ class EzShellDesktopApp(ctk.CTk):
         if hasattr(self, "_active_modal") and self._active_modal is not None and self._active_modal.winfo_exists():
             self._close_modal()
             return "break"
-        if hasattr(self, "menu_popover") and self.menu_popover is not None and self.menu_popover.is_open:
-            self.menu_popover.close()
+        if hasattr(self, "menu_popover") and self.menu_popover is not None and self.menu_popover.winfo_ismapped():
+            self.hide_menu()
             return "break"
         self.destroy()
         return "break"
