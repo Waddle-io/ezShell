@@ -62,6 +62,7 @@ function createAuth() {
         githubLogin: { type: "string", required: false, input: false, fieldName: "github_login" },
         dailyLimitOverride: { type: "number", required: false, input: false, fieldName: "daily_limit_override" },
         overrideExpiresAt: { type: "date", required: false, input: false, fieldName: "override_expires_at" },
+        newsletterOptIn: { type: "boolean", required: false, defaultValue: false, input: true, fieldName: "newsletter_opt_in" },
       },
     },
 
@@ -118,11 +119,15 @@ function createAuth() {
         create: {
           before: async (user) => {
             const email = (user.email ?? "").toLowerCase();
+            const waitlist = email
+              ? await getPool().query(`SELECT 1 FROM waitlist WHERE lower(email) = $1 LIMIT 1`, [email])
+              : { rowCount: 0 };
             return {
               data: {
                 ...user,
                 email,
                 name: user.name || email.split("@")[0] || "",
+                newsletterOptIn: (waitlist.rowCount ?? 0) > 0,
                 // Bootstrap admin : ADMIN_EMAILS (même règle qu'avant).
                 role: email && env.adminEmails.includes(email) ? "admin" : "user",
               },

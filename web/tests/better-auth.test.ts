@@ -70,11 +70,11 @@ describe("connexion par lien magique", () => {
 
   it("garde l'id, le plan et les appareils d'un compte existant", async () => {
     await db.query(
-      `INSERT INTO users (id, email, plan, email_verified) VALUES ('legacy-user-1', 'bob@example.com', 'premium', true)`,
+      `INSERT INTO users (id, email, plan, email_verified) VALUES ('legacy-user-1', 'bob@example.com', 'silver', true)`,
     );
     const { cookie } = await signInWithMagicLink("bob@example.com");
     const user = await getWebSessionUser(cookie);
-    expect(user).toMatchObject({ id: "legacy-user-1", plan: "premium" });
+    expect(user).toMatchObject({ id: "legacy-user-1", plan: "silver" });
     expect((await db.query("SELECT count(*)::int AS n FROM users")).rows[0].n).toBe(1);
   });
 
@@ -173,9 +173,9 @@ describe("rôle admin (ADMIN_EMAILS)", () => {
   });
 
   it("lie un compte créé par `npm run admin -- user create` (e-mail non vérifié) à la première connexion", async () => {
-    await db.query(`INSERT INTO users (id, email, plan) VALUES ('pre-1', 'pre@example.com', 'premium')`);
+    await db.query(`INSERT INTO users (id, email, plan) VALUES ('pre-1', 'pre@example.com', 'silver')`);
     const { cookie } = await signInWithMagicLink("pre@example.com");
-    expect(await getWebSessionUser(cookie)).toMatchObject({ id: "pre-1", plan: "premium" });
+    expect(await getWebSessionUser(cookie)).toMatchObject({ id: "pre-1", plan: "silver" });
     expect((await db.query("SELECT email_verified FROM users WHERE id = 'pre-1'")).rows[0].email_verified).toBe(true);
   });
 });

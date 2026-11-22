@@ -10,8 +10,6 @@ const PIPX_COMMANDS = [
   ["Windows (PowerShell)", "py -m pip install --user pipx; py -m pipx ensurepath"],
 ] as const;
 
-const ONE_LINE_INSTALLER = "curl -fsSL https://raw.githubusercontent.com/Waddle-io/ezShell/main/install.sh | bash";
-
 export default function PipxHelp() {
   return (
     <details style={{ marginTop: "16px", fontSize: "13px", color: "var(--text-muted)" }}>
@@ -32,16 +30,6 @@ export default function PipxHelp() {
               <CopyButton value={cmd} compact label={`Copier pour ${sys}`} />
             </div>
           ))}
-        </div>
-
-        <div style={{ marginTop: "14px", paddingTop: "12px", borderTop: "1px solid var(--border)" }}>
-          <p style={{ margin: "0 0 8px", fontSize: "12.5px" }}>
-            Option alternative sous Linux & macOS : l'installateur autonome sans pipx :
-          </p>
-          <div className="install-code-line">
-            <code>{ONE_LINE_INSTALLER}</code>
-            <CopyButton value={ONE_LINE_INSTALLER} compact label="Copier l'installateur autonome" />
-          </div>
         </div>
       </div>
     </details>

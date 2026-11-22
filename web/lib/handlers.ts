@@ -2,7 +2,7 @@ import { env, missingConfig } from "./env";
 import { getPool } from "./db";
 import { buildPrompts, GroqProvider, UpstreamError, type LLMProvider, type LLMResult } from "./llm";
 import { fingerprint, recordAsk, type Outcome } from "./metrics";
-import { entitlement, UNLIMITED, type AuthedDevice, type Entitlement } from "./plans";
+import { entitlement, ANONYMOUS_PLAN, type AuthedDevice, type Entitlement } from "./plans";
 import { nextUtcMidnight, readDaily, refundDaily, takeDaily, takeWindow } from "./quota";
 import { redact } from "./redact";
 import { AskRequest, InvalidModelResponse, parseModelJson } from "./schema";
@@ -20,6 +20,13 @@ const unavailable = (): Result => ({ status: 503, body: { error: "unavailable" }
 const unauthorized = (): Result => ({ status: 401, body: { error: "unauthorized" } });
 const banned = (): Result => ({ status: 403, body: { error: "banned" } });
 
+async function expireStudentPlans(pool: ReturnType<typeof getPool>): Promise<void> {
+  await pool.query(
+    `UPDATE users SET plan = 'free', plan_expires_at = NULL
+     WHERE plan = 'student' AND plan_expires_at IS NOT NULL AND plan_expires_at <= now()`,
+  );
+}
+
 /** Ajoute la dernière version publiée à une réponse : la CLI s'en sert pour son rappel quotidien. */
 function withVersion(r: Result, s: Settings): Result {
   return { ...r, headers: { ...r.headers, "x-ezsh-latest": latestReleased(s.latestVersion) } };
@@ -32,9 +39,10 @@ export async function authenticate(authHeader: string | null): Promise<AuthedDev
   const r = await getPool().query(
     `WITH d AS (
        UPDATE devices SET last_seen_at = now()
-       WHERE token_hash = $1 AND revoked_at IS NULL RETURNING id, user_id
+       WHERE token_hash = $1 AND revoked_at IS NULL RETURNING id, user_id, ip_hash
      )
-     SELECT d.id, d.user_id, u.plan, u.status, u.daily_limit_override, u.override_expires_at
+     SELECT d.id, d.user_id, d.ip_hash, u.plan, u.status, u.daily_limit_override, u.override_expires_at,
+            u.plan_started_at, u.plan_expires_at
      FROM d LEFT JOIN users u ON u.id = d.user_id`,
     [hashToken(token)],
   );
@@ -51,7 +59,7 @@ export async function registerDevice(ip: string): Promise<Result> {
   const token = newDeviceToken();
   await pool.query(`INSERT INTO devices (token_hash, ip_hash) VALUES ($1, $2)`, [hashToken(token), ipHash]);
   const s = await loadSettings(pool);
-  return { status: 201, body: { device_token: token, limits: { daily: s.anonymousLimit } } };
+  return { status: 201, body: { device_token: token, limits: { daily: ANONYMOUS_PLAN.dailyQuota } } };
 }
 
 /** GET /version : publique. Dernière version publiée, version minimale, notes cumulées depuis `from`. */
@@ -69,19 +77,20 @@ export async function me(authHeader: string | null): Promise<Result> {
   const device = await authenticate(authHeader);
   if (!device) return unauthorized();
   const pool = getPool();
+  await expireStudentPlans(pool);
   const s = await loadSettings(pool);
   const ent = entitlement(device, s);
   if (ent.banned) return withVersion(banned(), s);
-  const unlimited = ent.tier === "unlimited";
-  const used = unlimited ? 0 : await readDaily(pool, ent.subjectType, ent.subjectId);
+  const used = await readDaily(pool, ent.subjectType, ent.subjectId);
   return withVersion(
     {
       status: 200,
       body: {
         kind: ent.tier === "anonymous" ? "anonymous" : "account",
         plan: ent.tier,
-        limits: { daily: unlimited ? null : ent.limit },
-        remaining: unlimited ? null : Math.max(0, ent.limit - used),
+        limits: { daily: ent.limit },
+        remaining: Math.max(0, ent.limit - used),
+        used_today: used,
         reset_at: nextUtcMidnight(),
       },
     },
@@ -104,6 +113,7 @@ export async function ask(
   const device = await authenticate(authHeader);
   if (!device) return unauthorized();
   const pool = getPool();
+  await expireStudentPlans(pool);
   const settings = await loadSettings(pool);
   return withVersion(await askAuthed(device, settings, rawBody, llm), settings);
 }
@@ -139,10 +149,20 @@ async function askAuthed(device: AuthedDevice, settings: Settings, rawBody: unkn
   const daily = await takeDaily(pool, ent.subjectType, ent.subjectId, ent.limit);
   if (!daily.ok) {
     await refused("refused_quota");
-    return { status: 429, body: { scope: ent.tier === "anonymous" ? "anonymous" : ent.tier, reset_at: nextUtcMidnight() } };
+    return {
+      status: 429,
+      body: {
+        error: "quota_reached",
+        message: "Quota journalier atteint.",
+        scope: ent.tier,
+        quota: ent.limit,
+        used: ent.limit,
+        reset_at: nextUtcMidnight(),
+        upgrade: ent.tier === "free" || ent.tier === "anonymous",
+      },
+    };
   }
-  // Les comptes illimités (équipe) ne sont jamais bloqués par le plafond global, mais restent comptés.
-  const global = await takeDaily(pool, "global", "all", ent.tier === "unlimited" ? UNLIMITED : settings.globalCap);
+  const global = await takeDaily(pool, "global", "all", settings.globalCap);
   if (!global.ok) {
     await refundDaily(pool, ent.subjectType, ent.subjectId);
     await refused("refused_global");
@@ -187,7 +207,7 @@ async function askAuthed(device: AuthedDevice, settings: Settings, rawBody: unkn
           promptTokens: promptTokens || null, completionTokens: completionTokens || null,
         });
         const headers: Record<string, string> =
-          ent.tier === "unlimited" ? {} : { "x-ezsh-remaining": String(Math.max(0, ent.limit - daily.count)) };
+          { "x-ezsh-remaining": String(Math.max(0, ent.limit - daily.count)) };
         return { status: 200, body: { ...answer }, headers };
       } catch (err) {
         if (!(err instanceof InvalidModelResponse)) throw err; // sinon : un nouvel essai, puis échec propre

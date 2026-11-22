@@ -22,11 +22,9 @@ export default function FinalCta({ installCommand }: { installCommand: string })
 
           <a
             className="btn-secondary"
-            href="https://github.com/Waddle-io/ezShell"
-            target="_blank"
-            rel="noreferrer"
+            href="mailto:waddle.support@gmail.com"
           >
-            Explorer sur GitHub
+            Nous contacter
           </a>
         </div>
       </div>

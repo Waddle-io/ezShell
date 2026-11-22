@@ -27,22 +27,13 @@ function GitHubIcon() {
   );
 }
 
-function EzShellIcon() {
-  return (
-    <svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true">
-      <rect x="1" y="1" width="30" height="30" rx="7.5" fill="#111318" stroke="rgba(255,255,255,0.14)" strokeWidth="1"/>
-      <path d="M 9.9 20.85 L 12.41 14.12 L 9.9 7.3 L 6.78 7.3 L 9.29 14.08 L 6.78 20.85 Z" fill="#38bdf8"/>
-      <path d="M 16.31 23.42 L 25.22 23.42 L 25.22 21.32 L 16.31 21.32 Z" fill="#38bdf8"/>
-    </svg>
-  );
-}
-
 function LoginContent() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [userCode, setUserCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [newsletterOptIn, setNewsletterOptIn] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
@@ -64,6 +55,13 @@ function LoginContent() {
     setMessage(null);
 
     try {
+      if (newsletterOptIn) {
+        await fetch("/api/v1/waitlist", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, source: "login" }),
+        });
+      }
       const { error } = await authClient.signIn.magicLink({ email, callbackURL, errorCallbackURL });
       if (error) {
         setMessage({ type: "error", text: error.message || "Échec de l'envoi." });
@@ -80,6 +78,11 @@ function LoginContent() {
   async function handleGithub() {
     setMessage(null);
     try {
+      if (newsletterOptIn) {
+        localStorage.setItem("ezshell_newsletter_optin", "true");
+      } else {
+        localStorage.removeItem("ezshell_newsletter_optin");
+      }
       const { error } = await authClient.signIn.social({ provider: "github", callbackURL, errorCallbackURL });
       if (error) {
         setMessage({
@@ -100,7 +103,13 @@ function LoginContent() {
 
         {/* Logo + wordmark */}
         <div className="login-brand-block">
-          <EzShellIcon />
+          <img
+            className="login-brand-icon"
+            src="/assets/app-icon/ezshell-app-icon.png"
+            alt=""
+            width={32}
+            height={32}
+          />
           <Link href="/" className="login-wordmark">ezShell</Link>
         </div>
 
@@ -174,6 +183,14 @@ function LoginContent() {
                   autoComplete="email"
                 />
               </div>
+              <label className="login-newsletter">
+                <input
+                  type="checkbox"
+                  checked={newsletterOptIn}
+                  onChange={(e) => setNewsletterOptIn(e.target.checked)}
+                />
+                <span>Je veux être prévenu des mises à jour</span>
+              </label>
               <button type="submit" disabled={loading} className="login-submit-btn">
                 {loading ? (
                   <>

@@ -35,7 +35,9 @@ version = { attr = "src.__version__" }
 where = ["."]
 include = ["src*"]
 
+[tool.setuptools.package-data]
+"src" = ["assets/*.png"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-

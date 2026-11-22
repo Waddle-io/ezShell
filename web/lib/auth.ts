@@ -27,10 +27,12 @@ export interface UserRecord {
   github_id: string | null;
   github_login: string | null;
   role: "user" | "admin";
-  plan: "free" | "premium" | "unlimited";
+  plan: "free" | "silver" | "gold" | "student";
   daily_limit_override: number | null;
   override_expires_at: Date | null;
   status: "active" | "banned";
+  plan_started_at: Date | null;
+  plan_expires_at: Date | null;
   created_at: Date;
 }
 
@@ -196,7 +198,8 @@ export async function approveDeviceAuthorization(userCode: string, userId: strin
 }
 
 const USER_COLUMNS = `u.id, u.email, u.github_id, u.github_login, u.role, u.plan,
-            u.daily_limit_override, u.override_expires_at, u.status, u.created_at`;
+            u.daily_limit_override, u.override_expires_at, u.status, u.created_at,
+            u.plan_started_at, u.plan_expires_at`;
 
 /** Cookie de session Better Auth (préfixe « ezsh », préfixé par __Secure- en HTTPS). */
 const BETTER_AUTH_COOKIE = /(?:^|;\s*)(?:__Secure-)?ezsh\.session_token=/;
@@ -217,6 +220,11 @@ async function loadUserRecord(userId: string): Promise<UserRecord | null> {
   const res = await pool.query(`SELECT ${USER_COLUMNS} FROM users u WHERE u.id = $1`, [userId]);
   if (!res.rowCount) return null;
   const user = res.rows[0] as UserRecord;
+  if (user.plan === "student" && user.plan_expires_at && user.plan_expires_at <= new Date()) {
+    await pool.query(`UPDATE users SET plan = 'free', plan_expires_at = NULL WHERE id = $1`, [user.id]);
+    user.plan = "free";
+    user.plan_expires_at = null;
+  }
 
   // Si l'email est dans env.adminEmails, accorder le rôle admin
   if (user.email && env.adminEmails.includes(user.email.toLowerCase()) && user.role !== "admin") {

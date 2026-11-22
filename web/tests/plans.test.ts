@@ -14,7 +14,7 @@ async function newToken(ip = "1.2.3.4"): Promise<string> {
 }
 
 /** Rattache l'appareil du jeton à un utilisateur du plan donné. */
-async function accountFor(plan: "free" | "premium" | "unlimited", extra = ""): Promise<string> {
+async function accountFor(plan: "free" | "silver" | "gold" | "student", extra = ""): Promise<string> {
   const t = await newToken(`10.0.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}`);
   const u = (await db.query(`INSERT INTO users (id, email, plan ${extra ? ", " + extra.split("=")[0] : ""}) VALUES (gen_random_uuid()::text, $1, $2 ${extra ? ", " + extra.split("=")[1] : ""}) RETURNING id`,
     [`u${Math.random()}@x.io`, plan])).rows[0].id;
@@ -30,56 +30,51 @@ beforeEach(async () => {
 });
 
 describe("plans et limites", () => {
-  it("gratuit : limite du compte ; premium : limite premium", async () => {
+  it("gratuit : 5 requêtes ; silver : 35 requêtes", async () => {
     const free = await accountFor("free");
-    const prem = await accountFor("premium");
-    expect((await me(auth(free))).body).toMatchObject({ kind: "account", plan: "free", limits: { daily: 20 }, remaining: 20 });
-    expect((await me(auth(prem))).body).toMatchObject({ kind: "account", plan: "premium", limits: { daily: 30 }, remaining: 30 });
+    const silver = await accountFor("silver");
+    expect((await me(auth(free))).body).toMatchObject({ kind: "account", plan: "free", limits: { daily: 5 }, remaining: 5 });
+    expect((await me(auth(silver))).body).toMatchObject({ kind: "account", plan: "silver", limits: { daily: 35 }, remaining: 35 });
   });
 
-  it("le quota premium est bien appliqué (429 avec scope premium)", async () => {
-    setupEnv({ PREMIUM_DAILY_LIMIT: "2" });
-    const t = await accountFor("premium");
+  it("le quota gold est bien appliqué", async () => {
+    setupEnv({ BURST_PER_MINUTE: "1000" });
+    const t = await accountFor("gold");
     const llm = new FakeLLM();
-    expect((await ask(auth(t), body(), llm)).status).toBe(200);
-    expect((await ask(auth(t), body(), llm)).status).toBe(200);
+    for (let i = 0; i < 150; i++) expect((await ask(auth(t), body(), llm)).status).toBe(200);
     const blocked = await ask(auth(t), body(), llm);
     expect(blocked.status).toBe(429);
-    expect(blocked.body.scope).toBe("premium");
-  });
+    expect(blocked.body).toMatchObject({ quota: 150, used: 150, scope: "gold" });
+  }, 60000);
 
-  it("illimité : pas de quota journalier, mais la rafale s'applique toujours", async () => {
+  it("gold reste soumis uniquement au quota gold et à la rafale", async () => {
     setupEnv({ BURST_PER_MINUTE: "4" });
-    const t = await accountFor("unlimited");
+    const t = await accountFor("gold");
     const llm = new FakeLLM();
     const rs = [];
     for (let i = 0; i < 6; i++) rs.push(await ask(auth(t), body(), llm));
     expect(rs.slice(0, 4).every((r) => r.status === 200)).toBe(true);
     expect(rs[4].status).toBe(429);
     expect(rs[4].body.scope).toBe("burst");
-    expect((await me(auth(t))).body).toMatchObject({ plan: "unlimited", limits: { daily: null }, remaining: null });
+    expect((await me(auth(t))).body).toMatchObject({ plan: "gold", limits: { daily: 150 }, remaining: 146 });
   });
 
-  it("illimité : n'est pas bloqué par le plafond global", async () => {
+  it("gold n'est pas bloqué par un plafond spécifique ancien", async () => {
     setupEnv({ GLOBAL_DAILY_SPEND_CAP: "1" });
     const normal = await newToken("5.5.5.5");
-    const team = await accountFor("unlimited");
+    const team = await accountFor("gold");
     expect((await ask(auth(normal), body(), new FakeLLM())).status).toBe(200);
     expect((await ask(auth(normal), body(), new FakeLLM())).status).toBe(503);
-    expect((await ask(auth(team), body(), new FakeLLM())).status).toBe(200);
+    expect((await ask(auth(team), body(), new FakeLLM())).status).toBe(503);
   });
 
-  it("limite personnalisée, avec expiration", async () => {
-    const t = await accountFor("free", "daily_limit_override=3");
-    expect((await me(auth(t))).body.remaining).toBe(3);
-    await db.query("UPDATE users SET override_expires_at = now() - interval '1 hour'");
-    expect((await me(auth(t))).body.remaining).toBe(20); // expirée : retour à la limite du plan
-    await db.query("UPDATE users SET override_expires_at = now() + interval '1 hour'");
-    expect((await me(auth(t))).body.remaining).toBe(3);
+  it("pass étudiant expire après trois mois", async () => {
+    const t = await accountFor("student", "plan_expires_at=now() - interval '1 hour'");
+    expect((await me(auth(t))).body).toMatchObject({ plan: "free", limits: { daily: 5 }, remaining: 5 });
   });
 
   it("compte banni : 403 partout, sans consommer de quota", async () => {
-    const t = await accountFor("premium");
+    const t = await accountFor("silver");
     await db.query("UPDATE users SET status = 'banned'");
     const llm = new FakeLLM();
     expect((await ask(auth(t), body(), llm)).status).toBe(403);
@@ -87,13 +82,13 @@ describe("plans et limites", () => {
     expect(llm.calls).toHaveLength(0);
   });
 
-  it("les limites en base priment sur l'environnement (sans redéployer)", async () => {
+  it("les quotas restent fixes malgré les anciens réglages de base", async () => {
     const t = await accountFor("free");
-    await db.query("INSERT INTO settings (key, value) VALUES ('limit.free', '7'), ('limit.premium', '9')");
-    expect((await me(auth(t))).body.remaining).toBe(7);
+    await db.query("INSERT INTO settings (key, value) VALUES ('limit.free', '7')");
+    expect((await me(auth(t))).body.remaining).toBe(5);
     const anon = await newToken("7.7.7.7");
     await db.query("INSERT INTO settings (key, value) VALUES ('limit.anonymous', '2')");
-    expect((await me(auth(anon))).body.remaining).toBe(2);
+    expect((await me(auth(anon))).body.remaining).toBe(3);
   });
 });
 
@@ -135,7 +130,7 @@ describe("versions", () => {
     expect(old.body).toMatchObject({ error: "update_required", min_supported: "0.2.0" });
     expect((await ask(auth(t), body(), llm)).status).toBe(426); // sans version : traité comme très ancien
     expect(llm.calls).toHaveLength(0);
-    expect((await me(auth(t))).body.remaining).toBe(5);
+    expect((await me(auth(t))).body.remaining).toBe(3);
     expect((await ask(auth(t), body({ client_version: "0.2.0" }), llm)).status).toBe(200);
   });
 });
@@ -163,16 +158,18 @@ describe("mesure sans contenu", () => {
   });
 
   it("note les refus (quota, rafale) et les erreurs amont (dont 429 Groq)", async () => {
-    setupEnv({ ANON_DAILY_LIMIT: "1" });
+    setupEnv();
     const t = await newToken();
     await ask(auth(t), body(), new FakeLLM());
-    await ask(auth(t), body(), new FakeLLM()); // refus quota
+    await ask(auth(t), body(), new FakeLLM());
+    await ask(auth(t), body(), new FakeLLM());
+    await ask(auth(t), body(), new FakeLLM()); // refus quota à la quatrième requête
     await db.query("TRUNCATE usage_daily");
     const { UpstreamError } = await import("@/lib/llm");
     await ask(auth(t), body(), new FakeLLM(() => { throw new UpstreamError("status 429"); }));
     await ask(auth(t), body(), new FakeLLM(() => { throw new UpstreamError("status 503"); }));
     const outcomes = (await db.query("SELECT outcome FROM ask_metrics ORDER BY id")).rows.map((r) => r.outcome);
-    expect(outcomes).toEqual(["ok", "refused_quota", "upstream_429", "upstream_error"]);
+    expect(outcomes).toEqual(["ok", "ok", "refused_quota", "upstream_429", "upstream_error"]);
   });
 
   it("une panne de la table de mesure ne casse jamais /ask", async () => {

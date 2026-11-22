@@ -16,12 +16,14 @@ import threading
 import warnings
 from pathlib import Path
 from typing import Optional
+import tkinter as tk
 
 # Suppress spurious CustomTkinter HighDPI warning when using native tk.PhotoImage
 warnings.filterwarnings("ignore", message=".*Given image is not CTkImage.*")
 
 
 import customtkinter as ctk
+from PIL import Image
 
 from src import __version__
 from src.core import chat_bridge
@@ -171,6 +173,24 @@ class EzShellDesktopApp(ctk.CTk):
     HEIGHT_LAUNCHER = 440
     HEIGHT_RESULT = 560
 
+    @staticmethod
+    def _app_icon_path() -> Path:
+        return Path(__file__).resolve().parent.parent / "assets" / "ezshell-app-icon.png"
+
+    def _load_app_icon(self) -> None:
+        icon_path = self._app_icon_path()
+        if not icon_path.is_file():
+            return
+
+        icon = Image.open(icon_path).convert("RGBA")
+        self.app_icon_image = ctk.CTkImage(
+            light_image=icon,
+            dark_image=icon,
+            size=(28, 28),
+        )
+        self.app_icon_tk = tk.PhotoImage(file=str(icon_path))
+        self.iconphoto(True, self.app_icon_tk)
+
     def __init__(
         self,
         config: Optional[EzShellConfig] = None,
@@ -211,6 +231,7 @@ class EzShellDesktopApp(ctk.CTk):
 
         # Configuration de la fenêtre
         self.title("ezShell")
+        self._load_app_icon()
         self.configure(fg_color=self.COLOR_BG)
         self.after(50, self._apply_os_window_decorations)
 
@@ -290,21 +311,18 @@ class EzShellDesktopApp(ctk.CTk):
         hdr.bind("<ButtonPress-1>", self._start_drag)
         hdr.bind("<B1-Motion>", self._on_drag)
 
-        # Gauche : Logo '>_' en gras blanc + ezShell
+        # Gauche : icône officielle ezShell + mot-symbole
         left = ctk.CTkFrame(hdr, fg_color="transparent")
         left.pack(side="left")
         left.bind("<ButtonPress-1>", self._start_drag)
         left.bind("<B1-Motion>", self._on_drag)
 
-        logo_prompt = ctk.CTkLabel(
-            left,
-            text="❯_",
-            text_color="#FFFFFF",
-            font=ctk.CTkFont(family=self.FONT_CODE, size=18, weight="bold"),
-        )
-        logo_prompt.pack(side="left", padx=(0, 8))
-        logo_prompt.bind("<ButtonPress-1>", self._start_drag)
-        logo_prompt.bind("<B1-Motion>", self._on_drag)
+        logo_image = getattr(self, "app_icon_image", None)
+        if logo_image is not None:
+            logo_prompt = ctk.CTkLabel(left, image=logo_image, text="")
+            logo_prompt.pack(side="left", padx=(0, 8))
+            logo_prompt.bind("<ButtonPress-1>", self._start_drag)
+            logo_prompt.bind("<B1-Motion>", self._on_drag)
 
         title_text = ctk.CTkLabel(
             left,
@@ -1139,9 +1157,12 @@ class EzShellDesktopApp(ctk.CTk):
         top = ctk.CTkFrame(content, fg_color="transparent")
         top.pack(fill="x", pady=(0, 4))
 
+        logo_image = getattr(self, "app_icon_image", None)
+        if logo_image is not None:
+            ctk.CTkLabel(top, image=logo_image, text="", width=32).pack(side="left", padx=(0, 8))
         ctk.CTkLabel(
             top,
-            text="❯_ ezShell",
+            text="ezShell",
             text_color="#FFFFFF",
             font=ctk.CTkFont(family=self.FONT_TITLE, size=16, weight="bold"),
         ).pack(side="left")

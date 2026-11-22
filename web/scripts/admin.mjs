@@ -1,9 +1,9 @@
 // Console d'administration minimale (DATABASE_URL requis). Usage : npm run admin -- <commande>
 //   stats [--days 14]                         usage réel : de quoi fixer les plafonds
-//   user list [--plan premium]                liste des comptes
+//   user list [--plan silver]                 liste des comptes
 //   user show <email|id>                      détail + usage du jour + appareils
-//   user create <email> [--plan unlimited]    pré-crée un compte (lié au 1er login avec cet e-mail vérifié)
-//   user set-plan <email|id> <free|premium|unlimited>
+//   user create <email> [--plan gold]          pré-crée un compte (lié au 1er login avec cet e-mail vérifié)
+//   user set-plan <email|id> <free|silver|gold|student>
 //   user set-limit <email|id> <n> [--days 7]  limite personnalisée (avec expiration optionnelle)
 //   user clear-limit <email|id>
 //   user ban <email|id> | user unban <email|id>
@@ -26,7 +26,7 @@ const flag = (name, def) => {
   return i >= 0 ? rest[i + 1] : def;
 };
 const positional = rest.filter((a, i) => !a.startsWith("--") && !(i > 0 && rest[i - 1].startsWith("--")));
-const SETTING_KEYS = ["kill_switch", "limit.anonymous", "limit.free", "limit.premium", "global_cap", "max_devices", "min_client_version", "latest_client_version"];
+const SETTING_KEYS = ["kill_switch", "global_cap", "max_devices", "min_client_version", "latest_client_version"];
 
 async function findUser(ref) {
   const r = await db.query(`SELECT * FROM users WHERE id = $1 OR lower(email) = lower($1) OR github_login = $1`, [ref]);
@@ -113,7 +113,7 @@ async function user() {
       break;
     }
     case "set-plan": {
-      if (!["free", "premium", "unlimited"].includes(arg)) throw new Error("plan : free | premium | unlimited");
+      if (!["free", "silver", "gold", "student"].includes(arg)) throw new Error("plan : free | silver | gold | student");
       const u = await findUser(ref);
       await db.query(`UPDATE users SET plan = $2 WHERE id = $1`, [u.id, arg]);
       console.log(`${u.email ?? u.id} → ${arg}`);
