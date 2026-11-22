@@ -13,10 +13,10 @@ from __future__ import annotations
 import os
 import re
 import threading
+import tkinter as tk
 import warnings
 from pathlib import Path
 from typing import Optional
-import tkinter as tk
 
 # Suppress spurious CustomTkinter HighDPI warning when using native tk.PhotoImage
 warnings.filterwarnings("ignore", message=".*Given image is not CTkImage.*")
