@@ -1,12 +1,12 @@
 import type { Pool } from "pg";
 import { env } from "./env";
+import { ANONYMOUS_PLAN, PLANS } from "./plans";
 
 /** Réglages modifiables SANS redéployer : la table `settings` prime sur les variables d'environnement. */
 export interface Settings {
   killSwitch: boolean;
   anonymousLimit: number;
   freeLimit: number;
-  premiumLimit: number;
   globalCap: number;
   maxDevices: number;
   minClientVersion: string;
@@ -23,9 +23,8 @@ export async function loadSettings(pool: Pool): Promise<Settings> {
   const db = new Map(rows.map((r) => [r.key, r.value]));
   return {
     killSwitch: env.killSwitchEnv || db.get("kill_switch") === "1",
-    anonymousLimit: intOr(db.get("limit.anonymous"), env.anonDailyLimit),
-    freeLimit: intOr(db.get("limit.free"), env.freeDailyLimit),
-    premiumLimit: intOr(db.get("limit.premium"), env.premiumDailyLimit),
+    anonymousLimit: ANONYMOUS_PLAN.dailyQuota,
+    freeLimit: PLANS.free.dailyQuota,
     globalCap: intOr(db.get("global_cap"), env.globalDailyCap),
     maxDevices: intOr(db.get("max_devices"), env.maxDevicesPerUser),
     minClientVersion: db.get("min_client_version") ?? "0.0.0",

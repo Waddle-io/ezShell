@@ -8,8 +8,9 @@ interface AdminStats {
   users: {
     total: number;
     free: number;
-    premium: number;
-    unlimited: number;
+    silver: number;
+    gold: number;
+    student: number;
     banned: number;
   };
   devices: {
@@ -30,11 +31,13 @@ interface UserRow {
   email: string | null;
   github_login: string | null;
   role: "user" | "admin";
-  plan: "free" | "premium" | "unlimited";
+  plan: "free" | "silver" | "gold" | "student";
   status: "active" | "banned";
   daily_limit_override: number | null;
   devices_count: number;
   created_at: string;
+  newsletter_opt_in: boolean;
+  requests_today: number;
 }
 
 interface AuditLog {
@@ -54,7 +57,8 @@ export default function AdminPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"users" | "logs" | "settings">("users");
+  const [activeTab, setActiveTab] = useState<"users" | "quotas" | "subscriptions" | "stats" | "logs" | "emails">("users");
+  const [page, setPage] = useState(1);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
@@ -157,7 +161,16 @@ export default function AdminPage() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+      <main className="admin-layout max-w-7xl mx-auto px-4 py-8">
+        <aside className="admin-sidebar" aria-label="Navigation administration">
+          <button className={activeTab === "users" ? "active" : ""} onClick={() => setActiveTab("users")}>Utilisateurs</button>
+          <button className={activeTab === "quotas" ? "active" : ""} onClick={() => setActiveTab("quotas")}>Quotas</button>
+          <button className={activeTab === "subscriptions" ? "active" : ""} onClick={() => setActiveTab("subscriptions")}>Abonnements</button>
+          <button className={activeTab === "stats" ? "active" : ""} onClick={() => setActiveTab("stats")}>Stats</button>
+          <button className={activeTab === "emails" ? "active" : ""} onClick={() => setActiveTab("emails")}>Export emails</button>
+          <button className={activeTab === "logs" ? "active" : ""} onClick={() => setActiveTab("logs")}>Journal d&apos;audit</button>
+        </aside>
+        <div className="admin-content space-y-8">
         {message && (
           <div
             className={`p-4 rounded-xl text-sm border ${
@@ -177,8 +190,9 @@ export default function AdminPage() {
             <div className="text-2xl font-bold text-white">{stats?.users.total || 0}</div>
             <div className="mt-2 text-xs text-slate-500 space-x-2">
               <span>Free: {stats?.users.free}</span>
-              <span>Premium: {stats?.users.premium}</span>
-              <span>Illimité: {stats?.users.unlimited}</span>
+              <span>Silver: {stats?.users.silver}</span>
+              <span>Gold: {stats?.users.gold}</span>
+              <span>Étudiant: {stats?.users.student}</span>
             </div>
           </div>
 
@@ -198,36 +212,13 @@ export default function AdminPage() {
             </div>
           </div>
 
-          <div className={`p-5 rounded-2xl border ${stats?.kill_switch ? "bg-red-950/50 border-red-800" : "bg-slate-900/80 border-slate-800"}`}>
-            <span className="text-xs text-slate-400 block mb-1">Statut du Service</span>
-            <div className={`text-xl font-bold ${stats?.kill_switch ? "text-red-400" : "text-emerald-400"}`}>
-              {stats?.kill_switch ? "⛔ KILL SWITCH ACTIF" : "✔ Opérationnel"}
+          <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl">
+            <span className="text-xs text-slate-400 block mb-1">Comptes payants</span>
+            <div className="text-2xl font-bold text-purple-400">
+              {(stats?.users.silver || 0) + (stats?.users.gold || 0) + (stats?.users.student || 0)}
             </div>
-            <button
-              onClick={() => handleToggleKillSwitch(!stats?.kill_switch)}
-              className={`mt-2 text-xs px-2.5 py-1 rounded font-semibold transition ${
-                stats?.kill_switch ? "bg-emerald-800 hover:bg-emerald-700 text-white" : "bg-red-900 hover:bg-red-800 text-red-200"
-              }`}
-            >
-              {stats?.kill_switch ? "Désactiver Kill Switch" : "Activer Kill Switch"}
-            </button>
+            <div className="mt-2 text-xs text-slate-500">Premium et illimités</div>
           </div>
-        </div>
-
-        {/* Onglets */}
-        <div className="border-b border-slate-800 flex gap-6 text-sm font-medium">
-          <button
-            onClick={() => setActiveTab("users")}
-            className={`pb-3 border-b-2 transition ${activeTab === "users" ? "border-cyan-400 text-cyan-400" : "border-transparent text-slate-400 hover:text-white"}`}
-          >
-            Gestion des Utilisateurs ({users.length})
-          </button>
-          <button
-            onClick={() => setActiveTab("logs")}
-            className={`pb-3 border-b-2 transition ${activeTab === "logs" ? "border-cyan-400 text-cyan-400" : "border-transparent text-slate-400 hover:text-white"}`}
-          >
-            Journal d&apos;Audit ({logs.length})
-          </button>
         </div>
 
         {/* Onglet Utilisateurs */}
@@ -259,12 +250,14 @@ export default function AdminPage() {
                     <th className="px-4 py-3">Plan</th>
                     <th className="px-4 py-3">Quota Override</th>
                     <th className="px-4 py-3">Appareils</th>
+                    <th className="px-4 py-3">Requêtes aujourd&apos;hui</th>
+                    <th className="px-4 py-3">Inscription</th>
                     <th className="px-4 py-3">Statut</th>
                     <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60">
-                  {users.map((u) => (
+                  {users.slice((page - 1) * 10, page * 10).map((u) => (
                     <tr key={u.id} className="hover:bg-slate-800/30 transition">
                       <td className="px-4 py-3">
                         <div className="font-semibold text-white">{u.email || "Sans email"}</div>
@@ -282,8 +275,9 @@ export default function AdminPage() {
                           className="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-white"
                         >
                           <option value="free">Free</option>
-                          <option value="premium">Premium</option>
-                          <option value="unlimited">Unlimited</option>
+                          <option value="silver">Silver</option>
+                          <option value="gold">Gold</option>
+                          <option value="student">Pass étudiant</option>
                         </select>
                       </td>
                       <td className="px-4 py-3">
@@ -301,38 +295,73 @@ export default function AdminPage() {
                       <td className="px-4 py-3 text-slate-300 font-mono">
                         {u.devices_count}
                       </td>
+                      <td className="px-4 py-3 text-slate-300 font-mono">
+                        {u.requests_today}
+                      </td>
+                      <td className="px-4 py-3 text-slate-400 whitespace-nowrap">
+                        {new Date(u.created_at).toLocaleDateString()}
+                      </td>
                       <td className="px-4 py-3">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${u.status === "banned" ? "bg-red-950 text-red-400 border border-red-800" : "bg-emerald-950 text-emerald-400 border border-emerald-800"}`}>
                           {u.status}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right space-x-2">
-                        {u.status === "active" ? (
-                          <button
-                            onClick={() => handleUpdateUser(u.id, { status: "banned" })}
-                            className="px-2 py-1 text-[11px] rounded bg-red-950 text-red-300 border border-red-800 hover:bg-red-900 transition"
-                          >
-                            Bannir
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleUpdateUser(u.id, { status: "active" })}
-                            className="px-2 py-1 text-[11px] rounded bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900 transition"
-                          >
-                            Débannir
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleUpdateUser(u.id, { role: u.role === "admin" ? "user" : "admin" })}
-                          className="px-2 py-1 text-[11px] rounded bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition"
-                        >
-                          {u.role === "admin" ? "Rétrograder" : "Promouvoir Admin"}
-                        </button>
+                        <details className="admin-row-menu">
+                          <summary>Actions</summary>
+                          <div>
+                            <button onClick={() => handleUpdateUser(u.id, { status: u.status === "active" ? "banned" : "active" })}>
+                              {u.status === "active" ? "Bannir" : "Débannir"}
+                            </button>
+                            <button onClick={() => handleUpdateUser(u.id, { role: u.role === "admin" ? "user" : "admin" })}>
+                              {u.role === "admin" ? "Rétrograder" : "Promouvoir admin"}
+                            </button>
+                            <button onClick={() => handleUpdateUser(u.id, { plan: "silver" })}>Passer Silver</button>
+                          </div>
+                        </details>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+            <div className="admin-pagination">
+              <button disabled={page === 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>Précédent</button>
+              <span>Page {page} / {Math.max(1, Math.ceil(users.length / 10))}</span>
+              <button disabled={page * 10 >= users.length} onClick={() => setPage((value) => value + 1)}>Suivant</button>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "quotas" && (
+          <div className="admin-panel">
+            <h2>Quotas utilisateurs</h2>
+            <p>Les limites personnalisées sont modifiables depuis la colonne « Quota Override » de l&apos;onglet Utilisateurs.</p>
+          </div>
+        )}
+
+        {activeTab === "subscriptions" && (
+          <div className="admin-panel">
+            <h2>Abonnements</h2>
+            <p>{stats?.users.silver || 0} comptes Silver · {stats?.users.gold || 0} comptes Gold · {stats?.users.student || 0} pass étudiants</p>
+          </div>
+        )}
+
+        {activeTab === "stats" && (
+          <div className="admin-panel">
+            <h2>Statistiques</h2>
+            <p>{stats?.metrics_24h.total_asks || 0} requêtes sur les dernières 24 heures.</p>
+          </div>
+        )}
+
+        {activeTab === "emails" && (
+          <div className="admin-panel">
+            <h2>Export emails</h2>
+            <p>Export CSV des comptes inscrits et des visiteurs en liste d&apos;attente.</p>
+            <div className="admin-export-actions">
+              <a href="/api/v1/admin/emails/export">Tous les emails</a>
+              <a href="/api/v1/admin/emails/export?optIn=true">Opt-in uniquement</a>
+              <a href="/api/v1/admin/emails/export?optIn=false">Non opt-in</a>
             </div>
           </div>
         )}
@@ -374,6 +403,7 @@ export default function AdminPage() {
             </table>
           </div>
         )}
+        </div>
       </main>
     </div>
   );

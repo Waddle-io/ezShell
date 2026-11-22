@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS devices (
   user_id       text NULL,                       -- renseigné à la connexion (M3)
   ip_hash       text NOT NULL,                   -- limite d'enregistrements uniquement
   revoked_at    timestamptz NULL,
+  daily_used    integer NOT NULL DEFAULT 0,
+  daily_reset_at timestamptz NULL,
   created_at    timestamptz NOT NULL DEFAULT now(),
   last_seen_at  timestamptz NOT NULL DEFAULT now()
 );
@@ -52,8 +54,12 @@ CREATE TABLE IF NOT EXISTS users (
   github_id            text NULL,
   github_login         text NULL,
   role                 text NOT NULL DEFAULT 'user' CHECK (role IN ('user','admin')),
-  plan                 text NOT NULL DEFAULT 'free' CHECK (plan IN ('free','premium','unlimited')),
-  daily_limit_override integer NULL,                     -- limite personnalisée (ignorée pour 'unlimited')
+  plan                 text NOT NULL DEFAULT 'free',
+  plan_started_at      timestamptz NULL,
+  plan_expires_at      timestamptz NULL,
+  daily_used           integer NOT NULL DEFAULT 0,
+  daily_reset_at       timestamptz NULL,
+  daily_limit_override integer NULL,                     -- champ historique, sans effet sur les quotas fixes
   override_expires_at  timestamptz NULL,
   status               text NOT NULL DEFAULT 'active' CHECK (status IN ('active','banned')),
   created_at           timestamptz NOT NULL DEFAULT now()
@@ -62,13 +68,55 @@ CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users (lower(email)) WHERE 
 CREATE UNIQUE INDEX IF NOT EXISTS users_github_idx ON users (github_id) WHERE github_id IS NOT NULL;
 
 DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='plan_started_at') THEN
+    ALTER TABLE users ADD COLUMN plan_started_at timestamptz NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='plan_expires_at') THEN
+    ALTER TABLE users ADD COLUMN plan_expires_at timestamptz NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='daily_used') THEN
+    ALTER TABLE users ADD COLUMN daily_used integer NOT NULL DEFAULT 0;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='daily_reset_at') THEN
+    ALTER TABLE users ADD COLUMN daily_reset_at timestamptz NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='devices' AND column_name='daily_used') THEN
+    ALTER TABLE devices ADD COLUMN daily_used integer NOT NULL DEFAULT 0;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='devices' AND column_name='daily_reset_at') THEN
+    ALTER TABLE devices ADD COLUMN daily_reset_at timestamptz NULL;
+  END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='role') THEN
     ALTER TABLE users ADD COLUMN role text NOT NULL DEFAULT 'user';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='newsletter_opt_in') THEN
+    ALTER TABLE users ADD COLUMN newsletter_opt_in boolean NOT NULL DEFAULT false;
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'devices_user_fk') THEN
     ALTER TABLE devices ADD CONSTRAINT devices_user_fk FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL;
   END IF;
 END $$;
+
+-- Migration des anciens plans vers la nouvelle grille.
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_plan_check;
+UPDATE users SET plan = 'silver' WHERE plan = 'premium';
+UPDATE users SET plan = 'gold' WHERE plan = 'unlimited';
+UPDATE users SET plan = 'free' WHERE plan NOT IN ('free', 'silver', 'gold', 'student');
+UPDATE users
+   SET plan_started_at = coalesce(plan_started_at, created_at),
+       daily_reset_at = coalesce(daily_reset_at, date_trunc('day', now())::timestamptz)
+ WHERE plan_started_at IS NULL OR daily_reset_at IS NULL;
+UPDATE users
+   SET plan = 'free', plan_expires_at = NULL
+ WHERE plan = 'student' AND plan_expires_at IS NOT NULL AND plan_expires_at <= now();
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_plan_check;
+ALTER TABLE users ADD CONSTRAINT users_plan_check CHECK (plan IN ('free','silver','gold','student'));
+
+CREATE TABLE IF NOT EXISTS waitlist (
+  email       text PRIMARY KEY,
+  source      text NOT NULL DEFAULT 'landing',
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
 
 -- Journal d'audit pour la console admin (actions sensibles : ban, quota override, switch)
 CREATE TABLE IF NOT EXISTS audit_logs (
@@ -161,7 +209,7 @@ DROP TABLE IF EXISTS login_tokens;
 CREATE TABLE IF NOT EXISTS ask_metrics (
   id                bigserial PRIMARY KEY,
   at                timestamptz NOT NULL DEFAULT now(),
-  tier              text NOT NULL CHECK (tier IN ('anonymous','free','premium','unlimited')),
+  tier              text NOT NULL CHECK (tier IN ('anonymous','free','silver','gold','student')),
   mode              text NOT NULL,
   outcome           text NOT NULL,
   prompt_tokens     integer NULL,
@@ -169,4 +217,6 @@ CREATE TABLE IF NOT EXISTS ask_metrics (
   latency_ms        integer NULL,
   fingerprint       text NULL
 );
+ALTER TABLE ask_metrics DROP CONSTRAINT IF EXISTS ask_metrics_tier_check;
+ALTER TABLE ask_metrics ADD CONSTRAINT ask_metrics_tier_check CHECK (tier IN ('anonymous','free','silver','gold','student'));
 CREATE INDEX IF NOT EXISTS ask_metrics_at_idx ON ask_metrics (at);

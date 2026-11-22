@@ -8,6 +8,23 @@ Comment publier : mettre à jour `src/__init__.py` et ce fichier, passer la vers
 `"status": "released"` dans `web/data/releases.json`, pousser le tag `vX.Y.Z`
 (la CI publie sur PyPI), puis déployer le site.
 
+## 0.3.4
+
+### Nouveautés
+
+- Nouvelle interface desktop ezShell avec l'icône officielle en tête de fenêtre et dans la fenêtre « À propos ».
+- Nouvelle grille de quotas et tarifs : 3 requêtes/jour sans compte, 5 pour un compte gratuit, 35 pour Silver ou le pass étudiant, 150 pour Gold.
+- Tarifs affichés en FCFA : Silver 600 FCFA/mois, Gold 1 200 FCFA/mois et pass étudiant 1 500 FCFA pour 3 mois.
+- Console d'administration mise en page avec sidebar, tableau paginé, actions par utilisateur et export CSV des emails.
+- Collecte des opt-in newsletter des comptes et inscription des visiteurs à la liste d'attente.
+
+### Corrections
+
+- Le quota est maintenant remis à zéro chaque jour à minuit UTC et appliqué côté serveur.
+- Le pass étudiant expire automatiquement après trois mois et rétrograde vers le plan gratuit.
+- Les anciennes limites premium ou illimitées sont migrées vers Silver ou Gold.
+- Les liens publics vers le dépôt ont été retirés de l'interface web.
+
 ## 0.3.3
 
 ### À noter en premier

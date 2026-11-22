@@ -31,6 +31,21 @@ export async function takeDaily(
      RETURNING count`,
     [type, id, limit],
   );
+  if (r.rowCount) {
+    if (type === "user") {
+      await pool.query(
+        `UPDATE users SET daily_used = $1, daily_reset_at = (now() AT TIME ZONE 'utc')::date::timestamptz
+         WHERE id = $2`,
+        [r.rows[0].count, id],
+      );
+    } else if (type === "device" && !id.startsWith("ip:")) {
+      await pool.query(
+        `UPDATE devices SET daily_used = $1, daily_reset_at = (now() AT TIME ZONE 'utc')::date::timestamptz
+         WHERE id = $2`,
+        [r.rows[0].count, id],
+      );
+    }
+  }
   return r.rowCount ? { ok: true, count: r.rows[0].count } : { ok: false, count: limit };
 }
 
@@ -40,6 +55,17 @@ export async function refundDaily(pool: Pool, type: "device" | "user" | "global"
      WHERE subject_type = $1 AND subject_id = $2 AND day = (now() AT TIME ZONE 'utc')::date`,
     [type, id],
   );
+  if (type === "user") {
+    await pool.query(
+      `UPDATE users SET daily_used = GREATEST(daily_used - 1, 0) WHERE id = $1`,
+      [id],
+    );
+  } else if (type === "device" && !id.startsWith("ip:")) {
+    await pool.query(
+      `UPDATE devices SET daily_used = GREATEST(daily_used - 1, 0) WHERE id = $1`,
+      [id],
+    );
+  }
 }
 
 export async function readDaily(pool: Pool, type: "device" | "user", id: string): Promise<number> {

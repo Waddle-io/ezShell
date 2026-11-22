@@ -47,3 +47,37 @@ export async function sendLoginEmail(email: string, url: string): Promise<void> 
     throw new Error("email_delivery_failed");
   }
 }
+
+export async function sendWaitlistConfirmation(email: string): Promise<void> {
+  if (!env.resendKey || !env.emailFrom) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("email_not_configured");
+    }
+    console.info(`[waitlist] Inscription confirmée pour ${email}`);
+    return;
+  }
+
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${env.resendKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: env.emailFrom,
+      to: email,
+      subject: "Tu es sur la liste ezShell",
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #0f172a;">Tu es inscrit aux nouvelles d&apos;ezShell</h2>
+          <p>On t&apos;écrira seulement pour les annonces importantes, notamment le lancement des nouvelles fonctionnalités.</p>
+        </div>
+      `,
+    }),
+  });
+
+  if (!res.ok) {
+    console.error("[waitlist] Resend a refusé l'envoi :", res.status);
+    throw new Error("email_delivery_failed");
+  }
+}

@@ -66,22 +66,22 @@ describe("/ask", () => {
     const r = await ask(auth(t), body(), new FakeLLM());
     expect(r.status).toBe(200);
     expect(r.body.command).toBe("git pull --rebase origin main");
-    expect(r.headers?.["x-ezsh-remaining"]).toBe("4");
+    expect(r.headers?.["x-ezsh-remaining"]).toBe("2");
   });
 
   it("400 sur une requête invalide, sans consommer de quota", async () => {
     const t = await newToken();
     expect((await ask(auth(t), { mode: "hack" }, new FakeLLM())).status).toBe(400);
     expect((await ask(auth(t), undefined, new FakeLLM())).status).toBe(400);
-    expect((await me(auth(t))).body.remaining).toBe(5);
+    expect((await me(auth(t))).body.remaining).toBe(3);
   });
 
   it("ne dépasse JAMAIS le quota, même en parallèle (atomicité)", async () => {
     const t = await newToken();
     const llm = new FakeLLM();
     const rs = await Promise.all(Array.from({ length: 25 }, () => ask(auth(t), body(), llm)));
-    expect(rs.filter((r) => r.status === 200)).toHaveLength(5);
-    expect(llm.calls).toHaveLength(5); // le modèle n'est pas appelé au-delà du quota
+    expect(rs.filter((r) => r.status === 200)).toHaveLength(3);
+    expect(llm.calls).toHaveLength(3); // le modèle n'est pas appelé au-delà du quota
     const limited = rs.find((r) => r.status === 429)!;
     expect(limited.body.scope).toBe("anonymous");
     expect(typeof limited.body.reset_at).toBe("string");
@@ -93,7 +93,7 @@ describe("/ask", () => {
     const r = await ask(auth(t), body(), down);
     expect(r.status).toBe(502);
     expect(r.body.error).toBe("upstream");
-    expect((await me(auth(t))).body.remaining).toBe(5);
+    expect((await me(auth(t))).body.remaining).toBe(3);
   });
 
   it("réessaie une fois si la réponse est invalide, puis 502 remboursé", async () => {
@@ -103,7 +103,7 @@ describe("/ask", () => {
     expect(r.status).toBe(502);
     expect(r.body.error).toBe("invalid_model_response");
     expect(llm.calls).toHaveLength(2);
-    expect((await me(auth(t))).body.remaining).toBe(5);
+    expect((await me(auth(t))).body.remaining).toBe(3);
   });
 
   it("accepte une 2e tentative valide", async () => {
@@ -128,7 +128,7 @@ describe("/ask", () => {
     for (let i = 0; i < 4; i++) rs.push(await ask(auth(t), body(), new FakeLLM()));
     expect(rs.map((r) => r.status)).toEqual([200, 200, 503, 503]);
     expect(rs[2].body.error).toBe("limited");
-    expect((await me(auth(t))).body.remaining).toBe(3); // 2 utilisées, les refus n'ont rien coûté
+    expect((await me(auth(t))).body.remaining).toBe(1); // 2 utilisées, les refus n'ont rien coûté
   });
 
   it("coupe-circuit par variable d'environnement", async () => {
@@ -191,7 +191,7 @@ describe("/me", () => {
     const t = await newToken();
     await ask(auth(t), body(), new FakeLLM());
     const r = await me(auth(t));
-    expect(r.body).toMatchObject({ kind: "anonymous", limits: { daily: 5 }, remaining: 4 });
+    expect(r.body).toMatchObject({ kind: "anonymous", limits: { daily: 3 }, remaining: 2 });
   });
 
   it("un appareil connecté suit la limite « compte gratuit » (M3)", async () => {
@@ -200,6 +200,6 @@ describe("/me", () => {
     await db.query("UPDATE devices SET user_id = 'user-1'");
     const r = await ask(auth(t), body(), new FakeLLM());
     expect(r.status).toBe(200);
-    expect((await me(auth(t))).body).toMatchObject({ kind: "account", limits: { daily: 20 }, remaining: 19 });
+    expect((await me(auth(t))).body).toMatchObject({ kind: "account", limits: { daily: 5 }, remaining: 4 });
   });
 });

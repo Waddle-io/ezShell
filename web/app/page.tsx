@@ -7,10 +7,12 @@ import BentoCard from "./BentoCard";
 import FaqAccordion from "./FaqAccordion";
 import FinalCta from "./_landing/FinalCta";
 import PipxHelp from "./_landing/PipxHelp";
+import WaitlistForm from "./_landing/WaitlistForm";
+import { ANONYMOUS_PLAN, PLANS, formatFcfa } from "@/lib/plans";
 
 const INSTALL_COMMAND = "pipx install ezshell";
-const GITHUB_URL = "https://github.com/Waddle-io/ezShell";
 const SITE_URL = "https://ezshell.vercel.app";
+const SUPPORT_EMAIL = "waddle.support@gmail.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -44,18 +46,6 @@ export const viewport: Viewport = {
   ],
 };
 
-function GitHubIcon() {
-  return (
-    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
-      />
-    </svg>
-  );
-}
-
 const STATS = [
   { value: "< 50ms", label: "Latence d'analyse locale" },
   { value: "0", label: "Secret ou mot de passe exposé" },
@@ -88,8 +78,11 @@ export default function Home() {
       <header className="site-header">
         <div className="shell header-inner">
           <a className="brand" href="#top" aria-label="ezShell, accueil">
-            <span className="brand-symbol">❯_</span>
-            <span>ezShell</span>
+            <img
+              className="brand-img"
+              src="/assets/logos/ezshell-horizontal-transparent.png"
+              alt="ezShell"
+            />
           </a>
 
           <nav aria-label="Navigation principale">
@@ -97,20 +90,14 @@ export default function Home() {
             <a href="#fonctionnalites">Fonctionnalités</a>
             <a href="#exemples">Exemples</a>
             <a href="#installation">Installation</a>
+            <a href="#tarifs">Tarifs</a>
             <a href="#confidentialite">Confidentialité</a>
             <a href="#faq">Questions</a>
           </nav>
 
           <div className="nav-actions">
-            <a
-              className="nav-btn-secondary"
-              href={GITHUB_URL}
-              target="_blank"
-              rel="noreferrer"
-              aria-label="Code source GitHub"
-            >
-              <GitHubIcon />
-              <span>GitHub</span>
+            <a className="nav-btn-secondary" href={`mailto:${SUPPORT_EMAIL}`}>
+              Nous contacter
             </a>
             <a className="nav-btn-primary" href="/login">
               Se connecter
@@ -305,6 +292,31 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Tarifs */}
+        <section className="section shell" id="tarifs">
+          <div className="section-head">
+            <p className="section-eyebrow">Tarifs</p>
+            <h2 className="section-title">Un palier adapté à chaque usage.</h2>
+            <p className="section-desc">Des quotas journaliers fixes, sans fourchette ni surprise.</p>
+          </div>
+          <div className="pricing-grid">
+            <article className="pricing-card">
+              <h3>{ANONYMOUS_PLAN.name}</h3>
+              <p className="pricing-quota">{ANONYMOUS_PLAN.dailyQuota} requêtes/jour</p>
+              <strong>Gratuit</strong>
+            </article>
+            {[PLANS.free, PLANS.silver, PLANS.gold, PLANS.student].map((plan) => (
+              <article className={`pricing-card${plan.highlighted ? " pricing-card-highlight" : ""}`} key={plan.id}>
+                {plan.highlighted && <span className="pricing-badge">Populaire</span>}
+                <h3>{plan.name}</h3>
+                <p className="pricing-quota">{plan.dailyQuota} requêtes/jour</p>
+                <strong>{plan.priceFcfa === 0 ? "Gratuit" : `${formatFcfa(plan.priceFcfa)}${plan.period === "month" ? "/mois" : ""}`}</strong>
+                {plan.saleNote && <small>{plan.saleNote}</small>}
+              </article>
+            ))}
+          </div>
+        </section>
+
         {/* Confidentialité & Transparence */}
         <section className="section shell" id="confidentialite">
           <div className="section-head">
@@ -361,23 +373,16 @@ export default function Home() {
       {/* Pied de page style Vercel */}
       <footer className="site-footer">
         <div className="shell footer-inner">
+          <WaitlistForm />
           <div className="footer-credits">
             <span style={{ color: "#ffffff", fontWeight: 600 }}>ezShell par Waddle</span>
             <span>
-              © {new Date().getFullYear()} Waddle Team ·{" "}
-              <a href={`${GITHUB_URL}/blob/main/LICENSE`} target="_blank" rel="noreferrer">
-                Licence MIT
-              </a>
+              © {new Date().getFullYear()} Waddle Team
             </span>
           </div>
 
           <div className="footer-links">
-            <a href={GITHUB_URL} target="_blank" rel="noreferrer">
-              GitHub
-            </a>
-            <a href={`${GITHUB_URL}/issues`} target="_blank" rel="noreferrer">
-              Signaler un bug
-            </a>
+            <a href={`mailto:${SUPPORT_EMAIL}`}>Nous contacter</a>
             <a href="/api/v1/health">État du service</a>
             <a href="/login">Espace compte</a>
           </div>

@@ -2,7 +2,7 @@ import { authenticate } from "@/lib/handlers";
 import { getWebSessionUser } from "@/lib/auth";
 import { getPool } from "@/lib/db";
 import { loadSettings } from "@/lib/settings";
-import { entitlement, UNLIMITED } from "@/lib/plans";
+import { entitlement } from "@/lib/plans";
 import { nextUtcMidnight, readDaily } from "@/lib/quota";
 import { send } from "@/lib/http";
 
@@ -28,6 +28,8 @@ export async function GET(req: Request) {
           status: webUser.status,
           daily_limit_override: webUser.daily_limit_override,
           override_expires_at: webUser.override_expires_at,
+          plan_started_at: webUser.plan_started_at,
+          plan_expires_at: webUser.plan_expires_at,
         };
       }
     }
@@ -41,10 +43,9 @@ export async function GET(req: Request) {
       return send({ status: 403, body: { error: "banned", message: "Votre compte est suspendu." } });
     }
 
-    const isUnlimited = ent.tier === "unlimited";
-    const used = isUnlimited ? 0 : await readDaily(pool, ent.subjectType, ent.subjectId);
-    const limit = isUnlimited ? null : ent.limit;
-    const remaining = isUnlimited ? null : Math.max(0, ent.limit - used);
+    const used = await readDaily(pool, ent.subjectType, ent.subjectId);
+    const limit = ent.limit;
+    const remaining = Math.max(0, ent.limit - used);
 
     // Informations utilisateur
     let userDetails: Record<string, unknown> | null = null;

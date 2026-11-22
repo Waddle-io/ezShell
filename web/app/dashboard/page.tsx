@@ -12,7 +12,7 @@ interface UsageData {
     id: string;
     email: string | null;
     github_login: string | null;
-    plan: "free" | "premium" | "unlimited";
+    plan: "free" | "silver" | "gold" | "student";
     role: "user" | "admin";
     created_at: string;
   } | null;
@@ -39,6 +39,13 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchUsage();
+    if (localStorage.getItem("ezshell_newsletter_optin") === "true") {
+      fetch("/api/v1/account/newsletter", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newsletterOptIn: true }),
+      }).finally(() => localStorage.removeItem("ezshell_newsletter_optin"));
+    }
   }, []);
 
   async function fetchUsage() {
@@ -98,8 +105,7 @@ export default function DashboardPage() {
   const quota = data?.quota;
   const used = quota?.used_today ?? 0;
   const limit = quota?.daily_limit;
-  const isUnlimited = quota?.tier === "unlimited" || limit === null;
-  const percentage = isUnlimited ? 0 : Math.min(100, Math.round((used / (limit || 1)) * 100));
+  const percentage = Math.min(100, Math.round((used / (limit || 1)) * 100));
 
   return (
     <div className={styles.page}>
@@ -164,11 +170,10 @@ export default function DashboardPage() {
               <div className={styles.quotaRow}>
                 <span>Requêtes utilisées aujourd&apos;hui :</span>
                 <span className={styles.quotaValue}>
-                  {used} {isUnlimited ? "(Illimité)" : `/ ${limit}`}
+                  {used} / {limit} requêtes utilisées
                 </span>
               </div>
-              {!isUnlimited && (
-                <div className={styles.progressTrack}>
+              <div className={styles.progressTrack}>
                   <div
                     className={`${styles.progressFill} ${
                       percentage > 85 ? styles.progressDanger : percentage > 60 ? styles.progressWarning : ""
@@ -176,11 +181,13 @@ export default function DashboardPage() {
                     style={{ width: `${percentage}%` }}
                   ></div>
                 </div>
-              )}
               <div className={styles.quotaMeta}>
-                <span>Restantes : {isUnlimited ? "∞" : quota?.remaining_today}</span>
+                <span>{used}/{limit} requêtes utilisées · {quota?.remaining_today} restantes</span>
                 <span>Reset UTC : {quota?.reset_at ? new Date(quota.reset_at).toLocaleTimeString() : "--"}</span>
               </div>
+              {percentage >= 100 && quota?.tier !== "gold" && (
+                <a href="/#tarifs" className={styles.upgradeMessage}>Quota atteint : passer à Silver ou Gold pour plus de requêtes.</a>
+              )}
             </div>
           </div>
 

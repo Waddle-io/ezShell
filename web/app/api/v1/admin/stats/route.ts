@@ -21,8 +21,9 @@ export async function GET(req: Request) {
       SELECT
         count(*)::int as total,
         count(case when plan = 'free' then 1 end)::int as free,
-        count(case when plan = 'premium' then 1 end)::int as premium,
-        count(case when plan = 'unlimited' then 1 end)::int as unlimited,
+        count(case when plan = 'silver' then 1 end)::int as silver,
+        count(case when plan = 'gold' then 1 end)::int as gold,
+        count(case when plan = 'student' then 1 end)::int as student,
         count(case when status = 'banned' then 1 end)::int as banned
       FROM users
     `);

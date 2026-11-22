@@ -19,9 +19,16 @@ export async function GET(req: Request) {
     let sql = `
       SELECT u.id, u.email, u.github_login, u.role, u.plan, u.status,
              u.daily_limit_override, u.override_expires_at, u.created_at,
-             count(d.id)::int as devices_count
+             u.newsletter_opt_in,
+             count(d.id)::int as devices_count,
+             coalesce(ud.requests_today, 0)::int as requests_today
       FROM users u
       LEFT JOIN devices d ON d.user_id = u.id AND d.revoked_at IS NULL
+      LEFT JOIN LATERAL (
+        SELECT sum(count)::int as requests_today
+        FROM usage_daily
+        WHERE subject_type = 'user' AND subject_id = u.id AND day = current_date
+      ) ud ON true
     `;
     const params: unknown[] = [];
 
@@ -64,9 +71,16 @@ export async function PATCH(req: Request) {
     const params: unknown[] = [targetUserId];
     let idx = 2;
 
-    if (body.plan && ["free", "premium", "unlimited"].includes(body.plan)) {
+    if (body.plan && ["free", "silver", "gold", "student"].includes(body.plan)) {
       updates.push(`plan = $${idx++}`);
       params.push(body.plan);
+      if (body.plan === "student") {
+        updates.push(`plan_started_at = now()`);
+        updates.push(`plan_expires_at = now() + interval '3 months'`);
+      } else {
+        updates.push(`plan_started_at = now()`);
+        updates.push(`plan_expires_at = NULL`);
+      }
     }
 
     if (body.status && ["active", "banned"].includes(body.status)) {
@@ -79,11 +93,6 @@ export async function PATCH(req: Request) {
       params.push(body.role);
     }
 
-    if (body.daily_limit_override !== undefined) {
-      const overrideVal = body.daily_limit_override === null ? null : Number(body.daily_limit_override);
-      updates.push(`daily_limit_override = $${idx++}`);
-      params.push(overrideVal);
-    }
 
     if (!updates.length) {
       return send({ status: 400, body: { error: "no_updates", message: "Aucune modification fournie." } });

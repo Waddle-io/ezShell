@@ -42,7 +42,7 @@ const EXAMPLES: ExampleItem[] = [
     id: "git",
     tabLabel: "Push rejeté (force)",
     command: "git push origin main",
-    error: "To github.com:Waddle-io/ezShell.git\n ! [rejected]        main -> main (non-fast-forward)\nerror: failed to push some refs to 'github.com:Waddle-io/ezShell.git'",
+    error: "To origin:mon-projet.git\n ! [rejected]        main -> main (non-fast-forward)\nerror: failed to push some refs to 'origin:mon-projet.git'",
     cause: "L'historique distant a divergé suite à un rebase local.",
     fix: "git push --force-with-lease origin main",
     risk: "medium",
