@@ -101,24 +101,24 @@ describe("versions", () => {
   });
 
   it("annonce la dernière version publiée (et seulement elle)", () => {
-    expect(latestReleased()).toBe("0.3.3");
+    expect(latestReleased()).toBe("0.3.4");
     expect(latestReleased("0.9.0")).toBe("0.9.0"); // surcharge explicite (réglage en base)
-    expect(latestReleased("pas-une-version")).toBe("0.3.3");
+    expect(latestReleased("pas-une-version")).toBe("0.3.4");
   });
 
   it("GET /version : dernière version, minimale, notes cumulées", async () => {
     await db.query("INSERT INTO settings (key, value) VALUES ('min_client_version', '0.2.0')");
     const r = await versionInfo("0.1.0");
     expect(r.status).toBe(200);
-    expect(r.body).toMatchObject({ latest: "0.3.3", min_supported: "0.2.0" });
-    expect((r.body.releases as Array<{ version: string }>).map((x) => x.version)).toEqual(["0.2.0", "0.3.0", "0.3.1", "0.3.2", "0.3.3"]);
-    expect(((await versionInfo("0.2.0")).body.releases as Array<{ version: string }>).map((x) => x.version)).toEqual(["0.3.0", "0.3.1", "0.3.2", "0.3.3"]); // seules les versions suivantes sont nouvelles
+    expect(r.body).toMatchObject({ latest: "0.3.4", min_supported: "0.2.0" });
+    expect((r.body.releases as Array<{ version: string }>).map((x) => x.version)).toEqual(["0.2.0", "0.3.0", "0.3.1", "0.3.2", "0.3.3", "0.3.4"]);
+    expect(((await versionInfo("0.2.0")).body.releases as Array<{ version: string }>).map((x) => x.version)).toEqual(["0.3.0", "0.3.1", "0.3.2", "0.3.3", "0.3.4"]); // seules les versions suivantes sont nouvelles
   });
 
   it("x-ezsh-latest est renvoyé avec les réponses authentifiées", async () => {
     const t = await newToken();
-    expect((await ask(auth(t), body(), new FakeLLM())).headers?.["x-ezsh-latest"]).toBe("0.3.3");
-    expect((await me(auth(t))).headers?.["x-ezsh-latest"]).toBe("0.3.3");
+    expect((await ask(auth(t), body(), new FakeLLM())).headers?.["x-ezsh-latest"]).toBe("0.3.4");
+    expect((await me(auth(t))).headers?.["x-ezsh-latest"]).toBe("0.3.4");
   });
 
   it("426 pour un client sous la version minimale, sans consommer de quota", async () => {
@@ -163,13 +163,13 @@ describe("mesure sans contenu", () => {
     await ask(auth(t), body(), new FakeLLM());
     await ask(auth(t), body(), new FakeLLM());
     await ask(auth(t), body(), new FakeLLM());
-    await ask(auth(t), body(), new FakeLLM()); // refus quota à la quatrième requête
+    await ask(auth(t), body(), new FakeLLM()); // quota anonyme = 3 : refus à la quatrième requête
     await db.query("TRUNCATE usage_daily");
     const { UpstreamError } = await import("@/lib/llm");
     await ask(auth(t), body(), new FakeLLM(() => { throw new UpstreamError("status 429"); }));
     await ask(auth(t), body(), new FakeLLM(() => { throw new UpstreamError("status 503"); }));
     const outcomes = (await db.query("SELECT outcome FROM ask_metrics ORDER BY id")).rows.map((r) => r.outcome);
-    expect(outcomes).toEqual(["ok", "ok", "refused_quota", "upstream_429", "upstream_error"]);
+    expect(outcomes).toEqual(["ok", "ok", "ok", "refused_quota", "upstream_429", "upstream_error"]);
   });
 
   it("une panne de la table de mesure ne casse jamais /ask", async () => {
