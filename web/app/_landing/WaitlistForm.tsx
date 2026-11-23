@@ -37,7 +37,7 @@ export default function WaitlistForm() {
           placeholder="vous@exemple.com"
         />
         <button type="submit" disabled={status === "loading"}>
-          {status === "loading" ? "Envoi…" : "M&apos;avertir"}
+          {status === "loading" ? "Envoi…" : "M’avertir"}
         </button>
       </div>
       {status === "success" && <p role="status">Inscription enregistrée.</p>}

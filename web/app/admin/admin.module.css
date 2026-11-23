@@ -39,7 +39,7 @@
   top: 0;
   z-index: 30;
   border-bottom: 1px solid var(--border);
-  background: rgba(0, 0, 0, 0.78);
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }

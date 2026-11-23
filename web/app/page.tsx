@@ -375,7 +375,7 @@ export default function Home() {
         <div className="shell footer-inner">
           <WaitlistForm />
           <div className="footer-credits">
-            <span style={{ color: "#ffffff", fontWeight: 600 }}>ezShell par Waddle</span>
+            <span className="footer-brand">ezShell par Waddle</span>
             <span>
               © {new Date().getFullYear()} Waddle Team
             </span>
